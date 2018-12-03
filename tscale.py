@@ -29,6 +29,10 @@
 #	* SURF.nc - all surface variables for entire domain (single/multiple 
 #		CGCs) [time X grid cell X variable]
 
+import numpy as np
+import netCDF4 as nc
+
+
 class cgcExtract(object):
 	"""
 	Return extracted cgc of interest
@@ -39,13 +43,39 @@ class cgcExtract(object):
 		nc: data netcdf
 
 	Example:
-		lon=7.5
-		lat=48.5
+		mylon=9.3
+		mylat=46.2
 		nc= /home/joel/PLEV.nc
 
-		cgcExtract(lon, lat, nc)
+		cgcExtract(mylon, mylat, ncfile)
 
 	""" 
+
+
+	def showVars(ncfile):
+
+		f = nc.Dataset(ncfile)
+	def getVar(mylon, mylat, ncfile, var):
+
+		f = nc.Dataset(ncfile)
+
+		latbounds = [ mylat , mylat ]
+		lonbounds = [ mylon , mylon ] # degrees east ? 
+		lats = f.variables['latitude'][:] 
+		lons = f.variables['longitude'][:]
+
+		# latitude lower and upper index
+		latli = np.argmin( np.abs( lats - latbounds[0] ) )
+		latui = np.argmin( np.abs( lats - latbounds[1] ) ) 
+
+		# longitude lower and upper index
+		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
+		lonui = np.argmin( np.abs( lons - lonbounds[1] ) )  
+
+		# Air (time, latitude, longitude) 
+		mysub = f.variables[var][ latli , lonli,:,: ] 
+
+
 
 class cgcInterp(object):
 	"""
@@ -67,9 +97,8 @@ class cgcInterp(object):
 
 class downscale(object):
     """
-    Return object for downscaling that has methods for interpolationg
-    upper-air temperature and surface influences at surface level
-    based on disaggregating coarse-grid reanalysis and dem.
+    Return object for downscaling that has methods for interpolating
+	pressure level data based on a given elevation. If a 
     
     Args:
         dem: A required fine-scale dem in netcdf format
@@ -83,3 +112,10 @@ class downscale(object):
         downscaling = downscaling(dem, geop, sa, pl)
         
     """
+        def __init__(self, geop, sa, pl, dem = None):
+        self.g    = 9.80665 #Gravitational acceleration [m/s2]
+        self.geop = nc.Dataset(geop)
+        self.sa   = nc.Dataset(sa)
+        self.pl   = nc.Dataset(pl)
+        if not (dem is None):
+            self.dem  = nc.Dataset(dem)
