@@ -1,0 +1,60 @@
+<PAMDataset>
+  <Subdataset name="ie">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Histograms>
+          <HistItem>
+            <HistMin>28512.68</HistMin>
+            <HistMax>29309.32</HistMax>
+            <BucketCount>25</BucketCount>
+            <IncludeOutOfRange>0</IncludeOutOfRange>
+            <Approximate>0</Approximate>
+            <HistCounts>1|0|0|0|0|0|0|0|0|1|0|0|1|0|0|0|1|4|1|2|4|3|5|1|1</HistCounts>
+          </HistItem>
+        </Histograms>
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">29294</MDI>
+          <MDI key="STATISTICS_MEAN">29114.56</MDI>
+          <MDI key="STATISTICS_MINIMUM">28528</MDI>
+          <MDI key="STATISTICS_STDDEV">160.70695815677</MDI>
+        </Metadata>
+      </PAMRasterBand>
+      <PAMRasterBand band="2">
+        <Histograms>
+          <HistItem>
+            <HistMin>29032.5</HistMin>
+            <HistMax>29370.5</HistMax>
+            <BucketCount>25</BucketCount>
+            <IncludeOutOfRange>0</IncludeOutOfRange>
+            <Approximate>0</Approximate>
+            <HistCounts>1|2|5|1|0|0|0|1|0|0|1|0|3|2|0|1|1|4|0|1|0|1|0|0|1</HistCounts>
+          </HistItem>
+        </Histograms>
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">29364</MDI>
+          <MDI key="STATISTICS_MEAN">29177.8</MDI>
+          <MDI key="STATISTICS_MINIMUM">29039</MDI>
+          <MDI key="STATISTICS_STDDEV">97.675790245077</MDI>
+        </Metadata>
+      </PAMRasterBand>
+      <PAMRasterBand band="3">
+        <Histograms>
+          <HistItem>
+            <HistMin>23572.3</HistMin>
+            <HistMax>29172.7</HistMax>
+            <BucketCount>25</BucketCount>
+            <IncludeOutOfRange>0</IncludeOutOfRange>
+            <Approximate>0</Approximate>
+            <HistCounts>1|0|0|0|0|0|1|0|1|0|2|1|0|0|2|2|2|0|0|1|0|3|0|2|7</HistCounts>
+          </HistItem>
+        </Histograms>
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">29065</MDI>
+          <MDI key="STATISTICS_MEAN">27538.84</MDI>
+          <MDI key="STATISTICS_MINIMUM">23680</MDI>
+          <MDI key="STATISTICS_STDDEV">1472.4718721932</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+</PAMDataset>

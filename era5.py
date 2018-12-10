@@ -1,6 +1,6 @@
 # TopoSCALE: ERA5 plugin
 #
-# === DESCRIPTION ==============================================================
+# === DESCRIPTION ======================================================
 #
 #	This plugin 
 #		* reads  monthly ERA5 data files (MARS efficiency)
@@ -11,7 +11,15 @@
 #		*
 #		*
 #		*
-# === COPYRIGHT AND LICENCE ====================================================
+# === TopoSCALE standard input =========================================
+#   	* air temperature - K
+#		* precipitation - mmh*1
+#		* shortwave Wm**2
+#		* longwave Wm**2
+#		* wind - U and V vectors
+#		*
+#		*
+# === COPYRIGHT AND LICENCE ============================================
 #
 #	This program is free software: you can redistribute it and/or modify
 #	it under the terms of the GNU General Public License as published by
@@ -27,12 +35,10 @@
 #	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
-# === CONTRIBUTIONS ====================================================
-#
 # === NOTES ============================================================
-
+#
 # === REQUIREMENTS =====================================================
-
+#
 # === DEPENDENCIES =====================================================
 #	
 #	* CDO: sudo apt install cdo
@@ -78,16 +84,14 @@ class Plev(object):
 		fp: filepath to concatenated PLEVEL.nc file
 	Example:
 		p=Plev(fp)
-		vars=p.vars()
+		varnames=p.varnames()
 	"""
-
 	def __init__(self,fp, mylat, mylon):
-	  	self.fp = fp
-	  	self.vars = []
-	  	self.mylat=mylat
-	  	self.mylon=mylon
-	  	self.g          = 9.80665 #m s-2
-        self.absZero    = 273.15
+		self.fp = fp
+		self.varnames = []
+		self.mylat=mylat
+		self.mylon=mylon
+
 
 
 	def getVarNames(self):
@@ -100,17 +104,15 @@ class Plev(object):
 					and v != ( u'latitude') 
 					and v != ( u'longitude') 
 					and v != ( u'level')):
-			 		self.vars.append(v)
-		#return self.vars
+			 		self.varnames.append(v)
+		#return self.varnames
 
-	
 	def getVar(self, var):
 		"""extract variables (remains an nc object)"""
 		f = nc.Dataset(self.fp)
 		self.myvar = f.variables[var]
 		#return myvar
 
-	
 	def extractCgc(self,var):
 		"""extract variable and cgc (now np array)"""
 		f = nc.Dataset(self.fp)
@@ -127,20 +129,28 @@ class Plev(object):
 		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
 
 		# subset
-		self.var = f.variables[var][ latli , lonli,:,: ] 
+		self.var = f.variables[var][ :,: ,latli , lonli] 
 		#return mysub
 
-		
 	def addVar(self,varname,dat):
 		""" rename attribute"""
 		setattr(self, varname, dat)
 
-	# create elevation (m) from geopotential	
-	def convZ(self):
-		self.z = self.z/self.g
-		
-	# creat wind speed and wind direction from u and V vectors	
-	def convUV(self):	
+	def addTime(self):
+		""" add time vector and convert to ISO """
+		f = nc.Dataset(self.fp)
+		self.nctime = f.variables['time']
+		self.dtime = nc.num2date(self.nctime[:],self.nctime.units)
+
+	def addShape(self):
+		""" adds two dimensions of time and levels """
+		self.myshape = self.var.shape
+	# def convZ(self):
+	# 	""" create elevation (m) from geopotential """
+	# 	self.z = self.z/self.g
+	
+
+
 class Plev_interp(Plev):
 	"""
 	Makes a plev object which is array of all variables processed to 
@@ -150,13 +160,12 @@ class Plev_interp(Plev):
 		fp: filepath to concatenated PLEVEL.nc file
 	Example:
 		p=Plev(fp)
-		vars=p.vars()
+		varnames=p.varnames()
 	"""
 
-
-	# interp variable and cgc (now np array) !!NOT FINISHED!! Perhaps a 
-	# different class as here includes z interpolation
 	def interpCgc(self,var):
+		"""	# interp variable and cgc (now np array) !!NOT FINISHED!! 
+		Perhaps a  different class as here includes z interpolation"""
 		f = nc.Dataset(self.fp)
 
 		latbounds = [ self.mylat , self.mylat ]
@@ -196,7 +205,7 @@ class Plev_interp(Plev):
 		"""
 
 		# subset
-		self.var = f.variables[var][ latli , lonli,:,: ] 
+		self.var = f.variables[var][ :,: ,latli , lonli] 
 		#return mysub
 
 class Surf(Plev):
@@ -208,7 +217,7 @@ class Surf(Plev):
 		fp: filepath to concatenated PLEVEL.nc file
 	Example:
 		p=Plev(fp)
-		vars=p.vars()
+		varnames=p.varnames()
 	"""
 	
 	def extractCgc(self,var):
@@ -227,13 +236,20 @@ class Surf(Plev):
 		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
 
 		# subset
-		self.var = f.variables[var][ latli , lonli,: ] 
+		self.var = f.variables[var][ : ,latli , lonli] 
 		#return mysub
 
+	def instRad(self):
+		""" Convert SWin from accumulated quantities in J/m2 to 
+		instantaneous W/m2 see: 
+		https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513"""
+		self.strd = self.strd/3600  
+		self.ssrd = self.ssrd/3600 
 
 
 
-#https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513
+
+
 
 
 
