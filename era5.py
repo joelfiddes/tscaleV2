@@ -148,6 +148,11 @@ class Plev(object):
 	# def convZ(self):
 	# 	""" create elevation (m) from geopotential """
 	# 	self.z = self.z/self.g
+
+	def plevels(self):
+		f = nc.Dataset(self.fp)
+		self.levels = f.variables['level'][:]
+
 	
 
 

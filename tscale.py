@@ -42,13 +42,15 @@ class tscale(object):
 
 	"""	
 
-	def __init__(self, z, statEle):
+	def __init__(self, z):
 		self.g= 9.80665 #m s-2
-		self.statEle = statEle
+		#self.statEle = statEle
 		self.z=z
+		self.R=287.05  # Gas constant for dry air.
+
 		
 
-	def tscale1D(self,dat):
+	def tscale1D(self,dat, stat):
 		""" Interpolates vector of pressure level data to station elevation at 
 		each timestep to create timeseries of downscaled values at station 
 		elevation"""
@@ -56,7 +58,7 @@ class tscale(object):
 		self.ele=self.z/self.g
 		self.interpVar=[]
 		for i in range(0,(self.z.shape)[0]): 
-			self.interpVar.append(np.interp(self.statEle,self.ele[i,], self.dat[i,] ))
+			self.interpVar.append(np.interp(stat.ele,self.ele[i,], self.dat[i,] ))
 		self.interpVar = np.array(self.interpVar) # convert list to np array
 	def addVar(self,varname,datInterp):
 		""" Assign correct attribute name """
@@ -132,7 +134,40 @@ class tscale(object):
 #class wind(object)
 	""" methods for working with wind"""
 
-	def swin(self,sob):
+	def swin(self,pob,sob,tob, stat):
+		
+		""" toposcale surface pressure using hypsometric equation - move to own 
+		class """
+
+		ztemp = pob.z
+		Ttemp = pob.t
+		statz = stat.ele*self.g
+		dz=ztemp.transpose()-statz # transpose not needed but now consistent with CGC surface pressure equations
+
+		self.psf=[]
+		for i in range(0,dz.shape[1]):
+		
+			# 	# find overlying layer
+			thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
+
+			# booleen indexing
+			T1=Ttemp[i,thisp]
+			z1=ztemp[i,thisp]
+			p1=pob.levels[thisp]*1e2 #Convert to Pa.
+			Tbar=np.mean([T1, tob.t[i]],axis=0)
+			""" Hypsometric equation."""
+			self.psf.append(p1*np.exp((z1-statz)*(self.g/(Tbar*self.R))))
+
+		self.psf=np.array(self.psf)
+
+
+
+		## Specific humidity routine.
+		# mrvf=0.622.*vpf./(psf-vpf); %Mixing ratio for water vapor at subgrid.
+		#  qf=mrvf./(1+mrvf); % Specific humidity at subgrid [kg/kg].
+		# fout.q(:,:,n)=qf; 
+
+
 		""" Maybe follow Dubayah's approach (as in Rittger and Girotto) instead
 		for the shortwave downscaling, other than terrain effects. """
 
@@ -157,32 +192,45 @@ class tscale(object):
 
 		""" Use the above with the sky-view fraction to calculate the 
 		downwelling diffuse shortwave radiation at subgrid. """
-		SWfdiff=tp.svf*SWcdiff
+		SWfdiff=stat.svf*SWcdiff
 
-		    """ Direct shortwave routine, modified from Joel. 
-    
-    % Get surface pressure at "grid" (coarse scale). Can remove this
-    % part once surface pressure field is downloaded, or just check
-    % for existance. """
-    nlon=numel(fin.lon); nlat=numel(fin.lat); 
-    psc=zeros(size(fin.Zs));
-    for j=1:nlat
-        for i=1:nlon
-            z0=fin.Zs(i,j)
-            T0=fin.T2(i,j,here)
-            ztemp=squeeze(fin.Z(i,j,:,here))
-            Ttemp=squeeze(fin.T(i,j,:,here))
-            dz=ztemp-z0
-            thisp=dz==min(dz(dz>0))
-            T1=Ttemp(thisp)
-            z1=ztemp(thisp)
-            p1=fin.p(thisp)*1e2 #Convert to Pa.
-            Tbar=mean([T0 T1])
-            
-            """ Hypsometric equation."""
-            psc(i,j)=p1*exp((z1-z0)*(g/(Tbar*R)))
-        end
-    end
+		""" Direct shortwave routine, modified from Joel. 
 
-z0 = sob.z
-T0 = sob.t2m
+# % Get surface pressure at "grid" (coarse scale). Can remove this
+# % part once surface pressure field is downloaded, or just check
+# % for existance. """
+
+		ztemp = pob.z
+		Ttemp = pob.t
+		dz=ztemp.transpose()-sob.z
+
+		self.psc=[]
+		for i in range(0,dz.shape[1]):
+		
+			#thisp.append(np.argmin(dz[:,i][dz[:,i]>0]))
+			thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
+			z0 = sob.z[i]
+			T0 = sob.t2m[i]
+			T1=Ttemp[i,thisp]
+			z1=ztemp[i,thisp]
+			p1=pob.levels[thisp]*1e2 #Convert to Pa.
+			Tbar=np.mean([T0, T1],axis=0)
+			""" Hypsometric equation."""
+			self.psc.append(p1*np.exp((z1-z0)*(self.g/(Tbar*self.R))))
+
+		self.psc=np.array(self.psc)
+
+
+
+
+		#T1=Ttemp(thisp)
+		#z1=ztemp(thisp)
+		#p1=pob.levels(thisp)*1e2 #Convert to Pa.
+		#Tbar=mean([T0 T1])
+		
+		# Cosine of the zenith angle.
+		there=tp.t==t(n);
+		sz=tp.szen(there);
+		sz=sz.*(sz>0); % Sun might be below the horizon.
+		muz=cos(sz); 
+		
