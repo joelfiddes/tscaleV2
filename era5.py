@@ -46,6 +46,7 @@
 import subprocess
 import numpy as np
 import netCDF4 as nc
+import pandas as pd
 
 #1. concat monthly files to single using CDO 
 #2. conversions
@@ -137,10 +138,20 @@ class Plev(object):
 		setattr(self, varname, dat)
 
 	def addTime(self):
-		""" add time vector and convert to ISO """
+		""" add time vector and convert to ISO 
+			Return datetime objects given numeric time values. 
+			The units of the numeric time values are described by the units 
+			argument and the calendar keyword. The returned datetime objects 
+			represent UTC with no time-zone offset, even if the specified 
+			units contain a time-zone offset.
+
+			calender options defined here:
+			http://unidata.github.io/netcdf4-python/#netCDF4.num2date
+			
+		"""
 		f = nc.Dataset(self.fp)
 		self.nctime = f.variables['time']
-		self.dtime = nc.num2date(self.nctime[:],self.nctime.units)
+		self.dtime = pd.to_datetime(nc.num2date(self.nctime[:],self.nctime.units, calendar="standard"))
 
 	def addShape(self):
 		""" adds two dimensions of time and levels """

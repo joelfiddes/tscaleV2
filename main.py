@@ -1,5 +1,6 @@
 import era5 as e5
 import tscale as ts
+import pandas as pd 
 reload(e5)
 reload(ts)
 
@@ -15,8 +16,8 @@ fp="/home/joel/mnt/myserver/sim/wfj_interim2/eraDat/PLEVEL.nc"
 fs="/home/joel/mnt/myserver/sim/wfj_interim2/eraDat/SURF.nc"
 
 # add to stat?
-mylon=9
-mylat=46
+stat.long=9
+stat.lat=46
 
 """ that's it!  Now, you can create a Bunch
  whenever you want to group a few variables:
@@ -26,12 +27,14 @@ class Bunch:
         self.__dict__.update(kwds)
 
 # station attribute structure
-stat = Bunch(ele = 2000, slp = 30, asp = 180, svf = 0.9  )
+stat = Bunch(ele = 2000, slp = 30, asp = 180, svf = 0.9, long=9, lat=46, tz=1  )
+
+
 
 #=== Pressure level object =============================================
 
 """ preprocess pressure level fields and add to structure """
-p=e5.Plev(fp, mylat, mylon)
+p=e5.Plev(fp, stat.lat, stat.long)
 p.getVarNames()
 
 for v in p.varnames:
@@ -44,16 +47,20 @@ for v in p.varnames:
 	p.addVar(v,p.var) # adds data again with correct name - redundancy
 	#can now remove p.var it is redundant
 
-# conversions
-#p.convZ()
+""" dimensions of data """
 p.addShape()
+
+""" Datetime structure """
 p.addTime()
+
+""" Pressure level values """
 p.plevels()
+
 pob = p
 #=== Surface object ====================================================
 
 """ preprocess surface level fields and add to structure """
-s=e5.Surf(fs, mylat, mylon)
+s=e5.Surf(fs, stat.lat, stat.long)
 s.getVarNames()
 
 for v in s.varnames:
@@ -89,5 +96,9 @@ tob = t
 # compute downscaled longwave (LWf)
 t.lwin(sob, tob)
 
-# compute downscaled shortavae (SWf)
-t.swin(pob, sob,tob, stat)
+# compute downscaled shortwave (SWf)
+t.swin(pob, sob,tob, stat,p.dtime)
+
+
+
+

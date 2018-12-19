@@ -5,18 +5,18 @@
 
 # === COPYRIGHT AND LICENCE ====================================================
 #
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#	This program is free software: you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation, either version 3 of the License, or
+#	(at your option) any later version.
 #
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
 #
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#	You should have received a copy of the GNU General Public License
+#	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
 # === CONTRIBUTIONS ============================================================
@@ -31,7 +31,8 @@
 
 import numpy as np
 import netCDF4 as nc
-
+import solarGeom as sg
+reload(sg)
 class tscale(object):
 	"""
 	Interpolate pressure level vector from single cgc in the TopoSUB use case
@@ -84,7 +85,7 @@ class tscale(object):
 
 # class lwin(object):
 # 	""" Methods for downscaling longwave radiation """
-    
+	
 # 	def __init__(self, statEle):
 # 		self.statEle = statEle
 
@@ -111,7 +112,7 @@ class tscale(object):
 		vpc=RHc*svpc/1e2
 
 		"""Use the vapor pressure and temperature to calculate clear sky
-		 % emssivity at grid and subgrid. [also function]"""
+		 # emssivity at grid and subgrid. [also function]"""
 		x1=0.43 
 		x2=5.7
 		cef=0.23+x1*(vpf/tf)**(1/x2) #Pretty sure the use of Kelvin is correct.
@@ -134,7 +135,7 @@ class tscale(object):
 #class wind(object)
 	""" methods for working with wind"""
 
-	def swin(self,pob,sob,tob, stat):
+	def swin(self,pob,sob,tob, stat, dates):
 		
 		""" toposcale surface pressure using hypsometric equation - move to own 
 		class """
@@ -163,8 +164,8 @@ class tscale(object):
 
 
 		## Specific humidity routine.
-		# mrvf=0.622.*vpf./(psf-vpf); %Mixing ratio for water vapor at subgrid.
-		#  qf=mrvf./(1+mrvf); % Specific humidity at subgrid [kg/kg].
+		# mrvf=0.622.*vpf./(psf-vpf); #Mixing ratio for water vapor at subgrid.
+		#  qf=mrvf./(1+mrvf); # Specific humidity at subgrid [kg/kg].
 		# fout.q(:,:,n)=qf; 
 
 
@@ -196,9 +197,9 @@ class tscale(object):
 
 		""" Direct shortwave routine, modified from Joel. 
 
-# % Get surface pressure at "grid" (coarse scale). Can remove this
-# % part once surface pressure field is downloaded, or just check
-# % for existance. """
+# # Get surface pressure at "grid" (coarse scale). Can remove this
+# # part once surface pressure field is downloaded, or just check
+# # for existance. """
 
 		ztemp = pob.z
 		Ttemp = pob.t
@@ -228,9 +229,94 @@ class tscale(object):
 		#p1=pob.levels(thisp)*1e2 #Convert to Pa.
 		#Tbar=mean([T0 T1])
 		
+		"""compute julian dates"""
+		jd= sg.to_jd(dates)
+
+		"""
+		Calculates a unit vector in the direction of the sun from the observer 
+		position.
+		"""
+		sunv=sg.sunvector(jd=jd, latitude=stat.lat, longitude=stat.long, timezone=stat.tz)
+
+		"""
+		Computes azimuth , zenith  and sun elevation 
+		for each timestamp
+		"""
+		sp=sg.sunpos(sunv)
+		self.sp=sp
+
+
+
 		# Cosine of the zenith angle.
-		there=tp.t==t(n);
-		sz=tp.szen(there);
-		sz=sz.*(sz>0); % Sun might be below the horizon.
-		muz=cos(sz); 
+		sz=sp.zen
+		#sz=sz*(sz>0) # Sun might be below the horizon.
+		muz=np.cos(sz) 
+		self.muz = muz
+		# NB! psc must be in Pa (NOT hPA!).
+		#if np.max(psc<1.5e3): # Obviously not in Pa
+			#psc=psc*1e2
+	   
+		
+		# Calculate the "broadband" absorption coefficient.
+		ka=(self.g*muz/(self.psc))*np.log(SWtoa/SWcdir)	
+		self.ka = ka
+		# Note this equation is obtained by inverting Beer's law, i.e. use
+		#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
+		# Along with hydrostatic equation to convert to pressure coordinates then
+		# solve for ka using p(z=inf)=0.
+		
+		
+		# Now you can (finally) find the direct component at subgrid. 
+		SWfdir=SWtoa*np.exp(-ka*self.psf/(self.g*muz))
+		self.SWfdir = SWfdir
+
+		# #  Then perform the terrain correction. [see Dozier and Frew 1990].
+		
+		# # Illumination angles.
+		# saz=tp.saz(there) # solar azimuth.
+		# cosis=muz*cos(tp.slp)+sin(sz)*sin(tp.slp)*cos(saz-tp.asp) # cosine of illumination angle at subgrid.
+		# cosic=muz # cosine of illumination angle at grid (slope=0).
+		
+		# # Binary shadow mask. 
+		# if size(tp.hbins,2)!=1
+		#	 tp.hbins=tp.hbins'
+
+
+		# compute terrain correction
+
+		"""compute mean horizon elevation - why negative hor.el possible??? """
+		horel=(((np.arccos(np.sqrt(stat.svf))*180)/np.pi)*2)-stat.slp
+		if horel < 0:
+			horel = 0 
+		self.meanhorel = horel
+
+		"""
+		normal vector - Calculates a unit vector normal to a surface defined by 
+		slope inclination and slope orientation.
+		"""
+		nv = sg.normalvector(slope=stat.slp, aspect=stat.asp)
+
+		"""
+		Computes the intensity according to the position of the sun (sunv) and 
+		dotproduct normal vector to slope.
+		"""
+		dotprod=np.dot(sunv ,np.transpose(nv)) 
+		dprod = dotprod.squeeze()
+		dprod[dprod<0] = 0 #negative indicates selfshading
+
+
+
+		"""
+		SUN ELEVATION below hor.el set to 0 - binary mask
+		"""
+		selMask = sp.sel
+		selMask[selMask<horel]=0
+		selMask[selMask>0]=1
+
+		"""
+		derive incident radiation on slope accounting for self shading and cast 
+		shadow and solar geometry
+		"""
+		self.SWfdirCor=selMask*dprod*self.SWfdir
+	   
 		
