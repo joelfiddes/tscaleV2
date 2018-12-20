@@ -159,9 +159,7 @@ class tscale(object):
 			""" Hypsometric equation."""
 			self.psf.append(p1*np.exp((z1-statz)*(self.g/(Tbar*self.R))))
 
-		self.psf=np.array(self.psf)
-
-
+		self.psf=np.array(self.psf).squeeze()
 
 		## Specific humidity routine.
 		# mrvf=0.622.*vpf./(psf-vpf); #Mixing ratio for water vapor at subgrid.
@@ -184,22 +182,33 @@ class tscale(object):
 		"""Calculate the clearness index."""
 		kt=SWc/SWtoa
 
-		"""Calculate the diffuse fraction following the regression of Ruiz-Arias """
+		#kt[is.na(kt)==T]<-0 # make sure 0/0 =0
+		#kt[is.infinite(kt)==T]<-0 # make sure 0/0 =0
+		kt[kt<0]=0
+		kt[kt>1]=0.8 #upper limit of kt
+		self.kt=kt
+
+		"""
+		Calculate the diffuse fraction following the regression of Ruiz-Arias 2010 
+		
+		"""
 		kd=0.952-1.041*np.exp(-1*np.exp(2.3-4.702*kt))
+		self.kd = kd
 
 		""" Use this to calculate the downwelling diffuse and direct shortwave radiation at grid. """
 		SWcdiff=kd*SWc
 		SWcdir=(1-kd)*SWc
+		self.SWcdiff=SWcdiff
+		self.SWcdir=SWcdir
 
 		""" Use the above with the sky-view fraction to calculate the 
 		downwelling diffuse shortwave radiation at subgrid. """
-		SWfdiff=stat.svf*SWcdiff
+		self. SWfdiff=stat.svf*SWcdiff
 
 		""" Direct shortwave routine, modified from Joel. 
-
-# # Get surface pressure at "grid" (coarse scale). Can remove this
-# # part once surface pressure field is downloaded, or just check
-# # for existance. """
+		Get surface pressure at "grid" (coarse scale). Can remove this
+		part once surface pressure field is downloaded, or just check
+		for existance. """
 
 		ztemp = pob.z
 		Ttemp = pob.t
@@ -219,10 +228,7 @@ class tscale(object):
 			""" Hypsometric equation."""
 			self.psc.append(p1*np.exp((z1-z0)*(self.g/(Tbar*self.R))))
 
-		self.psc=np.array(self.psc)
-
-
-
+		self.psc=np.array(self.psc).squeeze()
 
 		#T1=Ttemp(thisp)
 		#z1=ztemp(thisp)
@@ -245,21 +251,20 @@ class tscale(object):
 		sp=sg.sunpos(sunv)
 		self.sp=sp
 
-
-
 		# Cosine of the zenith angle.
-		sz=sp.zen
-		#sz=sz*(sz>0) # Sun might be below the horizon.
-		muz=np.cos(sz) 
+		sp.zen=sp.zen
+		#sp.zen=sp.zen*(sp.zen>0) # Sun might be below the horizon.
+		muz=np.cos(sp.zen) 
 		self.muz = muz
 		# NB! psc must be in Pa (NOT hPA!).
 		#if np.max(psc<1.5e3): # Obviously not in Pa
 			#psc=psc*1e2
 	   
 		
-		# Calculate the "broadband" absorption coefficient.
+		# Calculate the "broadband" absorption coefficient. Elevation correction
+		# from Kris
 		ka=(self.g*muz/(self.psc))*np.log(SWtoa/SWcdir)	
-		self.ka = ka
+		
 		# Note this equation is obtained by inverting Beer's law, i.e. use
 		#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
 		# Along with hydrostatic equation to convert to pressure coordinates then
@@ -270,19 +275,7 @@ class tscale(object):
 		SWfdir=SWtoa*np.exp(-ka*self.psf/(self.g*muz))
 		self.SWfdir = SWfdir
 
-		# #  Then perform the terrain correction. [see Dozier and Frew 1990].
-		
-		# # Illumination angles.
-		# saz=tp.saz(there) # solar azimuth.
-		# cosis=muz*cos(tp.slp)+sin(sz)*sin(tp.slp)*cos(saz-tp.asp) # cosine of illumination angle at subgrid.
-		# cosic=muz # cosine of illumination angle at grid (slope=0).
-		
-		# # Binary shadow mask. 
-		# if size(tp.hbins,2)!=1
-		#	 tp.hbins=tp.hbins'
-
-
-		# compute terrain correction
+		""" Then perform the terrain correction. [Corripio 2003 / rpackage insol port]."""
 
 		"""compute mean horizon elevation - why negative hor.el possible??? """
 		horel=(((np.arccos(np.sqrt(stat.svf))*180)/np.pi)*2)-stat.slp
@@ -297,14 +290,19 @@ class tscale(object):
 		nv = sg.normalvector(slope=stat.slp, aspect=stat.asp)
 
 		"""
-		Computes the intensity according to the position of the sun (sunv) and 
+		Method 1: Computes the intensity according to the position of the sun (sunv) and 
 		dotproduct normal vector to slope.
+		From corripio r package
 		"""
 		dotprod=np.dot(sunv ,np.transpose(nv)) 
 		dprod = dotprod.squeeze()
 		dprod[dprod<0] = 0 #negative indicates selfshading
+		self.dprod = dprod
 
-
+		"""Method 2: Illumination angles. Dozier"""
+		saz=sp.azi
+		cosis=muz*np.cos(stat.slp)+np.sin(sp.zen)*np.sin(stat.slp)*np.cos(sp.azi-stat.asp)# cosine of illumination angle at subgrid.
+		cosic=muz # cosine of illumination angle at grid (slope=0).
 
 		"""
 		SUN ELEVATION below hor.el set to 0 - binary mask
@@ -312,11 +310,43 @@ class tscale(object):
 		selMask = sp.sel
 		selMask[selMask<horel]=0
 		selMask[selMask>0]=1
+		self.selMask = selMask
 
 		"""
 		derive incident radiation on slope accounting for self shading and cast 
 		shadow and solar geometry
+		BOTH formulations seem to be broken
 		"""
+		#self.SWfdirCor=selMask*(cosis/cosic)*self.SWfdir
 		self.SWfdirCor=selMask*dprod*self.SWfdir
 	   
-		
+		self.SWfglob = self. SWfdiff+ self.SWfdirCor
+
+		""" 
+		Missing components
+		- terrain reflection
+		"""
+
+	def precip(self, sob, stat):
+
+		lookups = {
+		   1:0.35,
+		   2:0.35,
+		   3:0.35,
+		   4:0.3,
+		   5:0.25,
+		   6:0.2,
+		   7:0.2,
+		   8:0.2,
+		   9:0.2,
+		   10:0.25,
+		   11:0.3,
+		   12:0.35
+		}
+
+		# Precipitation lapse rate, varies by month (Liston and Elder, 2006).
+		pfis = sob.dtime.month.map(lookups)
+		dz=(stat.ele-sob.gridEle)/1e3     # Elevation difference in kilometers between the fine and coarse surface.
+		lp=(1+pfis*dz)/(1-pfis*dz)# Precipitation correction factor.
+		Pf=sob.tp*lp
+		self.TPf=Pf

@@ -261,6 +261,18 @@ class Surf(Plev):
 		https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513"""
 		self.strd = self.strd/3600  
 		self.ssrd = self.ssrd/3600 
+		self.tisr = self.tisr/3600 
+
+	def tp2Inst(self):
+		""" convert tp from m/h (total accumulation over hourly timestep) to m/s """
+		self.tp = self.tp/3600 
+		self.tpmmhr = self.tp	*1000
+
+	def gridEle(self):
+		""" compute surface elevation of coarse grid"""
+		self.gridEle = self.z/9.80665
+
+
 
 
 

@@ -1,6 +1,7 @@
 import era5 as e5
 import tscale as ts
 import pandas as pd 
+import matplotlib.pyplot as plt
 reload(e5)
 reload(ts)
 
@@ -15,9 +16,7 @@ reload(ts)
 fp="/home/joel/mnt/myserver/sim/wfj_interim2/eraDat/PLEVEL.nc"
 fs="/home/joel/mnt/myserver/sim/wfj_interim2/eraDat/SURF.nc"
 
-# add to stat?
-stat.long=9
-stat.lat=46
+
 
 """ that's it!  Now, you can create a Bunch
  whenever you want to group a few variables:
@@ -27,7 +26,7 @@ class Bunch:
         self.__dict__.update(kwds)
 
 # station attribute structure
-stat = Bunch(ele = 2000, slp = 30, asp = 180, svf = 0.9, long=9, lat=46, tz=1  )
+stat = Bunch(ele = 4000, slp = 0, asp = 180, svf = 1, long=9, lat=46, tz=1  )
 
 
 
@@ -72,16 +71,22 @@ for v in s.varnames:
 	s.extractCgc(v) # adds data to self
 	s.addVar(v,s.var) # adds data again with correct name - redundancy
 
-# conversions
+""" rad conversions """
 s.instRad()
+""" dimensions of data """
 s.addShape()
+""" Datetime structure """
 s.addTime()
+""" surface elevation of coarse grid"""
+s.gridEle()
 sob = s
+
 #=== toposcale object ====================================================
 
-""" Downscale fields """
+"""init object"""
 t = ts.tscale(p.z)
 
+""" Downscale pl fields """
 for v in p.varnames:
 	if (v=='z'):
 		continue
@@ -92,13 +97,15 @@ for v in p.varnames:
 	t.addVar(v,t.interpVar)
 tob = t
 
-
-# compute downscaled longwave (LWf)
+# compute downscaled longwave (LWf) Wm**2
 t.lwin(sob, tob)
 
-# compute downscaled shortwave (SWf)
+# compute downscaled shortwave (SWf) Wm**2
 t.swin(pob, sob,tob, stat,p.dtime)
 
+# compute downscaled precipitation in ms*1
+t.precip(sob,stat)
 
 
-
+ # plt.plot(t.SWfdirCor)
+# plt.show()
