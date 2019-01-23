@@ -42,7 +42,14 @@ Activate virtual environment::
 	cd ./tscale
 	source env/bin/activate
 
-
+Modes of operation
+------------------
+POINT: 
+	Generates downscaled timeseries for a specific point defined by long/lat
+TSUB: 
+	Generates downsclaed timeseried for TopoSUB cluster centroids
+GRID:
+	Generates a 2D grid of surface fields corresponding to input DEM.
 
 Documentation
 -------------

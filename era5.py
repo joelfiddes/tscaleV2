@@ -5,6 +5,7 @@ This plugin contains methods to:
 * convert values to toposcale standard
 * writes single parameter files
 * TopoSCALE standard input:
+
    	- air temperature - K
 	- precipitation - mmh*1
 	- shortwave Wm**2
@@ -19,7 +20,7 @@ Initialise new era5 instance::
 Attributes:
 
 Todo:
-    * For module TODOs
+ 
 
 
 """
