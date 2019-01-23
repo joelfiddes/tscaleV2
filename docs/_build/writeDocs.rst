@@ -1,9 +1,14 @@
 Editing docs
 ============
 
+restructuredtext
+----------------
+http://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
+
 Docstrings
 ----------
 Follow google style eg.
+
 
 """Example Google style docstrings.
 

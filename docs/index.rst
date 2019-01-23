@@ -10,11 +10,13 @@ TopoSCALE is a downscaling tool that uses the well-resolved description of the a
 
 Quickstart
 ----------
-$ git clone https://github.com/joelfiddes/tscaleV2.git
+Using git::
 
-or 
+	git clone https://github.com/joelfiddes/tscaleV2.git
 
-https://github.com/joelfiddes/tscaleV2/archive/master.zip
+or direct download:: 
+
+	https://github.com/joelfiddes/tscaleV2/archive/master.zip
 
 Documentation
 -------------
@@ -26,6 +28,7 @@ Documentation
    era5.rst
    tscale.rst
    solarGeom.rst
+   writeDocs.rst
 
 
 Search code
