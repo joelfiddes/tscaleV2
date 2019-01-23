@@ -15,11 +15,8 @@ reload(ts)
 #	* stat - station object
 
 #=== Parameters (for INI) ==============================================
-fp="/home/joel/mnt/myserver/sim/wfj_interim2/eraDat/PLEVEL.nc"
-fs="/home/joel/mnt/myserver/sim/wfj_interim2/eraDat/SURF.nc"
-
-fp="/home/joel//plevel.nc"
-fs="/home/joel//surface.nc"
+fp="/home/joel/src/tscaleV2/tests/plevel.nc"
+fs="/home/joel/src/tscaleV2/tests/surface.nc"
 
 
 """ that's it!  Now, you can create a Bunch
