@@ -1,4 +1,4 @@
-ERA5 IO
-=======
+ERA5
+====
 .. automodule:: era5
    :members:
