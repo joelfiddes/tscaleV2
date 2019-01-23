@@ -63,6 +63,7 @@ Documentation
    :maxdepth: 2
 
    components.rst
+   era5_getData.rst
    main.rst
    era5.rst 
    tscale.rst
