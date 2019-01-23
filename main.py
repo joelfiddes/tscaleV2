@@ -3,6 +3,7 @@ import era5 as e5
 import tscale as ts
 import pandas as pd 
 import matplotlib.pyplot as plt
+import numpy as np
 reload(e5)
 reload(ts)
 
