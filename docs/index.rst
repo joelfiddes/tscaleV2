@@ -10,7 +10,7 @@ TopoSCALE is a downscaling tool that uses the well-resolved description of the a
 
 Dependencies
 ------------
-Python spefic dependencies are bundled in the virtual env distributed with the code repository. Additional system requirments:
+Python specific dependencies are bundled in the virtual env distributed with the code repository and defined in the 'requirements.txt file <https://github.com/joelfiddes/tscaleV2/blob/master/requirements.txt>'. Additional system requirments:
 
 - linux (not tested on other platforms)
 - python 2.7 (to be updated to py3)
@@ -50,18 +50,22 @@ INI file
 ^^^^^^^^
 The INI file defines all required options for a run.
 
-2. Input plugins
+Input plugins
+^^^^^^^^^^^^^
 	* preprocesses product (resampling, conversions)
 	* converts to generic python class structure
-3. Core engine
+Core engine
+^^^^^^^^^^^
 	* accepts generic data structures
 	* algorithms
 	* outputs generic  python class structure
-4. Output plugins
+Output plugins
+^^^^^^^^^^^^^^
 	* writes specific output formats (CSV, NetCDF)
 	* writes model specific outputs (SMET, GEotop, Cryogrid) 
 	* writes grids (NetCDF, tiff)
-5. Optional modules
+Optional modules
+^^^^^^^^^^^^^^^^
 	* retrieve and preprocess data products (various api dependencies here)
 
 
