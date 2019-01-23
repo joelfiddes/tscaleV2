@@ -18,7 +18,6 @@ reload(ts)
 fp="/home/joel/src/tscaleV2/tests/plevel.nc"
 fs="/home/joel/src/tscaleV2/tests/surface.nc"
 
-
 """ that's it!  Now, you can create a Bunch
  whenever you want to group a few variables:
 http://code.activestate.com/recipes/52308-the-simple-but-handy-collector-of-a-bunch-of-named/?in=user-97991 """
@@ -28,8 +27,6 @@ class Bunch:
 
 # station attribute structure
 stat = Bunch(ele = 4000, slp = 0, asp = 180, svf = 1, long=9, lat=46, tz=1  )
-
-
 
 #=== Pressure level object =============================================
 
