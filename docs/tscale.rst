@@ -1,2 +1,4 @@
+tscale
+======
 .. automodule:: tscale
    :members:
