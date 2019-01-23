@@ -363,6 +363,7 @@ class tscale(object):
 		kt[kt>1]=0.8 #upper limit of kt
 		self.kt=kt
 
+
 		"""
 		Calculate the diffuse fraction following the regression of Ruiz-Arias 2010 
 		
