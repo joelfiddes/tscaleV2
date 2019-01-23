@@ -3,8 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to TopoSCALE documentation!
-===================================
+toposcale
+=========
+
+Toposcale is a downscaling tool that uses the well-resolved description of the atmospheric column provided by climate models, together with high-resolution digital elevation models (DEMs), to downscale coarse-grid climate variables to a fine-scale subgrid. The main aim of this approach is to provide high-resolution driving data for a land-surface model (LSM). Full desciption available in this publication: http://www.geosci-model-dev.net/7/387/2014/
+
+Quickstart
+----------
+
+Documentation
+----------
 
 .. toctree::
    :maxdepth: 2
@@ -22,9 +30,6 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-
-Code docs
-**************************
 
 
 
