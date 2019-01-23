@@ -41,12 +41,32 @@ Activate virtual environment::
 
 	cd ./tscale
 	source env/bin/activate
+
+Code architecture
+-----------------
+TopoSCALE has 5 components:
+1. INI file
+* defines all options
+2. Input plugins
+* preprocesses product (resampling, conversions)
+* converts to generic python class structure
+3. Core engine
+* accepts generic data structures
+* algorithms
+* outputs generic  python class structure
+4. Output plugins
+* writes model specific output formats (SMET, CSV, NetCDF,MAT?)
+* writes grids (NetCDF)
+5. Optional modules
+* retrieve data products (various api dependcies here)
+
+
 Documentation
 -------------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+
 
    main.rst
    era5.rst 
