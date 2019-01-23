@@ -10,7 +10,7 @@ TopoSCALE is a downscaling tool that uses the well-resolved description of the a
 
 Quickstart
 ----------
-Using git::
+Get the code using git::
 
 	git clone https://github.com/joelfiddes/tscaleV2.git
 
