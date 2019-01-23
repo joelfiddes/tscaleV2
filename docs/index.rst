@@ -10,6 +10,8 @@ Welcome to TopoSCALE documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   era5
+   tscale
 
 
 Indices and tables
@@ -20,13 +22,8 @@ Indices and tables
 * :ref:`search`
 
 
-Module: tscale.py
+Code docs
 **************************
-.. automodule:: tscale
-   :members:
-Module: era5.py
-**************************
-.. automodule:: era5
-   :members:
+
 
 
