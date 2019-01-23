@@ -1,0 +1,369 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>era5 &#8212; tscale 1.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for era5</h1><div class="highlight"><pre>
+<span></span><span class="c1"># TopoSCALE: ERA5 plugin</span>
+<span class="c1">#</span>
+<span class="c1"># === DESCRIPTION ======================================================</span>
+<span class="c1">#</span>
+<span class="c1">#	This plugin </span>
+<span class="c1">#		* reads  monthly ERA5 data files (MARS efficiency)</span>
+<span class="c1">#		* concats to single file timeseries</span>
+<span class="c1">#		* converts values to toposcale standard</span>
+<span class="c1">#		* writes single parameter files</span>
+<span class="c1">#		*</span>
+<span class="c1">#		*</span>
+<span class="c1">#		*</span>
+<span class="c1">#		*</span>
+<span class="c1"># === TopoSCALE standard input =========================================</span>
+<span class="c1">#   	* air temperature - K</span>
+<span class="c1">#		* precipitation - mmh*1</span>
+<span class="c1">#		* shortwave Wm**2</span>
+<span class="c1">#		* longwave Wm**2</span>
+<span class="c1">#		* wind - U and V vectors</span>
+<span class="c1">#		*</span>
+<span class="c1">#		*</span>
+<span class="c1"># === COPYRIGHT AND LICENCE ============================================</span>
+<span class="c1">#</span>
+<span class="c1">#	This program is free software: you can redistribute it and/or modify</span>
+<span class="c1">#	it under the terms of the GNU General Public License as published by</span>
+<span class="c1">#	the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1">#	(at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1">#	This program is distributed in the hope that it will be useful,</span>
+<span class="c1">#	but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1">#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1">#	GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1">#	You should have received a copy of the GNU General Public License</span>
+<span class="c1">#	along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1"># === NOTES ============================================================</span>
+<span class="c1">#</span>
+<span class="c1"># === REQUIREMENTS =====================================================</span>
+<span class="c1">#</span>
+<span class="c1"># === DEPENDENCIES =====================================================</span>
+<span class="c1">#	</span>
+<span class="c1">#	* CDO: sudo apt install cdo</span>
+<span class="c1"># ======================================================================</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">netCDF4</span> <span class="k">as</span> <span class="nn">nc</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="c1">#1. concat monthly files to single using CDO </span>
+<span class="c1">#2. conversions</span>
+<span class="c1">#2. write out single var files</span>
+
+<div class="viewcode-block" id="EraCat"><a class="viewcode-back" href="../index.html#era5.EraCat">[docs]</a><span class="k">class</span> <span class="nc">EraCat</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Concats monthly era (interim or 5) files by some keyword *grepStr*</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		wd: directory of era monthly datafiles</span>
+<span class="sd">		grepStr: &quot;PLEVEL&quot; or &quot;SURF&quot;</span>
+<span class="sd">	Example:</span>
+<span class="sd">		wd=/home/eraDat/</span>
+<span class="sd">		grepStr= &quot;PLEVEL&quot;</span>
+<span class="sd">		eraCat(&quot;/home/joel/mnt/myserver/sim/wfj_era5/eraDat/&quot;, &quot;PLEVEL&quot;)</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wd</span><span class="p">,</span> <span class="n">grepStr</span><span class="p">):</span>
+		<span class="n">cmd</span>     <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;cdo -b F64 -f nc2 mergetime &quot;</span> 
+				<span class="o">+</span> <span class="n">wd</span> 
+				<span class="o">+</span>  <span class="n">grepStr</span>
+				<span class="o">+</span> <span class="s2">&quot;* &quot;</span> 
+				<span class="o">+</span> <span class="n">wd</span> 
+				<span class="o">+</span><span class="s2">&quot;/&quot;</span>
+				<span class="o">+</span><span class="n">grepStr</span>
+				<span class="o">+</span><span class="s2">&quot;.nc&quot;</span><span class="p">)</span>
+		<span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span> <span class="o">=</span> <span class="s2">&quot;TRUE&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Plev"><a class="viewcode-back" href="../index.html#era5.Plev">[docs]</a><span class="k">class</span> <span class="nc">Plev</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Makes a plev object which is array of all pressure level variables </span>
+<span class="sd">	processed to standard toposcale units</span>
+<span class="sd">	</span>
+<span class="sd">	Args:</span>
+<span class="sd">		fp: filepath to concatenated PLEVEL.nc file</span>
+<span class="sd">	Example:</span>
+<span class="sd">		p=Plev(fp)</span>
+<span class="sd">		varnames=p.varnames()</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fp</span><span class="p">,</span> <span class="n">mylat</span><span class="p">,</span> <span class="n">mylon</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">fp</span> <span class="o">=</span> <span class="n">fp</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">varnames</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">mylat</span><span class="o">=</span><span class="n">mylat</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">mylon</span><span class="o">=</span><span class="n">mylon</span>
+
+
+
+<div class="viewcode-block" id="Plev.getVarNames"><a class="viewcode-back" href="../index.html#era5.Plev.getVarNames">[docs]</a>	<span class="k">def</span> <span class="nf">getVarNames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;	# returns list of variables excluding dimension names time, </span>
+<span class="sd">		lon,lat, level&quot;&quot;&quot;</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
+		
+		<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+				<span class="k">if</span> <span class="p">(</span><span class="n">v</span> <span class="o">!=</span> <span class="p">(</span> <span class="sa">u</span><span class="s1">&#39;time&#39;</span><span class="p">)</span> 
+					<span class="ow">and</span> <span class="n">v</span> <span class="o">!=</span> <span class="p">(</span> <span class="sa">u</span><span class="s1">&#39;latitude&#39;</span><span class="p">)</span> 
+					<span class="ow">and</span> <span class="n">v</span> <span class="o">!=</span> <span class="p">(</span> <span class="sa">u</span><span class="s1">&#39;longitude&#39;</span><span class="p">)</span> 
+					<span class="ow">and</span> <span class="n">v</span> <span class="o">!=</span> <span class="p">(</span> <span class="sa">u</span><span class="s1">&#39;level&#39;</span><span class="p">)):</span>
+			 		<span class="bp">self</span><span class="o">.</span><span class="n">varnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+		<span class="c1">#return self.varnames</span>
+
+<div class="viewcode-block" id="Plev.getVar"><a class="viewcode-back" href="../index.html#era5.Plev.getVar">[docs]</a>	<span class="k">def</span> <span class="nf">getVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;extract variables (remains an nc object)&quot;&quot;&quot;</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">myvar</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span></div>
+		<span class="c1">#return myvar</span>
+
+<div class="viewcode-block" id="Plev.extractCgc"><a class="viewcode-back" href="../index.html#era5.Plev.extractCgc">[docs]</a>	<span class="k">def</span> <span class="nf">extractCgc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;extract variable and cgc (now np array)&quot;&quot;&quot;</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
+
+		<span class="n">latbounds</span> <span class="o">=</span> <span class="p">[</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylat</span> <span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylat</span> <span class="p">]</span>
+		<span class="n">lonbounds</span> <span class="o">=</span> <span class="p">[</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylon</span> <span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylon</span> <span class="p">]</span> <span class="c1"># degrees east ? </span>
+		<span class="n">lats</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][:]</span> 
+		<span class="n">lons</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][:]</span>
+
+		<span class="c1"># latitude lower  index</span>
+		<span class="n">latli</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span> <span class="n">lats</span> <span class="o">-</span> <span class="n">latbounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span>
+
+		<span class="c1"># longitude lower index</span>
+		<span class="n">lonli</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span> <span class="n">lons</span> <span class="o">-</span> <span class="n">lonbounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span>
+
+		<span class="c1"># subset</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">][</span> <span class="p">:,:</span> <span class="p">,</span><span class="n">latli</span> <span class="p">,</span> <span class="n">lonli</span><span class="p">]</span> </div>
+		<span class="c1">#return mysub</span>
+
+<div class="viewcode-block" id="Plev.addVar"><a class="viewcode-back" href="../index.html#era5.Plev.addVar">[docs]</a>	<span class="k">def</span> <span class="nf">addVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">dat</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot; rename attribute&quot;&quot;&quot;</span>
+		<span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">varname</span><span class="p">,</span> <span class="n">dat</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Plev.addTime"><a class="viewcode-back" href="../index.html#era5.Plev.addTime">[docs]</a>	<span class="k">def</span> <span class="nf">addTime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot; add time vector and convert to ISO </span>
+<span class="sd">			Return datetime objects given numeric time values. </span>
+<span class="sd">			The units of the numeric time values are described by the units </span>
+<span class="sd">			argument and the calendar keyword. The returned datetime objects </span>
+<span class="sd">			represent UTC with no time-zone offset, even if the specified </span>
+<span class="sd">			units contain a time-zone offset.</span>
+
+<span class="sd">			calender options defined here:</span>
+<span class="sd">			http://unidata.github.io/netcdf4-python/#netCDF4.num2date</span>
+<span class="sd">			</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">nctime</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">dtime</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">nc</span><span class="o">.</span><span class="n">num2date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nctime</span><span class="p">[:],</span><span class="bp">self</span><span class="o">.</span><span class="n">nctime</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="n">calendar</span><span class="o">=</span><span class="s2">&quot;standard&quot;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Plev.addShape"><a class="viewcode-back" href="../index.html#era5.Plev.addShape">[docs]</a>	<span class="k">def</span> <span class="nf">addShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot; adds two dimensions of time and levels &quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">myshape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">shape</span></div>
+	<span class="c1"># def convZ(self):</span>
+	<span class="c1"># 	&quot;&quot;&quot; create elevation (m) from geopotential &quot;&quot;&quot;</span>
+	<span class="c1"># 	self.z = self.z/self.g</span>
+
+	<span class="k">def</span> <span class="nf">plevels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">levels</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;level&#39;</span><span class="p">][:]</span></div>
+
+	
+
+
+<div class="viewcode-block" id="Plev_interp"><a class="viewcode-back" href="../index.html#era5.Plev_interp">[docs]</a><span class="k">class</span> <span class="nc">Plev_interp</span><span class="p">(</span><span class="n">Plev</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Makes a plev object which is array of all variables processed to </span>
+<span class="sd">	standard toposcale units and interpolated to x, y, z </span>
+<span class="sd">	</span>
+<span class="sd">	Args:</span>
+<span class="sd">		fp: filepath to concatenated PLEVEL.nc file</span>
+<span class="sd">	Example:</span>
+<span class="sd">		p=Plev(fp)</span>
+<span class="sd">		varnames=p.varnames()</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Plev_interp.interpCgc"><a class="viewcode-back" href="../index.html#era5.Plev_interp.interpCgc">[docs]</a>	<span class="k">def</span> <span class="nf">interpCgc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;	# interp variable and cgc (now np array) !!NOT FINISHED!! </span>
+<span class="sd">		Perhaps a  different class as here includes z interpolation&quot;&quot;&quot;</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
+
+		<span class="n">latbounds</span> <span class="o">=</span> <span class="p">[</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylat</span> <span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylat</span> <span class="p">]</span>
+		<span class="n">lonbounds</span> <span class="o">=</span> <span class="p">[</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylon</span> <span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylon</span> <span class="p">]</span> <span class="c1"># degrees east ? </span>
+		<span class="n">lats</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][:]</span> 
+		<span class="n">lons</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][:]</span>
+
+		<span class="c1"># latitude index</span>
+		<span class="n">latli</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span> <span class="n">lats</span> <span class="o">-</span> <span class="n">latbounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span>
+
+		<span class="c1"># longitudeindex</span>
+		<span class="n">lonli</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span> <span class="n">lons</span> <span class="o">-</span> <span class="n">lonbounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span>
+
+		<span class="c1"># find neighbours 4 or 8?</span>
+		<span class="c1"># dissaggregate to high res grid</span>
+		<span class="c1"># interpolate in x and y</span>
+
+		<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Evaluate a simple example function on the points of a 3D grid:</span>
+
+<span class="sd">		from scipy.interpolate import RegularGridInterpolator</span>
+<span class="sd">		def f(x,y,z):</span>
+<span class="sd">		    return 2 * x**3 + 3 * y**2 - z</span>
+<span class="sd">		x = np.linspace(1, 4, 11)</span>
+<span class="sd">		y = np.linspace(4, 7, 22)</span>
+<span class="sd">		z = np.linspace(7, 9, 33)</span>
+<span class="sd">		data = f(*np.meshgrid(x, y, z, indexing=&#39;ij&#39;, sparse=True))</span>
+<span class="sd">		#data is now a 3D array with data[i,j,k] = f(x[i], y[j], z[k]). Next, define an interpolating function from this data:</span>
+
+<span class="sd">		my_interpolating_function = RegularGridInterpolator((x, y, z), data)</span>
+<span class="sd">		#Evaluate the interpolating function at the two points (x,y,z) = (2.1, 6.2, 8.3) and (3.3, 5.2, 7.1):</span>
+
+<span class="sd">		pts = np.array([[2.1, 6.2, 8.3], [3.3, 5.2, 7.1]])</span>
+<span class="sd">		my_interpolating_function(pts)</span>
+
+<span class="sd">		#which is indeed a close approximation to [f(2.1, 6.2, 8.3), f(3.3, 5.2, 7.1)].</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+
+		<span class="c1"># subset</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">][</span> <span class="p">:,:</span> <span class="p">,</span><span class="n">latli</span> <span class="p">,</span> <span class="n">lonli</span><span class="p">]</span> </div></div>
+		<span class="c1">#return mysub</span>
+
+<div class="viewcode-block" id="Surf"><a class="viewcode-back" href="../index.html#era5.Surf">[docs]</a><span class="k">class</span> <span class="nc">Surf</span><span class="p">(</span><span class="n">Plev</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Makes a plev object which is array of all surface variables </span>
+<span class="sd">	processed to standard toposcale units</span>
+<span class="sd">	</span>
+<span class="sd">	Args:</span>
+<span class="sd">		fp: filepath to concatenated PLEVEL.nc file</span>
+<span class="sd">	Example:</span>
+<span class="sd">		p=Plev(fp)</span>
+<span class="sd">		varnames=p.varnames()</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	
+<div class="viewcode-block" id="Surf.extractCgc"><a class="viewcode-back" href="../index.html#era5.Surf.extractCgc">[docs]</a>	<span class="k">def</span> <span class="nf">extractCgc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;extract variable and cgc (now np array)&quot;&quot;&quot;</span>
+		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
+
+		<span class="n">latbounds</span> <span class="o">=</span> <span class="p">[</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylat</span> <span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylat</span> <span class="p">]</span>
+		<span class="n">lonbounds</span> <span class="o">=</span> <span class="p">[</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylon</span> <span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mylon</span> <span class="p">]</span> <span class="c1"># degrees east ? </span>
+		<span class="n">lats</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;latitude&#39;</span><span class="p">][:]</span> 
+		<span class="n">lons</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;longitude&#39;</span><span class="p">][:]</span>
+
+		<span class="c1"># latitude lower  index</span>
+		<span class="n">latli</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span> <span class="n">lats</span> <span class="o">-</span> <span class="n">latbounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span>
+
+		<span class="c1"># longitude lower index</span>
+		<span class="n">lonli</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span> <span class="n">lons</span> <span class="o">-</span> <span class="n">lonbounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span>
+
+		<span class="c1"># subset</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">][</span> <span class="p">:</span> <span class="p">,</span><span class="n">latli</span> <span class="p">,</span> <span class="n">lonli</span><span class="p">]</span> </div>
+		<span class="c1">#return mysub</span>
+
+<div class="viewcode-block" id="Surf.instRad"><a class="viewcode-back" href="../index.html#era5.Surf.instRad">[docs]</a>	<span class="k">def</span> <span class="nf">instRad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot; Convert SWin from accumulated quantities in J/m2 to </span>
+<span class="sd">		instantaneous W/m2 see: </span>
+<span class="sd">		https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">strd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strd</span><span class="o">/</span><span class="mi">3600</span>  
+		<span class="bp">self</span><span class="o">.</span><span class="n">ssrd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssrd</span><span class="o">/</span><span class="mi">3600</span> 
+		<span class="bp">self</span><span class="o">.</span><span class="n">tisr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tisr</span><span class="o">/</span><span class="mi">3600</span> </div>
+
+<div class="viewcode-block" id="Surf.tp2Inst"><a class="viewcode-back" href="../index.html#era5.Surf.tp2Inst">[docs]</a>	<span class="k">def</span> <span class="nf">tp2Inst</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot; convert tp from m/h (total accumulation over hourly timestep) to m/s &quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="o">/</span><span class="mi">3600</span> 
+		<span class="bp">self</span><span class="o">.</span><span class="n">tpmmhr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span>	<span class="o">*</span><span class="mi">1000</span></div>
+
+<div class="viewcode-block" id="Surf.gridEle"><a class="viewcode-back" href="../index.html#era5.Surf.gridEle">[docs]</a>	<span class="k">def</span> <span class="nf">gridEle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot; compute surface elevation of coarse grid&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">gridEle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="o">/</span><span class="mf">9.80665</span></div></div>
+
+
+
+
+
+
+
+
+
+
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, jfiddes.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

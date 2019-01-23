@@ -1,3 +1,4 @@
+
 import era5 as e5
 import tscale as ts
 import pandas as pd 
@@ -16,6 +17,8 @@ reload(ts)
 fp="/home/joel/mnt/myserver/sim/wfj_interim2/eraDat/PLEVEL.nc"
 fs="/home/joel/mnt/myserver/sim/wfj_interim2/eraDat/SURF.nc"
 
+fp="/home/joel//plevel.nc"
+fs="/home/joel//surface.nc"
 
 
 """ that's it!  Now, you can create a Bunch
@@ -106,6 +109,27 @@ t.swin(pob, sob,tob, stat,p.dtime)
 # compute downscaled precipitation in ms*1
 t.precip(sob,stat)
 
+t.wind(tob)
+
+
+# corrected wind
+blend = 40 # blend height
+statblend=stat # new instance of stat for correction only 
+statblend.ele = statblend.ele + blend # add blend to stat ele
+v='v'
+dat = getattr(p, v) # allows dynamic call to instance variable
+t.tscale1D(dat,statblend)
+t.addVar('vblend',t.interpVar)
+
+v='u'
+dat = getattr(p, v) # allows dynamic call to instance variable
+t.tscale1D(dat,statblend)
+t.addVar('ublend',t.interpVar)
+
+# ws from vectors
+t.wsblend = np.sqrt(tob.ublend**2+tob.vblend**2)
+
+t.windCorRough( tob, pob, sob, stat)
 
  # plt.plot(t.SWfdirCor)
 # plt.show()

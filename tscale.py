@@ -1,3 +1,36 @@
+"""Example Google style docstrings.
+
+This module demonstrates documentation as specified by the `Google Python
+Style Guide`_. Docstrings may extend over multiple lines. Sections are created
+with a section header and a colon followed by a block of indented text.
+
+Example:
+    Examples can be given using either the ``Example`` or ``Examples``
+    sections. Sections support any reStructuredText formatting, including
+    literal blocks::
+
+        $ python example_google.py
+
+Section breaks are created by resuming unindented text. Section breaks
+are also implicitly created anytime a new section starts.
+
+Attributes:
+    module_level_variable1 (int): Module level variables may be documented in
+        either the ``Attributes`` section of the module docstring, or in an
+        inline docstring immediately following the variable.
+
+        Either form is acceptable, but the two should not be mixed. Choose
+        one convention to document module level variables and be consistent
+        with it.
+
+Todo:
+    * For module TODOs
+    * You have to also use ``sphinx.ext.todo`` extension
+
+.. _Google Python Style Guide:
+   http://google.github.io/styleguide/pyguide.html
+
+"""
 
 # TopoSCALE: Topograhic based downscaling of atmospheric datasets
 #
@@ -44,6 +77,24 @@ class tscale(object):
 	"""	
 
 	def __init__(self, z):
+		"""Example function with types documented in the docstring.
+
+	    `PEP 484`_ type annotations are supported. If attribute, parameter, and
+	    return types are annotated according to `PEP 484`_, they do not need to be
+	    included in the docstring:
+
+	    Args:
+	        param1 (int): The first parameter.
+	        param2 (str): The second parameter.
+
+	    Returns:
+	        bool: The return value. True for success, False otherwise.
+
+	    .. _PEP 484:
+	        https://www.python.org/dev/peps/pep-0484/
+
+	    """
+
 		self.g= 9.80665 #m s-2
 		#self.statEle = statEle
 		self.z=z
@@ -52,15 +103,48 @@ class tscale(object):
 		
 
 	def tscale1D(self,dat, stat):
-		""" Interpolates vector of pressure level data to station elevation at 
+		"""Example function with types documented in the docstring.
+
+	    `PEP 484`_ type annotations are supported. If attribute, parameter, and
+	    return types are annotated according to `PEP 484`_, they do not need to be
+	    included in the docstring:
+
+	   	Interpolates vector of pressure level data to station elevation at 
 		each timestep to create timeseries of downscaled values at station 
-		elevation"""
+		elevation
+
+	    Args:
+	        param1 (int): The first parameter.
+	        param2 (str): The second parameter.
+
+	    Returns:
+	        bool: The return value. True for success, False otherwise.
+
+	    .. _PEP 484:
+	        https://www.python.org/dev/peps/pep-0484/
+
+	    """
 		self.dat =dat
+
+
 		self.ele=self.z/self.g
 		self.interpVar=[]
 		for i in range(0,(self.z.shape)[0]): 
-			self.interpVar.append(np.interp(stat.ele,self.ele[i,], self.dat[i,] ))
+
+			# first reverse vectors as elevation has to be ascending in order for interp to work
+			y = self.dat[i,]
+			y =y[::-1]
+			x = self.ele[i,]
+			x =x[::-1]
+
+			# check that elevation is ascending, required for interp method https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.interp.html
+			if np.all(np.diff(x) > 0) == False:
+				print "ERROR!! elevation vector not ascending, interpolation method cannot run"
+				break
+
+			self.interpVar.append(np.interp(stat.ele,x, y ))
 		self.interpVar = np.array(self.interpVar) # convert list to np array
+
 	def addVar(self,varname,datInterp):
 		""" Assign correct attribute name """
 		setattr(self, varname, datInterp)
@@ -88,6 +172,97 @@ class tscale(object):
 	
 # 	def __init__(self, statEle):
 # 		self.statEle = statEle
+	def wind (self, tob):
+		""" methods for working with wind"""
+		self.ws = np.sqrt(tob.u**2+tob.v**2)
+		self.wd =   (180 / np.pi) * np.arctan(tob.u/tob.v) + np.where(tob.v>0,180,np.where(tob.u>0,360,0))
+
+	def windCorRough(self, tob, pob, sob, stat ):
+		"""corrects wind speed according to true rougness values"""
+		target_height = 2
+		blending_height = 40
+		z0 = 1e-3#rough
+		#av_wind = 0
+		#wind_over_10 = 0
+		#timesteps = 365*4
+		#stationEle=2540
+		#lon= 4#box index in dowwloaded era
+		#lat= 2
+
+
+		# surface
+		#nc = nc_open(surface_file)
+		#u_starvec = ncvar_get(nc, 'zust')
+		u_starvec = sob.zust
+		#nc = nc_open(surface_file)
+		#Qhvec = ncvar_get(nc, 'ishf')
+		Qhvec = sob.ishf
+		#nc = nc_open(surface_file)
+		#Qe = ncvar_get(nc, 'ie')
+		Qe = sob.ie
+		Qevec = (Qe*2.264e6)
+		Tvec = tob.t		# T is air temperature (degC) downscaled to blending_height above station
+		windvec= np.sqrt(tob.u**2 +tob.v**2) # winddownscaled to blending_height above station
+		
+
+
+
+		def	get_L_star (u_star, Qh, Qe, T):
+			rho=1.293
+			cp=1005
+			L=2.26e6
+			kappa=0.4
+			g=9.81
+			T = T #+273.15
+			one_over_L_star = 1/(rho*cp*T/kappa/g*u_star**3/(Qh + 0.61*cp/L*T*Qe))
+			return one_over_L_star
+
+		def	psi_M(zeta1, zeta2):
+			a=1
+			b=2/3
+			c=5
+			d=0.35
+			zeta1 = zeta1  + (zeta1>5)* (5-zeta1)
+			zeta2 = zeta2 + (zeta2>5) * (5-zeta2)
+			
+
+			if (zeta1 <= 0):
+				res=-2*np.arctan((1 - 16*zeta1)**(1/4)) + np.log( (1 + (1 - 16*zeta1)**(1/4))**2 * (1 + (1 - 16*zeta1)**0.5)/8) - (-2*np.arctan((1 - 16*zeta2)**(1/4)) + np.log( (1 + (1 - 16*zeta2)**(1/4))**2 * (1 + (1 - 16*zeta2)**0.5)/8))
+			else:
+				res = -b*(zeta1 - c/d) *np.exp(-d*zeta1) - a* zeta1 - (-b*(zeta2 -c/d) *np.exp(-d*zeta2) - a* zeta2)
+			return res
+
+		wind_downscaled=[]	
+		for i in range(0,len(Tvec)):
+			u_star = u_starvec[i]
+			Qh = Qhvec[i]
+			Qe = Qevec[i]
+
+			T=Tvec[i]
+			wind=windvec[i]
+			one_over_L_star = get_L_star(u_star, Qh, Qe, T)
+
+			valid_flag = ( (np.log(target_height / z0) - psi_M(target_height 
+			* one_over_L_star, z0 * one_over_L_star)) 
+			/(np.log(blending_height / z0) 
+			- psi_M(blending_height * one_over_L_star, z0* one_over_L_star)))
+
+			if (np.isnan(valid_flag)):
+				valid_flag = 1
+			if(valid_flag<1e-3):
+				valid_flag = 1
+			if(valid_flag>1):
+				valid_flag = 1
+
+			wind_downscaled.append(wind * valid_flag)
+
+		self.wscor = wind_downscaled	
+			
+			
+
+
+
+
 
 	def lwin(self, sob,tob):
 		"""Convert to RH (should be in a function). Following MG Lawrence 
@@ -132,8 +307,7 @@ class tscale(object):
 		self.LWf=aef*sbc*tob.t**4
 		#fout.LW(:,:,n)=LWf
 
-#class wind(object)
-	""" methods for working with wind"""
+
 
 	def swin(self,pob,sob,tob, stat, dates):
 		
@@ -146,8 +320,9 @@ class tscale(object):
 		dz=ztemp.transpose()-statz # transpose not needed but now consistent with CGC surface pressure equations
 
 		self.psf=[]
+		# loop through timesteps
 		for i in range(0,dz.shape[1]):
-		
+			print i
 			# 	# find overlying layer
 			thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
 

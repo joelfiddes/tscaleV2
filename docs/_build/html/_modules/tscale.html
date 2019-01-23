@@ -1,0 +1,611 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tscale &#8212; tscale 1.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tscale</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Example Google style docstrings.</span>
+
+<span class="sd">This module demonstrates documentation as specified by the `Google Python</span>
+<span class="sd">Style Guide`_. Docstrings may extend over multiple lines. Sections are created</span>
+<span class="sd">with a section header and a colon followed by a block of indented text.</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    Examples can be given using either the ``Example`` or ``Examples``</span>
+<span class="sd">    sections. Sections support any reStructuredText formatting, including</span>
+<span class="sd">    literal blocks::</span>
+
+<span class="sd">        $ python example_google.py</span>
+
+<span class="sd">Section breaks are created by resuming unindented text. Section breaks</span>
+<span class="sd">are also implicitly created anytime a new section starts.</span>
+
+<span class="sd">Attributes:</span>
+<span class="sd">    module_level_variable1 (int): Module level variables may be documented in</span>
+<span class="sd">        either the ``Attributes`` section of the module docstring, or in an</span>
+<span class="sd">        inline docstring immediately following the variable.</span>
+
+<span class="sd">        Either form is acceptable, but the two should not be mixed. Choose</span>
+<span class="sd">        one convention to document module level variables and be consistent</span>
+<span class="sd">        with it.</span>
+
+<span class="sd">Todo:</span>
+<span class="sd">    * For module TODOs</span>
+<span class="sd">    * You have to also use ``sphinx.ext.todo`` extension</span>
+
+<span class="sd">.. _Google Python Style Guide:</span>
+<span class="sd">   http://google.github.io/styleguide/pyguide.html</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># TopoSCALE: Topograhic based downscaling of atmospheric datasets</span>
+<span class="c1">#</span>
+<span class="c1"># === DESCRIPTION ==============================================================</span>
+
+<span class="c1"># === COPYRIGHT AND LICENCE ====================================================</span>
+<span class="c1">#</span>
+<span class="c1">#	This program is free software: you can redistribute it and/or modify</span>
+<span class="c1">#	it under the terms of the GNU General Public License as published by</span>
+<span class="c1">#	the Free Software Foundation, either version 3 of the License, or</span>
+<span class="c1">#	(at your option) any later version.</span>
+<span class="c1">#</span>
+<span class="c1">#	This program is distributed in the hope that it will be useful,</span>
+<span class="c1">#	but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1">#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1">#	GNU General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1">#	You should have received a copy of the GNU General Public License</span>
+<span class="c1">#	along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1"># === CONTRIBUTIONS ============================================================</span>
+<span class="c1">#</span>
+<span class="c1"># === NOTES ====================================================================</span>
+
+<span class="c1"># === REQUIREMENTS =============================================================</span>
+<span class="c1">#	* PLEV.nc - all pressure level variables for entire domain (single/multiple </span>
+<span class="c1">#		CGCs) [time X grid cell X  level X variable]</span>
+<span class="c1">#	* SURF.nc - all surface variables for entire domain (single/multiple </span>
+<span class="c1">#		CGCs) [time X grid cell X variable]</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">netCDF4</span> <span class="k">as</span> <span class="nn">nc</span>
+<span class="kn">import</span> <span class="nn">solarGeom</span> <span class="k">as</span> <span class="nn">sg</span>
+<span class="n">reload</span><span class="p">(</span><span class="n">sg</span><span class="p">)</span>
+<div class="viewcode-block" id="tscale"><a class="viewcode-back" href="../index.html#tscale.tscale">[docs]</a><span class="k">class</span> <span class="nc">tscale</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Interpolate pressure level vector from single cgc in the TopoSUB use case</span>
+
+<span class="sd">	Args:</span>
+
+<span class="sd">	Example:</span>
+
+<span class="sd">	&quot;&quot;&quot;</span>	
+
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Example function with types documented in the docstring.</span>
+
+<span class="sd">	    `PEP 484`_ type annotations are supported. If attribute, parameter, and</span>
+<span class="sd">	    return types are annotated according to `PEP 484`_, they do not need to be</span>
+<span class="sd">	    included in the docstring:</span>
+
+<span class="sd">	    Args:</span>
+<span class="sd">	        param1 (int): The first parameter.</span>
+<span class="sd">	        param2 (str): The second parameter.</span>
+
+<span class="sd">	    Returns:</span>
+<span class="sd">	        bool: The return value. True for success, False otherwise.</span>
+
+<span class="sd">	    .. _PEP 484:</span>
+<span class="sd">	        https://www.python.org/dev/peps/pep-0484/</span>
+
+<span class="sd">	    &quot;&quot;&quot;</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="o">=</span> <span class="mf">9.80665</span> <span class="c1">#m s-2</span>
+		<span class="c1">#self.statEle = statEle</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="o">=</span><span class="n">z</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="o">=</span><span class="mf">287.05</span>  <span class="c1"># Gas constant for dry air.</span>
+
+		
+
+<div class="viewcode-block" id="tscale.tscale1D"><a class="viewcode-back" href="../index.html#tscale.tscale.tscale1D">[docs]</a>	<span class="k">def</span> <span class="nf">tscale1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">dat</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Example function with types documented in the docstring.</span>
+
+<span class="sd">	    `PEP 484`_ type annotations are supported. If attribute, parameter, and</span>
+<span class="sd">	    return types are annotated according to `PEP 484`_, they do not need to be</span>
+<span class="sd">	    included in the docstring:</span>
+
+<span class="sd">	   	Interpolates vector of pressure level data to station elevation at </span>
+<span class="sd">		each timestep to create timeseries of downscaled values at station </span>
+<span class="sd">		elevation</span>
+
+<span class="sd">	    Args:</span>
+<span class="sd">	        param1 (int): The first parameter.</span>
+<span class="sd">	        param2 (str): The second parameter.</span>
+
+<span class="sd">	    Returns:</span>
+<span class="sd">	        bool: The return value. True for success, False otherwise.</span>
+
+<span class="sd">	    .. _PEP 484:</span>
+<span class="sd">	        https://www.python.org/dev/peps/pep-0484/</span>
+
+<span class="sd">	    &quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">dat</span> <span class="o">=</span><span class="n">dat</span>
+
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">ele</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">g</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">interpVar</span><span class="o">=</span><span class="p">[]</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,(</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">)[</span><span class="mi">0</span><span class="p">]):</span> 
+
+			<span class="c1"># first reverse vectors as elevation has to be ascending in order for interp to work</span>
+			<span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dat</span><span class="p">[</span><span class="n">i</span><span class="p">,]</span>
+			<span class="n">y</span> <span class="o">=</span><span class="n">y</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+			<span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ele</span><span class="p">[</span><span class="n">i</span><span class="p">,]</span>
+			<span class="n">x</span> <span class="o">=</span><span class="n">x</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+			<span class="c1"># check that elevation is ascending, required for interp method https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.interp.html</span>
+			<span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+				<span class="nb">print</span> <span class="s2">&quot;ERROR!! elevation vector not ascending, interpolation method cannot run&quot;</span>
+				<span class="k">break</span>
+
+			<span class="bp">self</span><span class="o">.</span><span class="n">interpVar</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">ele</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">interpVar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interpVar</span><span class="p">)</span> <span class="c1"># convert list to np array</span></div>
+
+<div class="viewcode-block" id="tscale.addVar"><a class="viewcode-back" href="../index.html#tscale.tscale.addVar">[docs]</a>	<span class="k">def</span> <span class="nf">addVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">datInterp</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot; Assign correct attribute name &quot;&quot;&quot;</span>
+		<span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">varname</span><span class="p">,</span> <span class="n">datInterp</span><span class="p">)</span></div>
+		
+	<span class="c1"># class interp3D(object): OR FUNCYTION HERE?</span>
+<span class="c1"># 	&quot;&quot;&quot;</span>
+<span class="c1"># 	Return interpolated cgc to point of interest</span>
+
+<span class="c1"># 	Args:</span>
+<span class="c1"># 		lon: POI lon</span>
+<span class="c1"># 		lat: POI lat</span>
+<span class="c1"># 		nc: data netcdf</span>
+
+<span class="c1"># 	Example:</span>
+<span class="c1"># 		lon=7.5</span>
+<span class="c1"># 		lat=48.5</span>
+<span class="c1"># 		nc= /home/joel/PLEV.nc</span>
+
+<span class="c1"># 		cgcExtract(lon, lat, nc)</span>
+		
+<span class="c1"># 	&quot;&quot;&quot; </span>
+
+<span class="c1"># class lwin(object):</span>
+<span class="c1"># 	&quot;&quot;&quot; Methods for downscaling longwave radiation &quot;&quot;&quot;</span>
+	
+<span class="c1"># 	def __init__(self, statEle):</span>
+<span class="c1"># 		self.statEle = statEle</span>
+<div class="viewcode-block" id="tscale.wind"><a class="viewcode-back" href="../index.html#tscale.tscale.wind">[docs]</a>	<span class="k">def</span> <span class="nf">wind</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tob</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot; methods for working with wind&quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">ws</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tob</span><span class="o">.</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">tob</span><span class="o">.</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">wd</span> <span class="o">=</span>   <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">tob</span><span class="o">.</span><span class="n">u</span><span class="o">/</span><span class="n">tob</span><span class="o">.</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tob</span><span class="o">.</span><span class="n">v</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">,</span><span class="mi">180</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tob</span><span class="o">.</span><span class="n">u</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">,</span><span class="mi">360</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="tscale.windCorRough"><a class="viewcode-back" href="../index.html#tscale.tscale.windCorRough">[docs]</a>	<span class="k">def</span> <span class="nf">windCorRough</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tob</span><span class="p">,</span> <span class="n">pob</span><span class="p">,</span> <span class="n">sob</span><span class="p">,</span> <span class="n">stat</span> <span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;corrects wind speed according to true rougness values&quot;&quot;&quot;</span>
+		<span class="n">target_height</span> <span class="o">=</span> <span class="mi">2</span>
+		<span class="n">blending_height</span> <span class="o">=</span> <span class="mi">40</span>
+		<span class="n">z0</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="c1">#rough</span>
+		<span class="c1">#av_wind = 0</span>
+		<span class="c1">#wind_over_10 = 0</span>
+		<span class="c1">#timesteps = 365*4</span>
+		<span class="c1">#stationEle=2540</span>
+		<span class="c1">#lon= 4#box index in dowwloaded era</span>
+		<span class="c1">#lat= 2</span>
+
+
+		<span class="c1"># surface</span>
+		<span class="c1">#nc = nc_open(surface_file)</span>
+		<span class="c1">#u_starvec = ncvar_get(nc, &#39;zust&#39;)</span>
+		<span class="n">u_starvec</span> <span class="o">=</span> <span class="n">sob</span><span class="o">.</span><span class="n">zust</span>
+		<span class="c1">#nc = nc_open(surface_file)</span>
+		<span class="c1">#Qhvec = ncvar_get(nc, &#39;ishf&#39;)</span>
+		<span class="n">Qhvec</span> <span class="o">=</span> <span class="n">sob</span><span class="o">.</span><span class="n">ishf</span>
+		<span class="c1">#nc = nc_open(surface_file)</span>
+		<span class="c1">#Qe = ncvar_get(nc, &#39;ie&#39;)</span>
+		<span class="n">Qe</span> <span class="o">=</span> <span class="n">sob</span><span class="o">.</span><span class="n">ie</span>
+		<span class="n">Qevec</span> <span class="o">=</span> <span class="p">(</span><span class="n">Qe</span><span class="o">*</span><span class="mf">2.264e6</span><span class="p">)</span>
+		<span class="n">Tvec</span> <span class="o">=</span> <span class="n">tob</span><span class="o">.</span><span class="n">t</span>		<span class="c1"># T is air temperature (degC) downscaled to blending_height above station</span>
+		<span class="n">windvec</span><span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tob</span><span class="o">.</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span><span class="n">tob</span><span class="o">.</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># winddownscaled to blending_height above station</span>
+		
+
+
+
+		<span class="k">def</span>	<span class="nf">get_L_star</span> <span class="p">(</span><span class="n">u_star</span><span class="p">,</span> <span class="n">Qh</span><span class="p">,</span> <span class="n">Qe</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+			<span class="n">rho</span><span class="o">=</span><span class="mf">1.293</span>
+			<span class="n">cp</span><span class="o">=</span><span class="mi">1005</span>
+			<span class="n">L</span><span class="o">=</span><span class="mf">2.26e6</span>
+			<span class="n">kappa</span><span class="o">=</span><span class="mf">0.4</span>
+			<span class="n">g</span><span class="o">=</span><span class="mf">9.81</span>
+			<span class="n">T</span> <span class="o">=</span> <span class="n">T</span> <span class="c1">#+273.15</span>
+			<span class="n">one_over_L_star</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">rho</span><span class="o">*</span><span class="n">cp</span><span class="o">*</span><span class="n">T</span><span class="o">/</span><span class="n">kappa</span><span class="o">/</span><span class="n">g</span><span class="o">*</span><span class="n">u_star</span><span class="o">**</span><span class="mi">3</span><span class="o">/</span><span class="p">(</span><span class="n">Qh</span> <span class="o">+</span> <span class="mf">0.61</span><span class="o">*</span><span class="n">cp</span><span class="o">/</span><span class="n">L</span><span class="o">*</span><span class="n">T</span><span class="o">*</span><span class="n">Qe</span><span class="p">))</span>
+			<span class="k">return</span> <span class="n">one_over_L_star</span>
+
+		<span class="k">def</span>	<span class="nf">psi_M</span><span class="p">(</span><span class="n">zeta1</span><span class="p">,</span> <span class="n">zeta2</span><span class="p">):</span>
+			<span class="n">a</span><span class="o">=</span><span class="mi">1</span>
+			<span class="n">b</span><span class="o">=</span><span class="mi">2</span><span class="o">/</span><span class="mi">3</span>
+			<span class="n">c</span><span class="o">=</span><span class="mi">5</span>
+			<span class="n">d</span><span class="o">=</span><span class="mf">0.35</span>
+			<span class="n">zeta1</span> <span class="o">=</span> <span class="n">zeta1</span>  <span class="o">+</span> <span class="p">(</span><span class="n">zeta1</span><span class="o">&gt;</span><span class="mi">5</span><span class="p">)</span><span class="o">*</span> <span class="p">(</span><span class="mi">5</span><span class="o">-</span><span class="n">zeta1</span><span class="p">)</span>
+			<span class="n">zeta2</span> <span class="o">=</span> <span class="n">zeta2</span> <span class="o">+</span> <span class="p">(</span><span class="n">zeta2</span><span class="o">&gt;</span><span class="mi">5</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">5</span><span class="o">-</span><span class="n">zeta2</span><span class="p">)</span>
+			
+
+			<span class="k">if</span> <span class="p">(</span><span class="n">zeta1</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+				<span class="n">res</span><span class="o">=-</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">16</span><span class="o">*</span><span class="n">zeta1</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="p">))</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">16</span><span class="o">*</span><span class="n">zeta1</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">16</span><span class="o">*</span><span class="n">zeta1</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span><span class="o">/</span><span class="mi">8</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">16</span><span class="o">*</span><span class="n">zeta2</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="p">))</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">16</span><span class="o">*</span><span class="n">zeta2</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">16</span><span class="o">*</span><span class="n">zeta2</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span><span class="o">/</span><span class="mi">8</span><span class="p">))</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">res</span> <span class="o">=</span> <span class="o">-</span><span class="n">b</span><span class="o">*</span><span class="p">(</span><span class="n">zeta1</span> <span class="o">-</span> <span class="n">c</span><span class="o">/</span><span class="n">d</span><span class="p">)</span> <span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">d</span><span class="o">*</span><span class="n">zeta1</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span><span class="o">*</span> <span class="n">zeta1</span> <span class="o">-</span> <span class="p">(</span><span class="o">-</span><span class="n">b</span><span class="o">*</span><span class="p">(</span><span class="n">zeta2</span> <span class="o">-</span><span class="n">c</span><span class="o">/</span><span class="n">d</span><span class="p">)</span> <span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">d</span><span class="o">*</span><span class="n">zeta2</span><span class="p">)</span> <span class="o">-</span> <span class="n">a</span><span class="o">*</span> <span class="n">zeta2</span><span class="p">)</span>
+			<span class="k">return</span> <span class="n">res</span>
+
+		<span class="n">wind_downscaled</span><span class="o">=</span><span class="p">[]</span>	
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Tvec</span><span class="p">)):</span>
+			<span class="n">u_star</span> <span class="o">=</span> <span class="n">u_starvec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+			<span class="n">Qh</span> <span class="o">=</span> <span class="n">Qhvec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+			<span class="n">Qe</span> <span class="o">=</span> <span class="n">Qevec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+			<span class="n">T</span><span class="o">=</span><span class="n">Tvec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+			<span class="n">wind</span><span class="o">=</span><span class="n">windvec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+			<span class="n">one_over_L_star</span> <span class="o">=</span> <span class="n">get_L_star</span><span class="p">(</span><span class="n">u_star</span><span class="p">,</span> <span class="n">Qh</span><span class="p">,</span> <span class="n">Qe</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+
+			<span class="n">valid_flag</span> <span class="o">=</span> <span class="p">(</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">target_height</span> <span class="o">/</span> <span class="n">z0</span><span class="p">)</span> <span class="o">-</span> <span class="n">psi_M</span><span class="p">(</span><span class="n">target_height</span> 
+			<span class="o">*</span> <span class="n">one_over_L_star</span><span class="p">,</span> <span class="n">z0</span> <span class="o">*</span> <span class="n">one_over_L_star</span><span class="p">))</span> 
+			<span class="o">/</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">blending_height</span> <span class="o">/</span> <span class="n">z0</span><span class="p">)</span> 
+			<span class="o">-</span> <span class="n">psi_M</span><span class="p">(</span><span class="n">blending_height</span> <span class="o">*</span> <span class="n">one_over_L_star</span><span class="p">,</span> <span class="n">z0</span><span class="o">*</span> <span class="n">one_over_L_star</span><span class="p">)))</span>
+
+			<span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">valid_flag</span><span class="p">)):</span>
+				<span class="n">valid_flag</span> <span class="o">=</span> <span class="mi">1</span>
+			<span class="k">if</span><span class="p">(</span><span class="n">valid_flag</span><span class="o">&lt;</span><span class="mf">1e-3</span><span class="p">):</span>
+				<span class="n">valid_flag</span> <span class="o">=</span> <span class="mi">1</span>
+			<span class="k">if</span><span class="p">(</span><span class="n">valid_flag</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">):</span>
+				<span class="n">valid_flag</span> <span class="o">=</span> <span class="mi">1</span>
+
+			<span class="n">wind_downscaled</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">wind</span> <span class="o">*</span> <span class="n">valid_flag</span><span class="p">)</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">wscor</span> <span class="o">=</span> <span class="n">wind_downscaled</span>	</div>
+			
+			
+
+
+
+
+
+<div class="viewcode-block" id="tscale.lwin"><a class="viewcode-back" href="../index.html#tscale.tscale.lwin">[docs]</a>	<span class="k">def</span> <span class="nf">lwin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sob</span><span class="p">,</span><span class="n">tob</span><span class="p">):</span>
+		<span class="sd">&quot;&quot;&quot;Convert to RH (should be in a function). Following MG Lawrence </span>
+<span class="sd">		DOI 10.1175/BAMS-86-2-225 &quot;&quot;&quot;</span>
+		<span class="n">A1</span><span class="o">=</span><span class="mf">7.625</span> 
+		<span class="n">B1</span><span class="o">=</span><span class="mf">243.04</span> 
+		<span class="n">C1</span><span class="o">=</span><span class="mf">610.94</span>
+		<span class="n">tc</span><span class="o">=</span><span class="n">sob</span><span class="o">.</span><span class="n">t2m</span><span class="o">-</span><span class="mf">273.15</span>
+		<span class="n">tdc</span><span class="o">=</span><span class="n">sob</span><span class="o">.</span><span class="n">d2m</span><span class="o">-</span><span class="mf">273.15</span>
+		<span class="n">tf</span><span class="o">=</span><span class="n">tob</span><span class="o">.</span><span class="n">t</span><span class="o">-</span><span class="mf">273.15</span> <span class="c1"># fout.T</span>
+		<span class="n">c</span><span class="o">=</span><span class="p">(</span><span class="n">A1</span><span class="o">*</span><span class="n">tc</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">B1</span><span class="o">+</span><span class="n">tc</span><span class="p">)</span>
+		<span class="n">RHc</span><span class="o">=</span><span class="mi">100</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">tdc</span><span class="o">*</span><span class="n">A1</span><span class="o">-</span><span class="n">tdc</span><span class="o">*</span><span class="n">c</span><span class="o">-</span><span class="n">B1</span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">B1</span><span class="o">+</span><span class="n">tdc</span><span class="p">))</span> <span class="c1"># Inverting eq. 8 in Lawrence.</span>
+
+		<span class="sd">&quot;&quot;&quot; Calculate saturation vapor pressure at grid and &quot;subgrid&quot; [also</span>
+<span class="sd">		through function] using the Magnus formula.&quot;&quot;&quot;</span>
+		
+		<span class="n">svpf</span><span class="o">=</span><span class="n">C1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">A1</span><span class="o">*</span><span class="n">tf</span><span class="o">/</span><span class="p">(</span><span class="n">B1</span><span class="o">+</span><span class="n">tf</span><span class="p">))</span>
+		<span class="n">svpc</span><span class="o">=</span><span class="n">C1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">A1</span><span class="o">*</span><span class="n">tc</span><span class="o">/</span><span class="p">(</span><span class="n">B1</span><span class="o">+</span><span class="n">tc</span><span class="p">))</span>
+
+		<span class="sd">&quot;&quot;&quot;Calculate the vapor pressure at grid (c) and subgrid (f).&quot;&quot;&quot;</span>
+		<span class="n">vpf</span><span class="o">=</span><span class="n">tob</span><span class="o">.</span><span class="n">r</span><span class="o">*</span><span class="n">svpf</span><span class="o">/</span><span class="mf">1e2</span> <span class="c1"># RHf</span>
+		<span class="n">vpc</span><span class="o">=</span><span class="n">RHc</span><span class="o">*</span><span class="n">svpc</span><span class="o">/</span><span class="mf">1e2</span>
+
+		<span class="sd">&quot;&quot;&quot;Use the vapor pressure and temperature to calculate clear sky</span>
+<span class="sd">		 # emssivity at grid and subgrid. [also function]&quot;&quot;&quot;</span>
+		<span class="n">x1</span><span class="o">=</span><span class="mf">0.43</span> 
+		<span class="n">x2</span><span class="o">=</span><span class="mf">5.7</span>
+		<span class="n">cef</span><span class="o">=</span><span class="mf">0.23</span><span class="o">+</span><span class="n">x1</span><span class="o">*</span><span class="p">(</span><span class="n">vpf</span><span class="o">/</span><span class="n">tf</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">x2</span><span class="p">)</span> <span class="c1">#Pretty sure the use of Kelvin is correct.</span>
+		<span class="n">cec</span><span class="o">=</span><span class="mf">0.23</span><span class="o">+</span><span class="n">x1</span><span class="o">*</span><span class="p">(</span><span class="n">vpc</span><span class="o">/</span><span class="n">sob</span><span class="o">.</span><span class="n">t2m</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">x2</span><span class="p">)</span>
+
+		<span class="sd">&quot;&quot;&quot;Diagnose the all sky emissivity at grid.&quot;&quot;&quot;</span>
+		<span class="n">sbc</span><span class="o">=</span><span class="mf">5.67e-8</span>
+		<span class="n">aec</span><span class="o">=</span><span class="n">sob</span><span class="o">.</span><span class="n">strd</span><span class="o">/</span><span class="p">(</span><span class="n">sbc</span><span class="o">*</span><span class="n">sob</span><span class="o">.</span><span class="n">t2m</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span>
+
+		<span class="sd">&quot;&quot;&quot; Calculate the &quot;cloud&quot; emissivity at grid, assume this is the same at</span>
+<span class="sd">	 	subgrid.&quot;&quot;&quot;</span>
+		<span class="n">deltae</span><span class="o">=</span><span class="n">aec</span><span class="o">-</span><span class="n">cec</span>
+
+		<span class="sd">&quot;&quot;&quot; Use the former cloud emissivity to compute the all sky emissivity at </span>
+<span class="sd">		subgrid. &quot;&quot;&quot;</span>
+		<span class="n">aef</span><span class="o">=</span><span class="n">cef</span><span class="o">+</span><span class="n">deltae</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">LWf</span><span class="o">=</span><span class="n">aef</span><span class="o">*</span><span class="n">sbc</span><span class="o">*</span><span class="n">tob</span><span class="o">.</span><span class="n">t</span><span class="o">**</span><span class="mi">4</span></div>
+		<span class="c1">#fout.LW(:,:,n)=LWf</span>
+
+
+
+<div class="viewcode-block" id="tscale.swin"><a class="viewcode-back" href="../index.html#tscale.tscale.swin">[docs]</a>	<span class="k">def</span> <span class="nf">swin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">pob</span><span class="p">,</span><span class="n">sob</span><span class="p">,</span><span class="n">tob</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
+		
+		<span class="sd">&quot;&quot;&quot; toposcale surface pressure using hypsometric equation - move to own </span>
+<span class="sd">		class &quot;&quot;&quot;</span>
+
+		<span class="n">ztemp</span> <span class="o">=</span> <span class="n">pob</span><span class="o">.</span><span class="n">z</span>
+		<span class="n">Ttemp</span> <span class="o">=</span> <span class="n">pob</span><span class="o">.</span><span class="n">t</span>
+		<span class="n">statz</span> <span class="o">=</span> <span class="n">stat</span><span class="o">.</span><span class="n">ele</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">g</span>
+		<span class="n">dz</span><span class="o">=</span><span class="n">ztemp</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">-</span><span class="n">statz</span> <span class="c1"># transpose not needed but now consistent with CGC surface pressure equations</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">=</span><span class="p">[]</span>
+		<span class="c1"># loop through timesteps</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">dz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+			<span class="nb">print</span> <span class="n">i</span>
+			<span class="c1"># 	# find overlying layer</span>
+			<span class="n">thisp</span> <span class="o">=</span> <span class="n">dz</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dz</span><span class="p">[:,</span><span class="n">i</span><span class="p">][</span><span class="n">dz</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">])</span>
+
+			<span class="c1"># booleen indexing</span>
+			<span class="n">T1</span><span class="o">=</span><span class="n">Ttemp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">thisp</span><span class="p">]</span>
+			<span class="n">z1</span><span class="o">=</span><span class="n">ztemp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">thisp</span><span class="p">]</span>
+			<span class="n">p1</span><span class="o">=</span><span class="n">pob</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="n">thisp</span><span class="p">]</span><span class="o">*</span><span class="mf">1e2</span> <span class="c1">#Convert to Pa.</span>
+			<span class="n">Tbar</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">T1</span><span class="p">,</span> <span class="n">tob</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+			<span class="sd">&quot;&quot;&quot; Hypsometric equation.&quot;&quot;&quot;</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">z1</span><span class="o">-</span><span class="n">statz</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="o">/</span><span class="p">(</span><span class="n">Tbar</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">))))</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+
+		<span class="c1">## Specific humidity routine.</span>
+		<span class="c1"># mrvf=0.622.*vpf./(psf-vpf); #Mixing ratio for water vapor at subgrid.</span>
+		<span class="c1">#  qf=mrvf./(1+mrvf); # Specific humidity at subgrid [kg/kg].</span>
+		<span class="c1"># fout.q(:,:,n)=qf; </span>
+
+
+		<span class="sd">&quot;&quot;&quot; Maybe follow Dubayah&#39;s approach (as in Rittger and Girotto) instead</span>
+<span class="sd">		for the shortwave downscaling, other than terrain effects. &quot;&quot;&quot;</span>
+
+		<span class="sd">&quot;&quot;&quot; Height of the &quot;grid&quot; (coarse scale)&quot;&quot;&quot;</span>
+		<span class="n">Zc</span><span class="o">=</span><span class="n">sob</span><span class="o">.</span><span class="n">z</span>
+
+		<span class="sd">&quot;&quot;&quot; toa &quot;&quot;&quot;</span>
+		<span class="n">SWtoa</span> <span class="o">=</span> <span class="n">sob</span><span class="o">.</span><span class="n">tisr</span> 
+
+		<span class="sd">&quot;&quot;&quot; Downwelling shortwave flux of the &quot;grid&quot; using nearest neighbor.&quot;&quot;&quot;</span>
+		<span class="n">SWc</span><span class="o">=</span><span class="n">sob</span><span class="o">.</span><span class="n">ssrd</span>
+
+		<span class="sd">&quot;&quot;&quot;Calculate the clearness index.&quot;&quot;&quot;</span>
+		<span class="n">kt</span><span class="o">=</span><span class="n">SWc</span><span class="o">/</span><span class="n">SWtoa</span>
+
+		<span class="c1">#kt[is.na(kt)==T]&lt;-0 # make sure 0/0 =0</span>
+		<span class="c1">#kt[is.infinite(kt)==T]&lt;-0 # make sure 0/0 =0</span>
+		<span class="n">kt</span><span class="p">[</span><span class="n">kt</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span>
+		<span class="n">kt</span><span class="p">[</span><span class="n">kt</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="mf">0.8</span> <span class="c1">#upper limit of kt</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">kt</span><span class="o">=</span><span class="n">kt</span>
+
+		<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Calculate the diffuse fraction following the regression of Ruiz-Arias 2010 </span>
+<span class="sd">		</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">kd</span><span class="o">=</span><span class="mf">0.952</span><span class="o">-</span><span class="mf">1.041</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">2.3</span><span class="o">-</span><span class="mf">4.702</span><span class="o">*</span><span class="n">kt</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">kd</span> <span class="o">=</span> <span class="n">kd</span>
+
+		<span class="sd">&quot;&quot;&quot; Use this to calculate the downwelling diffuse and direct shortwave radiation at grid. &quot;&quot;&quot;</span>
+		<span class="n">SWcdiff</span><span class="o">=</span><span class="n">kd</span><span class="o">*</span><span class="n">SWc</span>
+		<span class="n">SWcdir</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">kd</span><span class="p">)</span><span class="o">*</span><span class="n">SWc</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">SWcdiff</span><span class="o">=</span><span class="n">SWcdiff</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">SWcdir</span><span class="o">=</span><span class="n">SWcdir</span>
+
+		<span class="sd">&quot;&quot;&quot; Use the above with the sky-view fraction to calculate the </span>
+<span class="sd">		downwelling diffuse shortwave radiation at subgrid. &quot;&quot;&quot;</span>
+		<span class="bp">self</span><span class="o">.</span> <span class="n">SWfdiff</span><span class="o">=</span><span class="n">stat</span><span class="o">.</span><span class="n">svf</span><span class="o">*</span><span class="n">SWcdiff</span>
+
+		<span class="sd">&quot;&quot;&quot; Direct shortwave routine, modified from Joel. </span>
+<span class="sd">		Get surface pressure at &quot;grid&quot; (coarse scale). Can remove this</span>
+<span class="sd">		part once surface pressure field is downloaded, or just check</span>
+<span class="sd">		for existance. &quot;&quot;&quot;</span>
+
+		<span class="n">ztemp</span> <span class="o">=</span> <span class="n">pob</span><span class="o">.</span><span class="n">z</span>
+		<span class="n">Ttemp</span> <span class="o">=</span> <span class="n">pob</span><span class="o">.</span><span class="n">t</span>
+		<span class="n">dz</span><span class="o">=</span><span class="n">ztemp</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">-</span><span class="n">sob</span><span class="o">.</span><span class="n">z</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">psc</span><span class="o">=</span><span class="p">[]</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">dz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+		
+			<span class="c1">#thisp.append(np.argmin(dz[:,i][dz[:,i]&gt;0]))</span>
+			<span class="n">thisp</span> <span class="o">=</span> <span class="n">dz</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dz</span><span class="p">[:,</span><span class="n">i</span><span class="p">][</span><span class="n">dz</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">])</span>
+			<span class="n">z0</span> <span class="o">=</span> <span class="n">sob</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+			<span class="n">T0</span> <span class="o">=</span> <span class="n">sob</span><span class="o">.</span><span class="n">t2m</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+			<span class="n">T1</span><span class="o">=</span><span class="n">Ttemp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">thisp</span><span class="p">]</span>
+			<span class="n">z1</span><span class="o">=</span><span class="n">ztemp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">thisp</span><span class="p">]</span>
+			<span class="n">p1</span><span class="o">=</span><span class="n">pob</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="n">thisp</span><span class="p">]</span><span class="o">*</span><span class="mf">1e2</span> <span class="c1">#Convert to Pa.</span>
+			<span class="n">Tbar</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">T0</span><span class="p">,</span> <span class="n">T1</span><span class="p">],</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+			<span class="sd">&quot;&quot;&quot; Hypsometric equation.&quot;&quot;&quot;</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">psc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">z1</span><span class="o">-</span><span class="n">z0</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="o">/</span><span class="p">(</span><span class="n">Tbar</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">))))</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">psc</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psc</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+
+		<span class="c1">#T1=Ttemp(thisp)</span>
+		<span class="c1">#z1=ztemp(thisp)</span>
+		<span class="c1">#p1=pob.levels(thisp)*1e2 #Convert to Pa.</span>
+		<span class="c1">#Tbar=mean([T0 T1])</span>
+		
+		<span class="sd">&quot;&quot;&quot;compute julian dates&quot;&quot;&quot;</span>
+		<span class="n">jd</span><span class="o">=</span> <span class="n">sg</span><span class="o">.</span><span class="n">to_jd</span><span class="p">(</span><span class="n">dates</span><span class="p">)</span>
+
+		<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Calculates a unit vector in the direction of the sun from the observer </span>
+<span class="sd">		position.</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">sunv</span><span class="o">=</span><span class="n">sg</span><span class="o">.</span><span class="n">sunvector</span><span class="p">(</span><span class="n">jd</span><span class="o">=</span><span class="n">jd</span><span class="p">,</span> <span class="n">latitude</span><span class="o">=</span><span class="n">stat</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="n">longitude</span><span class="o">=</span><span class="n">stat</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">timezone</span><span class="o">=</span><span class="n">stat</span><span class="o">.</span><span class="n">tz</span><span class="p">)</span>
+
+		<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Computes azimuth , zenith  and sun elevation </span>
+<span class="sd">		for each timestamp</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">sp</span><span class="o">=</span><span class="n">sg</span><span class="o">.</span><span class="n">sunpos</span><span class="p">(</span><span class="n">sunv</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">sp</span><span class="o">=</span><span class="n">sp</span>
+
+		<span class="c1"># Cosine of the zenith angle.</span>
+		<span class="n">sp</span><span class="o">.</span><span class="n">zen</span><span class="o">=</span><span class="n">sp</span><span class="o">.</span><span class="n">zen</span>
+		<span class="c1">#sp.zen=sp.zen*(sp.zen&gt;0) # Sun might be below the horizon.</span>
+		<span class="n">muz</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">zen</span><span class="p">)</span> 
+		<span class="bp">self</span><span class="o">.</span><span class="n">muz</span> <span class="o">=</span> <span class="n">muz</span>
+		<span class="c1"># NB! psc must be in Pa (NOT hPA!).</span>
+		<span class="c1">#if np.max(psc&lt;1.5e3): # Obviously not in Pa</span>
+			<span class="c1">#psc=psc*1e2</span>
+	   
+		
+		<span class="c1"># Calculate the &quot;broadband&quot; absorption coefficient. Elevation correction</span>
+		<span class="c1"># from Kris</span>
+		<span class="n">ka</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="o">*</span><span class="n">muz</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">psc</span><span class="p">))</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">SWtoa</span><span class="o">/</span><span class="n">SWcdir</span><span class="p">)</span>	
+		
+		<span class="c1"># Note this equation is obtained by inverting Beer&#39;s law, i.e. use</span>
+		<span class="c1">#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]</span>
+		<span class="c1"># Along with hydrostatic equation to convert to pressure coordinates then</span>
+		<span class="c1"># solve for ka using p(z=inf)=0.</span>
+		
+		
+		<span class="c1"># Now you can (finally) find the direct component at subgrid. </span>
+		<span class="n">SWfdir</span><span class="o">=</span><span class="n">SWtoa</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ka</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">psf</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="o">*</span><span class="n">muz</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">SWfdir</span> <span class="o">=</span> <span class="n">SWfdir</span>
+
+		<span class="sd">&quot;&quot;&quot; Then perform the terrain correction. [Corripio 2003 / rpackage insol port].&quot;&quot;&quot;</span>
+
+		<span class="sd">&quot;&quot;&quot;compute mean horizon elevation - why negative hor.el possible??? &quot;&quot;&quot;</span>
+		<span class="n">horel</span><span class="o">=</span><span class="p">(((</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">svf</span><span class="p">))</span><span class="o">*</span><span class="mi">180</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span><span class="o">-</span><span class="n">stat</span><span class="o">.</span><span class="n">slp</span>
+		<span class="k">if</span> <span class="n">horel</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+			<span class="n">horel</span> <span class="o">=</span> <span class="mi">0</span> 
+		<span class="bp">self</span><span class="o">.</span><span class="n">meanhorel</span> <span class="o">=</span> <span class="n">horel</span>
+
+		<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		normal vector - Calculates a unit vector normal to a surface defined by </span>
+<span class="sd">		slope inclination and slope orientation.</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">nv</span> <span class="o">=</span> <span class="n">sg</span><span class="o">.</span><span class="n">normalvector</span><span class="p">(</span><span class="n">slope</span><span class="o">=</span><span class="n">stat</span><span class="o">.</span><span class="n">slp</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="n">stat</span><span class="o">.</span><span class="n">asp</span><span class="p">)</span>
+
+		<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Method 1: Computes the intensity according to the position of the sun (sunv) and </span>
+<span class="sd">		dotproduct normal vector to slope.</span>
+<span class="sd">		From corripio r package</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">dotprod</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">sunv</span> <span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">nv</span><span class="p">))</span> 
+		<span class="n">dprod</span> <span class="o">=</span> <span class="n">dotprod</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+		<span class="n">dprod</span><span class="p">[</span><span class="n">dprod</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1">#negative indicates selfshading</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">dprod</span> <span class="o">=</span> <span class="n">dprod</span>
+
+		<span class="sd">&quot;&quot;&quot;Method 2: Illumination angles. Dozier&quot;&quot;&quot;</span>
+		<span class="n">saz</span><span class="o">=</span><span class="n">sp</span><span class="o">.</span><span class="n">azi</span>
+		<span class="n">cosis</span><span class="o">=</span><span class="n">muz</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">slp</span><span class="p">)</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">zen</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">slp</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">azi</span><span class="o">-</span><span class="n">stat</span><span class="o">.</span><span class="n">asp</span><span class="p">)</span><span class="c1"># cosine of illumination angle at subgrid.</span>
+		<span class="n">cosic</span><span class="o">=</span><span class="n">muz</span> <span class="c1"># cosine of illumination angle at grid (slope=0).</span>
+
+		<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		SUN ELEVATION below hor.el set to 0 - binary mask</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">selMask</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">sel</span>
+		<span class="n">selMask</span><span class="p">[</span><span class="n">selMask</span><span class="o">&lt;</span><span class="n">horel</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span>
+		<span class="n">selMask</span><span class="p">[</span><span class="n">selMask</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">selMask</span> <span class="o">=</span> <span class="n">selMask</span>
+
+		<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		derive incident radiation on slope accounting for self shading and cast </span>
+<span class="sd">		shadow and solar geometry</span>
+<span class="sd">		BOTH formulations seem to be broken</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="c1">#self.SWfdirCor=selMask*(cosis/cosic)*self.SWfdir</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">SWfdirCor</span><span class="o">=</span><span class="n">selMask</span><span class="o">*</span><span class="n">dprod</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">SWfdir</span>
+	   
+		<span class="bp">self</span><span class="o">.</span><span class="n">SWfglob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span> <span class="n">SWfdiff</span><span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">SWfdirCor</span>
+
+		<span class="sd">&quot;&quot;&quot; </span>
+<span class="sd">		Missing components</span>
+<span class="sd">		- terrain reflection</span>
+<span class="sd">		&quot;&quot;&quot;</span></div>
+
+	<span class="k">def</span> <span class="nf">precip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sob</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
+
+		<span class="n">lookups</span> <span class="o">=</span> <span class="p">{</span>
+		   <span class="mi">1</span><span class="p">:</span><span class="mf">0.35</span><span class="p">,</span>
+		   <span class="mi">2</span><span class="p">:</span><span class="mf">0.35</span><span class="p">,</span>
+		   <span class="mi">3</span><span class="p">:</span><span class="mf">0.35</span><span class="p">,</span>
+		   <span class="mi">4</span><span class="p">:</span><span class="mf">0.3</span><span class="p">,</span>
+		   <span class="mi">5</span><span class="p">:</span><span class="mf">0.25</span><span class="p">,</span>
+		   <span class="mi">6</span><span class="p">:</span><span class="mf">0.2</span><span class="p">,</span>
+		   <span class="mi">7</span><span class="p">:</span><span class="mf">0.2</span><span class="p">,</span>
+		   <span class="mi">8</span><span class="p">:</span><span class="mf">0.2</span><span class="p">,</span>
+		   <span class="mi">9</span><span class="p">:</span><span class="mf">0.2</span><span class="p">,</span>
+		   <span class="mi">10</span><span class="p">:</span><span class="mf">0.25</span><span class="p">,</span>
+		   <span class="mi">11</span><span class="p">:</span><span class="mf">0.3</span><span class="p">,</span>
+		   <span class="mi">12</span><span class="p">:</span><span class="mf">0.35</span>
+		<span class="p">}</span>
+
+		<span class="c1"># Precipitation lapse rate, varies by month (Liston and Elder, 2006).</span>
+		<span class="n">pfis</span> <span class="o">=</span> <span class="n">sob</span><span class="o">.</span><span class="n">dtime</span><span class="o">.</span><span class="n">month</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">lookups</span><span class="p">)</span>
+		<span class="n">dz</span><span class="o">=</span><span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">ele</span><span class="o">-</span><span class="n">sob</span><span class="o">.</span><span class="n">gridEle</span><span class="p">)</span><span class="o">/</span><span class="mf">1e3</span>     <span class="c1"># Elevation difference in kilometers between the fine and coarse surface.</span>
+		<span class="n">lp</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">pfis</span><span class="o">*</span><span class="n">dz</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">pfis</span><span class="o">*</span><span class="n">dz</span><span class="p">)</span><span class="c1"># Precipitation correction factor.</span>
+		<span class="n">Pf</span><span class="o">=</span><span class="n">sob</span><span class="o">.</span><span class="n">tp</span><span class="o">*</span><span class="n">lp</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">TPf</span><span class="o">=</span><span class="n">Pf</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, jfiddes.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
