@@ -28,8 +28,5 @@ Module: era5.py
 **************************
 .. automodule:: era5
    :members:
-Module: main.py
-**************************
-.. automodule:: main
-   :members:
+
 
