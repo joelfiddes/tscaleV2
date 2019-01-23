@@ -46,29 +46,23 @@ Code architecture
 -----------------
 TopoSCALE has 5 components:
 
-1. INI file
-
-	* defines all options
+INI file
+^^^^^^^^
+The INI file defines all required options for a run.
 
 2. Input plugins
-
 	* preprocesses product (resampling, conversions)
 	* converts to generic python class structure
-
 3. Core engine
-
 	* accepts generic data structures
 	* algorithms
 	* outputs generic  python class structure
-
 4. Output plugins
-
-	* writes model specific output formats (SMET, CSV, NetCDF,MAT?)
-	* writes grids (NetCDF)
-
+	* writes specific output formats (CSV, NetCDF)
+	* writes model specific outputs (SMET, GEotop, Cryogrid) 
+	* writes grids (NetCDF, tiff)
 5. Optional modules
-
-	* retrieve data products (various api dependcies here)
+	* retrieve and preprocess data products (various api dependencies here)
 
 
 Documentation
