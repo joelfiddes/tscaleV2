@@ -59,7 +59,7 @@ source_suffix = ['.rst', '.md']
 master_doc = 'index'
 
 # General information about the project.
-project = u'tscale'
+project = u'toposcale'
 copyright = u'2019, jfiddes'
 author = u'jfiddes'
 
