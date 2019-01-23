@@ -1,66 +1,27 @@
 """Example Google style docstrings.
 
-This module demonstrates documentation as specified by the `Google Python
-Style Guide`_. Docstrings may extend over multiple lines. Sections are created
-with a section header and a colon followed by a block of indented text.
+This module downscales all required fields, TA, RH, WS, WD, LW, SW based on
+properties of a stat object that represents a station (Mode=POINT) or a cluster 
+centroid (mode=TSUB) or a pixel (mode=GRID).
+
 
 Example:
-    Examples can be given using either the ``Example`` or ``Examples``
-    sections. Sections support any reStructuredText formatting, including
-    literal blocks::
 
-        $ python example_google.py
+Initialise a new tscale instance with::
+        $ p.plevels()
 
-Section breaks are created by resuming unindented text. Section breaks
-are also implicitly created anytime a new section starts.
+
 
 Attributes:
-    module_level_variable1 (int): Module level variables may be documented in
-        either the ``Attributes`` section of the module docstring, or in an
-        inline docstring immediately following the variable.
 
-        Either form is acceptable, but the two should not be mixed. Choose
-        one convention to document module level variables and be consistent
-        with it.
 
 Todo:
-    * For module TODOs
-    * You have to also use ``sphinx.ext.todo`` extension
+    * Precipitation look up table hardcoded in method
 
-.. _Google Python Style Guide:
-   http://google.github.io/styleguide/pyguide.html
+
 
 """
 
-# TopoSCALE: Topograhic based downscaling of atmospheric datasets
-#
-# === DESCRIPTION ==============================================================
-
-# === COPYRIGHT AND LICENCE ====================================================
-#
-#	This program is free software: you can redistribute it and/or modify
-#	it under the terms of the GNU General Public License as published by
-#	the Free Software Foundation, either version 3 of the License, or
-#	(at your option) any later version.
-#
-#	This program is distributed in the hope that it will be useful,
-#	but WITHOUT ANY WARRANTY; without even the implied warranty of
-#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#	GNU General Public License for more details.
-#
-#	You should have received a copy of the GNU General Public License
-#	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
-# === CONTRIBUTIONS ============================================================
-#
-# === NOTES ====================================================================
-
-# === REQUIREMENTS =============================================================
-#	* PLEV.nc - all pressure level variables for entire domain (single/multiple 
-#		CGCs) [time X grid cell X  level X variable]
-#	* SURF.nc - all surface variables for entire domain (single/multiple 
-#		CGCs) [time X grid cell X variable]
 
 import numpy as np
 import netCDF4 as nc

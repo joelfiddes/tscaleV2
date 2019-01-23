@@ -1,3 +1,18 @@
+"""Get era5 data
+
+This module requests ERA5 data from the ECMWF CDS API. It requires user account 
+to be setup read: 
+	
+	https://confluence.ecmwf.int/display/CKB/How+to+migrate+from+ECMWF+Web+API+to+CDS+API
+
+Example:
+
+Attributes:
+
+Todo:
+ 
+"""
+
 import cdsapi
 
 c = cdsapi.Client()

@@ -1,16 +1,29 @@
 """ERA5 plugin
 
+This module rquires input files:
+
+	* PLEV.nc: 
+		all pressure level variables for entire domain (single/multiple 
+		CGCs) [time X grid cell X  level X variable]
+	* SURF.nc: 
+		all surface variables for entire domain (single/multiple 
+		CGCs) [time X grid cell X variable]
+
 This plugin contains methods to:
 
-* convert values to toposcale standard
-* writes single parameter files
-* TopoSCALE standard input:
+	* classes for both pressurelevel and surface objects 
+	* extract coarse grid cell (CGC) based on longitude latitude of station 
+		or CGC centre
+	* convert values to toposcale standard
+	* writes single parameter files
+	* TopoSCALE standard input:
 
-   	- air temperature - K
-	- precipitation - mmh*1
-	- shortwave Wm**2
-	- longwave Wm**2
-	- wind - U and V vectors
+	   	- air temperature - K
+		- precipitation - mmh*1
+		- shortwave Wm**2
+		- longwave Wm**2
+		- wind - U and V vectors
+		- time - iso
 
 Example:
 Initialise new era5 instance::
@@ -21,8 +34,6 @@ Attributes:
 
 Todo:
  
-
-
 """
 
 
@@ -47,6 +58,8 @@ class Plev(object):
 	
 	Args:
 		fp: filepath to concatenated PLEVEL.nc file
+		mylat: latitude of station or grid centre 
+		mylon: longitude of station or gride centre
 	Example:
 		p=Plev(fp)
 		varnames=p.varnames()
