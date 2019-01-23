@@ -10,7 +10,7 @@ TopoSCALE is a downscaling tool that uses the well-resolved description of the a
 
 Dependencies
 ------------
-Python specific dependencies are bundled in the virtual env distributed with the code repository and defined in the [requirements.txt](https://github.com/joelfiddes/tscaleV2/blob/master/requirements.txt) file . Additional system requirments:
+Python specific dependencies are bundled in the virtual env distributed with the code repository and defined in the `requirements.txt <https://github.com/joelfiddes/tscaleV2/blob/master/requirements.txt>`_ file . Additional system requirments:
 
 - linux (not tested on other platforms)
 - python 2.7 (to be updated to py3)
