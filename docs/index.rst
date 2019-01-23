@@ -12,6 +12,7 @@ Welcome to TopoSCALE documentation!
 
    era5.rst
    tscale.rst
+   solarGeom.rst
 
 
 Indices and tables
