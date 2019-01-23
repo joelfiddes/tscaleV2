@@ -1,3 +1,23 @@
+"""main
+
+Main toposcale run script.
+
+
+Example:
+
+	python main.py
+
+
+
+Attributes:
+
+
+Todo:
+
+
+
+
+"""
 
 import era5 as e5
 import tscale as ts

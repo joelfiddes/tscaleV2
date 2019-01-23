@@ -51,6 +51,11 @@ TSUB:
 GRID:
 	Generates a 2D grid of surface fields corresponding to input DEM.
 
+Tutorial
+--------
+The github repo contains a full example to set up a first prototype and 
+understand how the code runs.
+
 Documentation
 -------------
 
