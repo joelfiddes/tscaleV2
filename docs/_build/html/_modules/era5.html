@@ -93,7 +93,7 @@
 <span class="c1">#2. conversions</span>
 <span class="c1">#2. write out single var files</span>
 
-<div class="viewcode-block" id="EraCat"><a class="viewcode-back" href="../index.html#era5.EraCat">[docs]</a><span class="k">class</span> <span class="nc">EraCat</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="EraCat"><a class="viewcode-back" href="../era5.html#era5.EraCat">[docs]</a><span class="k">class</span> <span class="nc">EraCat</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Concats monthly era (interim or 5) files by some keyword *grepStr*</span>
 
@@ -117,7 +117,7 @@
 				<span class="o">+</span><span class="s2">&quot;.nc&quot;</span><span class="p">)</span>
 		<span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span> <span class="o">=</span> <span class="s2">&quot;TRUE&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Plev"><a class="viewcode-back" href="../index.html#era5.Plev">[docs]</a><span class="k">class</span> <span class="nc">Plev</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Plev"><a class="viewcode-back" href="../era5.html#era5.Plev">[docs]</a><span class="k">class</span> <span class="nc">Plev</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Makes a plev object which is array of all pressure level variables </span>
 <span class="sd">	processed to standard toposcale units</span>
@@ -136,7 +136,7 @@
 
 
 
-<div class="viewcode-block" id="Plev.getVarNames"><a class="viewcode-back" href="../index.html#era5.Plev.getVarNames">[docs]</a>	<span class="k">def</span> <span class="nf">getVarNames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Plev.getVarNames"><a class="viewcode-back" href="../era5.html#era5.Plev.getVarNames">[docs]</a>	<span class="k">def</span> <span class="nf">getVarNames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;	# returns list of variables excluding dimension names time, </span>
 <span class="sd">		lon,lat, level&quot;&quot;&quot;</span>
 		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
@@ -149,13 +149,13 @@
 			 		<span class="bp">self</span><span class="o">.</span><span class="n">varnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
 		<span class="c1">#return self.varnames</span>
 
-<div class="viewcode-block" id="Plev.getVar"><a class="viewcode-back" href="../index.html#era5.Plev.getVar">[docs]</a>	<span class="k">def</span> <span class="nf">getVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+<div class="viewcode-block" id="Plev.getVar"><a class="viewcode-back" href="../era5.html#era5.Plev.getVar">[docs]</a>	<span class="k">def</span> <span class="nf">getVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;extract variables (remains an nc object)&quot;&quot;&quot;</span>
 		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">myvar</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span></div>
 		<span class="c1">#return myvar</span>
 
-<div class="viewcode-block" id="Plev.extractCgc"><a class="viewcode-back" href="../index.html#era5.Plev.extractCgc">[docs]</a>	<span class="k">def</span> <span class="nf">extractCgc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
+<div class="viewcode-block" id="Plev.extractCgc"><a class="viewcode-back" href="../era5.html#era5.Plev.extractCgc">[docs]</a>	<span class="k">def</span> <span class="nf">extractCgc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;extract variable and cgc (now np array)&quot;&quot;&quot;</span>
 		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
 
@@ -174,11 +174,11 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">][</span> <span class="p">:,:</span> <span class="p">,</span><span class="n">latli</span> <span class="p">,</span> <span class="n">lonli</span><span class="p">]</span> </div>
 		<span class="c1">#return mysub</span>
 
-<div class="viewcode-block" id="Plev.addVar"><a class="viewcode-back" href="../index.html#era5.Plev.addVar">[docs]</a>	<span class="k">def</span> <span class="nf">addVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">dat</span><span class="p">):</span>
+<div class="viewcode-block" id="Plev.addVar"><a class="viewcode-back" href="../era5.html#era5.Plev.addVar">[docs]</a>	<span class="k">def</span> <span class="nf">addVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">dat</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot; rename attribute&quot;&quot;&quot;</span>
 		<span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">varname</span><span class="p">,</span> <span class="n">dat</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Plev.addTime"><a class="viewcode-back" href="../index.html#era5.Plev.addTime">[docs]</a>	<span class="k">def</span> <span class="nf">addTime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Plev.addTime"><a class="viewcode-back" href="../era5.html#era5.Plev.addTime">[docs]</a>	<span class="k">def</span> <span class="nf">addTime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot; add time vector and convert to ISO </span>
 <span class="sd">			Return datetime objects given numeric time values. </span>
 <span class="sd">			The units of the numeric time values are described by the units </span>
@@ -194,7 +194,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">nctime</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">dtime</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">nc</span><span class="o">.</span><span class="n">num2date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nctime</span><span class="p">[:],</span><span class="bp">self</span><span class="o">.</span><span class="n">nctime</span><span class="o">.</span><span class="n">units</span><span class="p">,</span> <span class="n">calendar</span><span class="o">=</span><span class="s2">&quot;standard&quot;</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="Plev.addShape"><a class="viewcode-back" href="../index.html#era5.Plev.addShape">[docs]</a>	<span class="k">def</span> <span class="nf">addShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Plev.addShape"><a class="viewcode-back" href="../era5.html#era5.Plev.addShape">[docs]</a>	<span class="k">def</span> <span class="nf">addShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot; adds two dimensions of time and levels &quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">myshape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">shape</span></div>
 	<span class="c1"># def convZ(self):</span>
@@ -208,7 +208,7 @@
 	
 
 
-<div class="viewcode-block" id="Plev_interp"><a class="viewcode-back" href="../index.html#era5.Plev_interp">[docs]</a><span class="k">class</span> <span class="nc">Plev_interp</span><span class="p">(</span><span class="n">Plev</span><span class="p">):</span>
+<div class="viewcode-block" id="Plev_interp"><a class="viewcode-back" href="../era5.html#era5.Plev_interp">[docs]</a><span class="k">class</span> <span class="nc">Plev_interp</span><span class="p">(</span><span class="n">Plev</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Makes a plev object which is array of all variables processed to </span>
 <span class="sd">	standard toposcale units and interpolated to x, y, z </span>
@@ -220,7 +220,7 @@
 <span class="sd">		varnames=p.varnames()</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Plev_interp.interpCgc"><a class="viewcode-back" href="../index.html#era5.Plev_interp.interpCgc">[docs]</a>	<span class="k">def</span> <span class="nf">interpCgc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
+<div class="viewcode-block" id="Plev_interp.interpCgc"><a class="viewcode-back" href="../era5.html#era5.Plev_interp.interpCgc">[docs]</a>	<span class="k">def</span> <span class="nf">interpCgc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;	# interp variable and cgc (now np array) !!NOT FINISHED!! </span>
 <span class="sd">		Perhaps a  different class as here includes z interpolation&quot;&quot;&quot;</span>
 		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
@@ -265,7 +265,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">][</span> <span class="p">:,:</span> <span class="p">,</span><span class="n">latli</span> <span class="p">,</span> <span class="n">lonli</span><span class="p">]</span> </div></div>
 		<span class="c1">#return mysub</span>
 
-<div class="viewcode-block" id="Surf"><a class="viewcode-back" href="../index.html#era5.Surf">[docs]</a><span class="k">class</span> <span class="nc">Surf</span><span class="p">(</span><span class="n">Plev</span><span class="p">):</span>
+<div class="viewcode-block" id="Surf"><a class="viewcode-back" href="../era5.html#era5.Surf">[docs]</a><span class="k">class</span> <span class="nc">Surf</span><span class="p">(</span><span class="n">Plev</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Makes a plev object which is array of all surface variables </span>
 <span class="sd">	processed to standard toposcale units</span>
@@ -277,7 +277,7 @@
 <span class="sd">		varnames=p.varnames()</span>
 <span class="sd">	&quot;&quot;&quot;</span>
 	
-<div class="viewcode-block" id="Surf.extractCgc"><a class="viewcode-back" href="../index.html#era5.Surf.extractCgc">[docs]</a>	<span class="k">def</span> <span class="nf">extractCgc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
+<div class="viewcode-block" id="Surf.extractCgc"><a class="viewcode-back" href="../era5.html#era5.Surf.extractCgc">[docs]</a>	<span class="k">def</span> <span class="nf">extractCgc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;extract variable and cgc (now np array)&quot;&quot;&quot;</span>
 		<span class="n">f</span> <span class="o">=</span> <span class="n">nc</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="p">)</span>
 
@@ -296,7 +296,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">][</span> <span class="p">:</span> <span class="p">,</span><span class="n">latli</span> <span class="p">,</span> <span class="n">lonli</span><span class="p">]</span> </div>
 		<span class="c1">#return mysub</span>
 
-<div class="viewcode-block" id="Surf.instRad"><a class="viewcode-back" href="../index.html#era5.Surf.instRad">[docs]</a>	<span class="k">def</span> <span class="nf">instRad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Surf.instRad"><a class="viewcode-back" href="../era5.html#era5.Surf.instRad">[docs]</a>	<span class="k">def</span> <span class="nf">instRad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot; Convert SWin from accumulated quantities in J/m2 to </span>
 <span class="sd">		instantaneous W/m2 see: </span>
 <span class="sd">		https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513&quot;&quot;&quot;</span>
@@ -304,12 +304,12 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">ssrd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssrd</span><span class="o">/</span><span class="mi">3600</span> 
 		<span class="bp">self</span><span class="o">.</span><span class="n">tisr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tisr</span><span class="o">/</span><span class="mi">3600</span> </div>
 
-<div class="viewcode-block" id="Surf.tp2Inst"><a class="viewcode-back" href="../index.html#era5.Surf.tp2Inst">[docs]</a>	<span class="k">def</span> <span class="nf">tp2Inst</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Surf.tp2Inst"><a class="viewcode-back" href="../era5.html#era5.Surf.tp2Inst">[docs]</a>	<span class="k">def</span> <span class="nf">tp2Inst</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot; convert tp from m/h (total accumulation over hourly timestep) to m/s &quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span><span class="o">/</span><span class="mi">3600</span> 
 		<span class="bp">self</span><span class="o">.</span><span class="n">tpmmhr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp</span>	<span class="o">*</span><span class="mi">1000</span></div>
 
-<div class="viewcode-block" id="Surf.gridEle"><a class="viewcode-back" href="../index.html#era5.Surf.gridEle">[docs]</a>	<span class="k">def</span> <span class="nf">gridEle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Surf.gridEle"><a class="viewcode-back" href="../era5.html#era5.Surf.gridEle">[docs]</a>	<span class="k">def</span> <span class="nf">gridEle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot; compute surface elevation of coarse grid&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">gridEle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="o">/</span><span class="mf">9.80665</span></div></div>
 

@@ -107,7 +107,7 @@
 <span class="kn">import</span> <span class="nn">netCDF4</span> <span class="k">as</span> <span class="nn">nc</span>
 <span class="kn">import</span> <span class="nn">solarGeom</span> <span class="k">as</span> <span class="nn">sg</span>
 <span class="n">reload</span><span class="p">(</span><span class="n">sg</span><span class="p">)</span>
-<div class="viewcode-block" id="tscale"><a class="viewcode-back" href="../index.html#tscale.tscale">[docs]</a><span class="k">class</span> <span class="nc">tscale</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="tscale"><a class="viewcode-back" href="../tscale.html#tscale.tscale">[docs]</a><span class="k">class</span> <span class="nc">tscale</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Interpolate pressure level vector from single cgc in the TopoSUB use case</span>
 
@@ -143,7 +143,7 @@
 
 		
 
-<div class="viewcode-block" id="tscale.tscale1D"><a class="viewcode-back" href="../index.html#tscale.tscale.tscale1D">[docs]</a>	<span class="k">def</span> <span class="nf">tscale1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">dat</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
+<div class="viewcode-block" id="tscale.tscale1D"><a class="viewcode-back" href="../tscale.html#tscale.tscale.tscale1D">[docs]</a>	<span class="k">def</span> <span class="nf">tscale1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">dat</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Example function with types documented in the docstring.</span>
 
 <span class="sd">	    `PEP 484`_ type annotations are supported. If attribute, parameter, and</span>
@@ -186,7 +186,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">interpVar</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">ele</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">interpVar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interpVar</span><span class="p">)</span> <span class="c1"># convert list to np array</span></div>
 
-<div class="viewcode-block" id="tscale.addVar"><a class="viewcode-back" href="../index.html#tscale.tscale.addVar">[docs]</a>	<span class="k">def</span> <span class="nf">addVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">datInterp</span><span class="p">):</span>
+<div class="viewcode-block" id="tscale.addVar"><a class="viewcode-back" href="../tscale.html#tscale.tscale.addVar">[docs]</a>	<span class="k">def</span> <span class="nf">addVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">datInterp</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot; Assign correct attribute name &quot;&quot;&quot;</span>
 		<span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">varname</span><span class="p">,</span> <span class="n">datInterp</span><span class="p">)</span></div>
 		
@@ -213,12 +213,12 @@
 	
 <span class="c1"># 	def __init__(self, statEle):</span>
 <span class="c1"># 		self.statEle = statEle</span>
-<div class="viewcode-block" id="tscale.wind"><a class="viewcode-back" href="../index.html#tscale.tscale.wind">[docs]</a>	<span class="k">def</span> <span class="nf">wind</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tob</span><span class="p">):</span>
+<div class="viewcode-block" id="tscale.wind"><a class="viewcode-back" href="../tscale.html#tscale.tscale.wind">[docs]</a>	<span class="k">def</span> <span class="nf">wind</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tob</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot; methods for working with wind&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">ws</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tob</span><span class="o">.</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="o">+</span><span class="n">tob</span><span class="o">.</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">wd</span> <span class="o">=</span>   <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">tob</span><span class="o">.</span><span class="n">u</span><span class="o">/</span><span class="n">tob</span><span class="o">.</span><span class="n">v</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tob</span><span class="o">.</span><span class="n">v</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">,</span><span class="mi">180</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tob</span><span class="o">.</span><span class="n">u</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">,</span><span class="mi">360</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="tscale.windCorRough"><a class="viewcode-back" href="../index.html#tscale.tscale.windCorRough">[docs]</a>	<span class="k">def</span> <span class="nf">windCorRough</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tob</span><span class="p">,</span> <span class="n">pob</span><span class="p">,</span> <span class="n">sob</span><span class="p">,</span> <span class="n">stat</span> <span class="p">):</span>
+<div class="viewcode-block" id="tscale.windCorRough"><a class="viewcode-back" href="../tscale.html#tscale.tscale.windCorRough">[docs]</a>	<span class="k">def</span> <span class="nf">windCorRough</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tob</span><span class="p">,</span> <span class="n">pob</span><span class="p">,</span> <span class="n">sob</span><span class="p">,</span> <span class="n">stat</span> <span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;corrects wind speed according to true rougness values&quot;&quot;&quot;</span>
 		<span class="n">target_height</span> <span class="o">=</span> <span class="mi">2</span>
 		<span class="n">blending_height</span> <span class="o">=</span> <span class="mi">40</span>
@@ -305,7 +305,7 @@
 
 
 
-<div class="viewcode-block" id="tscale.lwin"><a class="viewcode-back" href="../index.html#tscale.tscale.lwin">[docs]</a>	<span class="k">def</span> <span class="nf">lwin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sob</span><span class="p">,</span><span class="n">tob</span><span class="p">):</span>
+<div class="viewcode-block" id="tscale.lwin"><a class="viewcode-back" href="../tscale.html#tscale.tscale.lwin">[docs]</a>	<span class="k">def</span> <span class="nf">lwin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sob</span><span class="p">,</span><span class="n">tob</span><span class="p">):</span>
 		<span class="sd">&quot;&quot;&quot;Convert to RH (should be in a function). Following MG Lawrence </span>
 <span class="sd">		DOI 10.1175/BAMS-86-2-225 &quot;&quot;&quot;</span>
 		<span class="n">A1</span><span class="o">=</span><span class="mf">7.625</span> 
@@ -350,7 +350,7 @@
 
 
 
-<div class="viewcode-block" id="tscale.swin"><a class="viewcode-back" href="../index.html#tscale.tscale.swin">[docs]</a>	<span class="k">def</span> <span class="nf">swin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">pob</span><span class="p">,</span><span class="n">sob</span><span class="p">,</span><span class="n">tob</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
+<div class="viewcode-block" id="tscale.swin"><a class="viewcode-back" href="../tscale.html#tscale.tscale.swin">[docs]</a>	<span class="k">def</span> <span class="nf">swin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">pob</span><span class="p">,</span><span class="n">sob</span><span class="p">,</span><span class="n">tob</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">dates</span><span class="p">):</span>
 		
 		<span class="sd">&quot;&quot;&quot; toposcale surface pressure using hypsometric equation - move to own </span>
 <span class="sd">		class &quot;&quot;&quot;</span>

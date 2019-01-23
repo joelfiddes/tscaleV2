@@ -10,8 +10,8 @@ Welcome to TopoSCALE documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   era5
-   tscale
+   era5.rst
+   tscale.rst
 
 
 Indices and tables

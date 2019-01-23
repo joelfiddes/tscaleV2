@@ -1,0 +1,241 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>&lt;no title&gt; &#8212; tscale 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="&lt;no title&gt;" href="tscale.html" />
+    <link rel="prev" title="Welcome to TopoSCALE documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <span class="target" id="module-era5"></span><dl class="class">
+<dt id="era5.EraCat">
+<em class="property">class </em><code class="descclassname">era5.</code><code class="descname">EraCat</code><span class="sig-paren">(</span><em>wd</em>, <em>grepStr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#EraCat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.EraCat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concats monthly era (interim or 5) files by some keyword <em>grepStr</em></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>wd</strong> – directory of era monthly datafiles</li>
+<li><strong>grepStr</strong> – “PLEVEL” or “SURF”</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Example</p>
+<p>wd=/home/eraDat/
+grepStr= “PLEVEL”
+eraCat(“/home/joel/mnt/myserver/sim/wfj_era5/eraDat/”, “PLEVEL”)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="era5.Plev">
+<em class="property">class </em><code class="descclassname">era5.</code><code class="descname">Plev</code><span class="sig-paren">(</span><em>fp</em>, <em>mylat</em>, <em>mylon</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Plev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Plev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a plev object which is array of all pressure level variables
+processed to standard toposcale units</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fp</strong> – filepath to concatenated PLEVEL.nc file</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Example</p>
+<p>p=Plev(fp)
+varnames=p.varnames()</p>
+<dl class="method">
+<dt id="era5.Plev.addShape">
+<code class="descname">addShape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Plev.addShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Plev.addShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>adds two dimensions of time and levels</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="era5.Plev.addTime">
+<code class="descname">addTime</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Plev.addTime"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Plev.addTime" title="Permalink to this definition">¶</a></dt>
+<dd><p>add time vector and convert to ISO
+Return datetime objects given numeric time values.
+The units of the numeric time values are described by the units
+argument and the calendar keyword. The returned datetime objects
+represent UTC with no time-zone offset, even if the specified
+units contain a time-zone offset.</p>
+<p>calender options defined here:
+<a class="reference external" href="http://unidata.github.io/netcdf4-python/#netCDF4.num2date">http://unidata.github.io/netcdf4-python/#netCDF4.num2date</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="era5.Plev.addVar">
+<code class="descname">addVar</code><span class="sig-paren">(</span><em>varname</em>, <em>dat</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Plev.addVar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Plev.addVar" title="Permalink to this definition">¶</a></dt>
+<dd><p>rename attribute</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="era5.Plev.extractCgc">
+<code class="descname">extractCgc</code><span class="sig-paren">(</span><em>var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Plev.extractCgc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Plev.extractCgc" title="Permalink to this definition">¶</a></dt>
+<dd><p>extract variable and cgc (now np array)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="era5.Plev.getVar">
+<code class="descname">getVar</code><span class="sig-paren">(</span><em>var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Plev.getVar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Plev.getVar" title="Permalink to this definition">¶</a></dt>
+<dd><p>extract variables (remains an nc object)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="era5.Plev.getVarNames">
+<code class="descname">getVarNames</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Plev.getVarNames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Plev.getVarNames" title="Permalink to this definition">¶</a></dt>
+<dd><p># returns list of variables excluding dimension names time,
+lon,lat, level</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="era5.Plev_interp">
+<em class="property">class </em><code class="descclassname">era5.</code><code class="descname">Plev_interp</code><span class="sig-paren">(</span><em>fp</em>, <em>mylat</em>, <em>mylon</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Plev_interp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Plev_interp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a plev object which is array of all variables processed to
+standard toposcale units and interpolated to x, y, z</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fp</strong> – filepath to concatenated PLEVEL.nc file</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Example</p>
+<p>p=Plev(fp)
+varnames=p.varnames()</p>
+<dl class="method">
+<dt id="era5.Plev_interp.interpCgc">
+<code class="descname">interpCgc</code><span class="sig-paren">(</span><em>var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Plev_interp.interpCgc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Plev_interp.interpCgc" title="Permalink to this definition">¶</a></dt>
+<dd><p># interp variable and cgc (now np array) !!NOT FINISHED!!
+Perhaps a  different class as here includes z interpolation</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="era5.Surf">
+<em class="property">class </em><code class="descclassname">era5.</code><code class="descname">Surf</code><span class="sig-paren">(</span><em>fp</em>, <em>mylat</em>, <em>mylon</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Surf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Surf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a plev object which is array of all surface variables
+processed to standard toposcale units</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fp</strong> – filepath to concatenated PLEVEL.nc file</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Example</p>
+<p>p=Plev(fp)
+varnames=p.varnames()</p>
+<dl class="method">
+<dt id="era5.Surf.extractCgc">
+<code class="descname">extractCgc</code><span class="sig-paren">(</span><em>var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Surf.extractCgc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Surf.extractCgc" title="Permalink to this definition">¶</a></dt>
+<dd><p>extract variable and cgc (now np array)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="era5.Surf.gridEle">
+<code class="descname">gridEle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Surf.gridEle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Surf.gridEle" title="Permalink to this definition">¶</a></dt>
+<dd><p>compute surface elevation of coarse grid</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="era5.Surf.instRad">
+<code class="descname">instRad</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Surf.instRad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Surf.instRad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert SWin from accumulated quantities in J/m2 to
+instantaneous W/m2 see:
+<a class="reference external" href="https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513">https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="era5.Surf.tp2Inst">
+<code class="descname">tp2Inst</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/era5.html#Surf.tp2Inst"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#era5.Surf.tp2Inst" title="Permalink to this definition">¶</a></dt>
+<dd><p>convert tp from m/h (total accumulation over hourly timestep) to m/s</p>
+</dd></dl>
+
+</dd></dl>
+
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to TopoSCALE documentation!</a></li>
+      <li>Next: <a href="tscale.html" title="next chapter">&lt;no title&gt;</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, jfiddes.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="_sources/era5.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
