@@ -1,4 +1,18 @@
-#solarGeom.py
+"""Solar geometery
+
+A set of methods that compute solar geometry objects. This is a Python 
+implementation of Javier Corripio's R-package 'insol'. Documented here:
+
+https://doi.org/10.1080/713811744
+
+
+Example:
+
+Attributes:
+
+Todo:
+ 
+"""
 
 # python implementation of corripio 2003 / R package 
 import datetime
