@@ -1,4 +1,0 @@
-solarGeom
-=========
-.. automodule:: solarGeom
-   :members:

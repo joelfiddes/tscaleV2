@@ -1,4 +1,4 @@
 main
 =========
-.. automodule:: solarGeom
+.. automodule:: main
    :members:
