@@ -11,7 +11,7 @@ Input plugins
 	* preprocesses product (resampling, conversions)
 	* converts to generic python class structure
 
-:py:mod:'era5.py'
+:py:mod:`era5.py`
 
 Core engine
 ^^^^^^^^^^^
