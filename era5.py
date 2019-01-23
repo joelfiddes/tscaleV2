@@ -1,48 +1,34 @@
-# TopoSCALE: ERA5 plugin
-#
-# === DESCRIPTION ======================================================
-#
-#	This plugin 
-#		* reads  monthly ERA5 data files (MARS efficiency)
-#		* concats to single file timeseries
-#		* converts values to toposcale standard
-#		* writes single parameter files
+"""ERA5 plugin
+
+This plugin contains methods to:
+
+* convert values to toposcale standard
+* writes single parameter files
+* TopoSCALE standard input:
+   	- air temperature - K
+	- precipitation - mmh*1
+	- shortwave Wm**2
+	- longwave Wm**2
+	- wind - U and V vectors
+
+Example:
+Initialise new era5 instance::
+
+	p=era5.Plev(fp, stat.lat, stat.long)
+
+Attributes:
+
+Todo:
+    * For module TODOs
+
+
+"""
+
+
+
 #		*
 #		*
-#		*
-#		*
-# === TopoSCALE standard input =========================================
-#   	* air temperature - K
-#		* precipitation - mmh*1
-#		* shortwave Wm**2
-#		* longwave Wm**2
-#		* wind - U and V vectors
-#		*
-#		*
-# === COPYRIGHT AND LICENCE ============================================
-#
-#	This program is free software: you can redistribute it and/or modify
-#	it under the terms of the GNU General Public License as published by
-#	the Free Software Foundation, either version 3 of the License, or
-#	(at your option) any later version.
-#
-#	This program is distributed in the hope that it will be useful,
-#	but WITHOUT ANY WARRANTY; without even the implied warranty of
-#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#	GNU General Public License for more details.
-#
-#	You should have received a copy of the GNU General Public License
-#	along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#
-# === NOTES ============================================================
-#
-# === REQUIREMENTS =====================================================
-#
-# === DEPENDENCIES =====================================================
-#	
-#	* CDO: sudo apt install cdo
-# ======================================================================
+
 import subprocess
 import numpy as np
 import netCDF4 as nc
@@ -52,29 +38,6 @@ import pandas as pd
 #2. conversions
 #2. write out single var files
 
-class EraCat(object):
-	"""
-	Concats monthly era (interim or 5) files by some keyword *grepStr*
-
-	Args:
-		wd: directory of era monthly datafiles
-		grepStr: "PLEVEL" or "SURF"
-	Example:
-		wd=/home/eraDat/
-		grepStr= "PLEVEL"
-		eraCat("/home/joel/mnt/myserver/sim/wfj_era5/eraDat/", "PLEVEL")
-	"""
-
-	def __init__(self, wd, grepStr):
-		cmd     = ("cdo -b F64 -f nc2 mergetime " 
-				+ wd 
-				+  grepStr
-				+ "* " 
-				+ wd 
-				+"/"
-				+grepStr
-				+".nc")
-		subprocess.check_output(cmd, shell = "TRUE")
 
 class Plev(object):
 	"""

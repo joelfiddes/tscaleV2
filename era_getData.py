@@ -48,7 +48,6 @@ c.retrieve(
     'plevel.nc')
 
 
-import cdsapi
 
 c = cdsapi.Client()
 
@@ -92,3 +91,32 @@ c.retrieve(
 
     },
     'surface.nc')
+
+
+
+
+
+def eraCat(self, wd, grepStr):
+	"""
+	Concats monthly era (interim or 5) files by some keyword *grepStr*. Depends on CDO.
+	- reads monthly ERA5 data files (MARS efficiency)
+	- concats to single file timeseries
+
+	Args:
+		wd: directory of era monthly datafiles
+		grepStr: "PLEVEL" or "SURF"
+	Example:
+		wd=/home/eraDat/
+		grepStr= "PLEVEL"
+		eraCat("/home/joel/mnt/myserver/sim/wfj_era5/eraDat/", "PLEVEL")
+	"""
+	cmd     = ("cdo -b F64 -f nc2 mergetime " 
+				+ wd 
+				+  grepStr
+				+ "* " 
+				+ wd 
+				+"/"
+				+grepStr
+				+".nc")
+		subprocess.check_output(cmd, shell = "TRUE")
+

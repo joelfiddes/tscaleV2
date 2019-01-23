@@ -18,7 +18,7 @@ Python spefic dependencies are bundled in the virtual env distributed with the c
 
 	apt-get install pip
 
-- cdo::
+- Climate Data Operators (CDO) used to concat monthly netcdfs downloaded from ECMWF::
 
 	apt-get install cdo
 
