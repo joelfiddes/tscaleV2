@@ -281,7 +281,7 @@ class tscale(object):
 		self.psf=[]
 		# loop through timesteps
 		for i in range(0,dz.shape[1]):
-			print i
+			
 			# 	# find overlying layer
 			thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
 
