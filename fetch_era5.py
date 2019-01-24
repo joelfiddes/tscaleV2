@@ -1,4 +1,6 @@
-"""Get era5 data
+"""fetch_era5.py
+
+Fetch ERA5 data from ECMWF servers.
 
 This module requests ERA5 data from the ECMWF CDS API. It requires user account 
 to be setup read: 

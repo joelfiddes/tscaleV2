@@ -14,6 +14,8 @@ Python specific dependencies are bundled in the virtual env distributed with the
 
 - linux (not tested on other platforms)
 - python 2.7 (to be updated to py3)
+- gdal:
+	apt-get install gdal
 - pip::
 
 	apt-get install pip

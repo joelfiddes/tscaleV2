@@ -1,4 +1,6 @@
-"""ERA5 plugin
+"""ERA5.py
+
+ERA5 IO plugin
 
 This module rquires input files:
 
@@ -26,7 +28,7 @@ This plugin contains methods to:
 		- time - iso
 
 Example:
-Initialise new era5 instance::
+	Initialise new era5 instance::
 
 	p=era5.Plev(fp, stat.lat, stat.long)
 

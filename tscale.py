@@ -1,19 +1,17 @@
-"""Example Google style docstrings.
+"""tscale.py
+
+Downscale forcing from atmospheric grid.
 
 This module downscales all required fields, TA, RH, WS, WD, LW, SW based on
 properties of a stat object that represents a station (Mode=POINT) or a cluster 
 centroid (mode=TSUB) or a pixel (mode=GRID).
 
-
 Example:
 
-Initialise a new tscale instance with::
-        $ p.plevels()
-
-
+	Initialise a new tscale instance with::
+        	$ p.plevels()
 
 Attributes:
-
 
 Todo:
     * Precipitation look up table hardcoded in method
