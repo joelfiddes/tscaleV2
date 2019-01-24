@@ -2,20 +2,13 @@
 
 Main toposcale run script.
 
-
 Example:
 
 	python main.py
 
-
-
 Attributes:
 
-
 Todo:
-
-
-
 
 """
 
