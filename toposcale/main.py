@@ -2,6 +2,13 @@
 
 Main toposcale run script.
 
+Object description:
+
+	* pob - pressure level object
+	* sob - surface object
+	* tob - toposcale object
+	* stat - station object (points, cluster centroids or grid centroids)
+
 Example:
 
 	python main.py
@@ -12,34 +19,48 @@ Todo:
 
 """
 
-import era5 as e5
-import tscale as ts
+
 import pandas as pd 
 import matplotlib.pyplot as plt
 import numpy as np
-reload(e5)
-reload(ts)
+from configobj import ConfigObj
 
-#=== Object description
-#
-#	* pob - pressure level object
-#	* sob - surface object
-#	* tob - toposcale object
-#	* stat - station object
+import era5 as e5
+import tscale as ts
+import helper as hp
+import fetch_era5.py
+#reload(helper)
 
-#=== Parameters (for INI) ==============================================
-fp="/home/joel/src/tscaleV2/tests/plevel.nc"
-fs="/home/joel/src/tscaleV2/tests/surface.nc"
+#====================================================================
+#	Config setup
+#====================================================================
+#os.system("python writeConfig.py") # update config DONE IN run.sh file
+config = ConfigObj("my.ini")
 
-""" that's it!  Now, you can create a Bunch
- whenever you want to group a few variables:
-http://code.activestate.com/recipes/52308-the-simple-but-handy-collector-of-a-bunch-of-named/?in=user-97991 """
-class Bunch:
-    def __init__(self, **kwds):
-        self.__dict__.update(kwds)
+
+#====================================================================
+#	Define paths
+#====================================================================
+wd= config["main"]["wd"]
+shpPath =  wd + "/spatial/" + config["main"]["shp"]
+eraDir = wd + "/forcing/"
+#====================================================================
+#	Get domain extent from shape
+#====================================================================
+shp_extent = hp.get_shp_extent(shpPath)
+lonW = shp_extent[0]
+lonE = shp_extent[1]
+latS = shp_extent[2]
+latN = shp_extent[3]
+
+
+
+#=== Parameters (for INI) DEFAULT LOCATION==============================================
+#fp="/home/joel/src/tscaleV2/tests/plevel.nc"
+#fs="/home/joel/src/tscaleV2/tests/surface.nc"
 
 # station attribute structure
-stat = Bunch(ele = 4000, slp = 0, asp = 180, svf = 1, long=9, lat=46, tz=1  )
+stat = hp.Bunch(ele = 4000, slp = 0, asp = 180, svf = 1, long=9, lat=46, tz=1  )
 
 #=== Pressure level object =============================================
 
