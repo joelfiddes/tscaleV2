@@ -30,7 +30,7 @@ This plugin contains methods to:
 Example:
 	Initialise new era5 instance::
 
-	p=era5.Plev(fp, stat.lat, stat.long)
+	p=era5.Plev(fp, stat.lat, stat.lon)
 
 Attributes:
 

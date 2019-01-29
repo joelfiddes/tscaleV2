@@ -249,12 +249,13 @@ class tscale(object):
 		 # emssivity at grid and subgrid. [also function]"""
 		x1=0.43 
 		x2=5.7
-		cef=0.23+x1*(vpf/tf)**(1/x2) #Pretty sure the use of Kelvin is correct.
+		cef=0.23+x1*(vpf/tob.t)**(1/x2) #Pretty sure the use of Kelvin is correct.
 		cec=0.23+x1*(vpc/sob.t2m)**(1/x2)
 
 		"""Diagnose the all sky emissivity at grid."""
 		sbc=5.67e-8
 		aec=sob.strd/(sbc*sob.t2m**4)
+		# need to constrain to 1 as original code?
 
 		""" Calculate the "cloud" emissivity at grid, assume this is the same at
 	 	subgrid."""
@@ -338,7 +339,9 @@ class tscale(object):
 
 		""" Use the above with the sky-view fraction to calculate the 
 		downwelling diffuse shortwave radiation at subgrid. """
-		self. SWfdiff=stat.svf*SWcdiff
+		self.SWfdiff=stat.svf*SWcdiff
+		self.SWfdiff.set_fill_value(0)
+		self.SWfdiff = self.SWfdiff.filled()
 
 		""" Direct shortwave routine, modified from Joel. 
 		Get surface pressure at "grid" (coarse scale). Can remove this
@@ -377,7 +380,7 @@ class tscale(object):
 		Calculates a unit vector in the direction of the sun from the observer 
 		position.
 		"""
-		sunv=sg.sunvector(jd=jd, latitude=stat.lat, longitude=stat.long, timezone=stat.tz)
+		sunv=sg.sunvector(jd=jd, latitude=stat.lat, longitude=stat.lon, timezone=stat.tz)
 
 		"""
 		Computes azimuth , zenith  and sun elevation 
@@ -399,7 +402,8 @@ class tscale(object):
 		# Calculate the "broadband" absorption coefficient. Elevation correction
 		# from Kris
 		ka=(self.g*muz/(self.psc))*np.log(SWtoa/SWcdir)	
-		
+		ka.set_fill_value(0)
+		ka = ka.filled()
 		# Note this equation is obtained by inverting Beer's law, i.e. use
 		#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
 		# Along with hydrostatic equation to convert to pressure coordinates then
@@ -407,8 +411,7 @@ class tscale(object):
 		
 		
 		# Now you can (finally) find the direct component at subgrid. 
-		SWfdir=SWtoa*np.exp(-ka*self.psf/(self.g*muz))
-		self.SWfdir = SWfdir
+		self.SWfdir=SWtoa*np.exp(-ka*self.psf/(self.g*muz))
 
 		""" Then perform the terrain correction. [Corripio 2003 / rpackage insol port]."""
 

@@ -81,6 +81,7 @@ def hourangle(jd, longitude, timezone):
 	jd: Julian Day and decimal fraction.
 	latitude: Latitude of observer in degrees and decimal fraction.
 	longitude: Longitude of observer in degrees and decimal fraction.
+	timezone: in hours, west of Greenwich is negative eg CH is "1"
 
 	cat("USAGE: hourangle(jd,longitude,timezone)\n julian day, degrees, hours. 
 	Return radians \n") 

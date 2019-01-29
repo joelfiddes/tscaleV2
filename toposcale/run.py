@@ -20,135 +20,140 @@ Todo:
 """
 
 
-import pandas as pd 
-import matplotlib.pyplot as plt
-import numpy as np
 
 
+import pandas as pd
 import era5 as e5
 import tscale as ts
+import helper as hp
+import numpy as np
+#=== ARGS==============================================
+fp="/home/joel/src/tscaleV2/tests/plevel.nc" #ARG3
+fs="/home/joel/src/tscaleV2/tests/surface.nc"# ARG2
+lpfile= "/home/joel/src/tscaleV2/tests/listpoints.txt" # ARG1
 
-import fetch_era5 as fe
-#reload(helper)
-
-
-
-#====================================================================
-#	Define paths
-#====================================================================
-wd= config["main"]["wd"]
-shpPath =  wd + "/spatial/" + config["main"]["shp"]
-eraDir = wd + "/forcing/"
+# read in lispoints
+lp=pd.read_csv(lpfile)
 
 
+for i in range(lp.pk.size):
+
+	# station attribute structure
+	stat = hp.Bunch(ele = lp.ele[i], slp = lp.slp[i],asp = lp.asp[i],svf = lp.svf[i],lon = lp.lon[i], lat =lp.lat[i],sro = lp.surfRough[i],tz = lp.tz[i]  )
+
+	#=== Pressure level object =============================================
+
+	""" preprocess pressure level fields and add to structure """
+	p=e5.Plev(fp, stat.lat, stat.lon)
+	p.getVarNames()
+
+	for v in p.varnames:
+
+		#v=p.varnames[1]
+		#p.getVar(v)
+		#name = p.myvar.name
+		p.extractCgc(v) # adds data to self
+		p.addVar(v,p.var) # adds data again with correct name - redundancy
+		#can now remove p.var it is redundant
+
+	""" dimensions of data """
+	p.addShape()
+
+	""" Datetime structure """
+	p.addTime()
+
+	""" Pressure level values """
+	p.plevels()
+
+	pob = p
+	#=== Surface object ====================================================
+
+	""" preprocess surface level fields and add to structure """
+	s=e5.Surf(fs, stat.lat, stat.lon)
+	s.getVarNames()
+
+	for v in s.varnames:
+
+		#v=p.varnames[1]
+		#print v
+		s.getVar(v)
+		#name = p.myvar.name
+		s.extractCgc(v) # adds data to self
+		s.addVar(v,s.var) # adds data again with correct name - redundancy
+
+	""" rad conversions """
+	s.instRad()
+	""" dimensions of data """
+	s.addShape()
+	""" Datetime structure """
+	s.addTime()
+	""" surface elevation of coarse grid"""
+	s.gridEle()
+	sob = s
+
+	#=== toposcale object ====================================================
+
+	"""init object"""
+	t = ts.tscale(p.z)
+
+	""" Downscale pl fields """
+	for v in p.varnames:
+		if (v=='z'):
+			continue
+		#print v
+		dat = getattr(p, v) # allows dynamic call to instance variable
+
+		t.tscale1D(dat,stat)
+		t.addVar(v,t.interpVar)
+	tob = t
+
+	# compute downscaled longwave (LWf) Wm**2
+	t.lwin(sob, tob)
+
+	# compute downscaled shortwave (SWf) Wm**2
+	t.swin(pob, sob,tob, stat,p.dtime)
+
+	# compute downscaled precipitation in ms*1
+	t.precip(sob,stat)
+
+	t.wind(tob)
 
 
-
-
-#=== Parameters (for INI) DEFAULT LOCATION==============================================
-fp="/home/joel/src/tscaleV2/tests/plevel.nc"
-fs="/home/joel/src/tscaleV2/tests/surface.nc"
-
-# station attribute structure
-stat = hp.Bunch(ele = 4000, slp = 0, asp = 180, svf = 1, long=9, lat=46, tz=1  )
-
-#=== Pressure level object =============================================
-
-""" preprocess pressure level fields and add to structure """
-p=e5.Plev(fp, stat.lat, stat.long)
-p.getVarNames()
-
-for v in p.varnames:
-
-	#v=p.varnames[1]
-	print v
-	#p.getVar(v)
-	#name = p.myvar.name
-	p.extractCgc(v) # adds data to self
-	p.addVar(v,p.var) # adds data again with correct name - redundancy
-	#can now remove p.var it is redundant
-
-""" dimensions of data """
-p.addShape()
-
-""" Datetime structure """
-p.addTime()
-
-""" Pressure level values """
-p.plevels()
-
-pob = p
-#=== Surface object ====================================================
-
-""" preprocess surface level fields and add to structure """
-s=e5.Surf(fs, stat.lat, stat.long)
-s.getVarNames()
-
-for v in s.varnames:
-
-	#v=p.varnames[1]
-	print v
-	s.getVar(v)
-	#name = p.myvar.name
-	s.extractCgc(v) # adds data to self
-	s.addVar(v,s.var) # adds data again with correct name - redundancy
-
-""" rad conversions """
-s.instRad()
-""" dimensions of data """
-s.addShape()
-""" Datetime structure """
-s.addTime()
-""" surface elevation of coarse grid"""
-s.gridEle()
-sob = s
-
-#=== toposcale object ====================================================
-
-"""init object"""
-t = ts.tscale(p.z)
-
-""" Downscale pl fields """
-for v in p.varnames:
-	if (v=='z'):
-		continue
-	print v
+	# corrected wind
+	blend = 40 # blend height
+	statblend=stat # new instance of stat for correction only 
+	statblend.ele = statblend.ele + blend # add blend to stat ele
+	v='v'
 	dat = getattr(p, v) # allows dynamic call to instance variable
+	t.tscale1D(dat,statblend)
+	t.addVar('vblend',t.interpVar)
 
-	t.tscale1D(dat,stat)
-	t.addVar(v,t.interpVar)
-tob = t
+	v='u'
+	dat = getattr(p, v) # allows dynamic call to instance variable
+	t.tscale1D(dat,statblend)
+	t.addVar('ublend',t.interpVar)
 
-# compute downscaled longwave (LWf) Wm**2
-t.lwin(sob, tob)
+	# ws from vectors
+	t.wsblend = np.sqrt(tob.ublend**2+tob.vblend**2)
 
-# compute downscaled shortwave (SWf) Wm**2
-t.swin(pob, sob,tob, stat,p.dtime)
+	t.windCorRough( tob, pob, sob, stat)
 
-# compute downscaled precipitation in ms*1
-t.precip(sob,stat)
+	 # plt.plot(t.SWfdirCor)
+	# plt.show()
+	
 
-t.wind(tob)
+	df = pd.DataFrame({	"T":t.t, 
+				"RH":t.r,
+				"WS":t.wscor,
+				"WD":t.wd, 
+				"LWIN":t.LWf, 
+				"SWIN":t.SWfglob, 
+				"TP":t.TPf
+				},index=p.dtime)
+	df.index.name="datetime"
+
+	fileout="meteo"+str(i)+".csv"
+	df.to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
+	print(fileout + " complete")
 
 
-# corrected wind
-blend = 40 # blend height
-statblend=stat # new instance of stat for correction only 
-statblend.ele = statblend.ele + blend # add blend to stat ele
-v='v'
-dat = getattr(p, v) # allows dynamic call to instance variable
-t.tscale1D(dat,statblend)
-t.addVar('vblend',t.interpVar)
-
-v='u'
-dat = getattr(p, v) # allows dynamic call to instance variable
-t.tscale1D(dat,statblend)
-t.addVar('ublend',t.interpVar)
-
-# ws from vectors
-t.wsblend = np.sqrt(tob.ublend**2+tob.vblend**2)
-
-t.windCorRough( tob, pob, sob, stat)
-
- # plt.plot(t.SWfdirCor)
-# plt.show()
