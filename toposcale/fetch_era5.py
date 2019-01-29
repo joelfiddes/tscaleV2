@@ -13,17 +13,23 @@ from joblib import Parallel, delayed
 #import multiprocessing 
 
 def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
-    """      
-       A function to demonstrate how to iterate efficiently over several years and months etc    
-       for a particular interim_request.     
-       Change the variables below to adapt the iteration to your needs.
-       You can use the variable "target" to organise the requested data in files as you wish.
-       In the example below the data are organised in files per month. (eg "interim_daily_201510.grb")
+    """ Sets up era5 surface retrieval.
+    * Creates list of year/month pairs to iterate through. 
+    * MARS retrievals are most efficient when subset by time. 
+    * Identifies preexisting downloads if restarted. 
+    * Calls api using parallel function.
 
-       useful sources:
+    Args:
+        config: config object defining INI
+        eraDir: directory to write output
+	latN: north latitude of bbox
+        latS: south latitude of bbox
+        lonE: easterly lon of bbox
+        lonW: westerly lon of bbox
 
-       Step and time
-       https://software.ecmwf.int/wiki/pages/viewpage.action?pageId=56658233
+    Returns:
+        Monthly era surface files.	     
+
     """
     startDate = config["main"]["startDate"]
     endDate = config["main"]["endDate"]
@@ -91,7 +97,7 @@ def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
 
 
 def era5_request_surf(year, month, bbox, target):
-
+	"""CDS surface api call"""
 	c = cdsapi.Client()
 
 	c.retrieve(
@@ -137,17 +143,23 @@ def era5_request_surf(year, month, bbox, target):
 
 
 def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
-    """      
-       A function to demonstrate how to iterate efficiently over several years and months etc    
-       for a particular interim_request.     
-       Change the variables below to adapt the iteration to your needs.
-       You can use the variable "target" to organise the requested data in files as you wish.
-       In the example below the data are organised in files per month. (eg "interim_daily_201510.grb")
+    """ Sets up era5 pressure level retrieval.
+    * Creates list of year/month pairs to iterate through. 
+    * MARS retrievals are most efficient when subset by time. 
+    * Identifies preexisting downloads if restarted. 
+    * Calls api using parallel function.
 
-       useful sources:
+    Args:
+        config: config object defining INI
+        eraDir: directory to write output
+	latN: north latitude of bbox
+        latS: south latitude of bbox
+        lonE: easterly lon of bbox
+        lonW: westerly lon of bbox
 
-       Step and time
-       https://software.ecmwf.int/wiki/pages/viewpage.action?pageId=56658233
+    Returns:
+        Monthly era pressure level files.	     
+
     """
     startDate = config["main"]["startDate"]
     endDate = config["main"]["endDate"]
@@ -215,7 +227,7 @@ def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
 
 
 def era5_request_plev(year, month, bbox, target):
-
+        """CDS plevel api call"""
 	c = cdsapi.Client()
 
 	c.retrieve(

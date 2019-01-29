@@ -38,3 +38,12 @@ def get_shp_extent(shpPath):
 
 
 
+def get_nc_bbox(nc):
+	f = nc.Dataset(nc)
+	lats = f.variables['latitude'][:] 
+	lons = f.variables['longitude'][:]
+	cellRes= (lats.max()-lats.min())/ (lats.size-1)
+	lats.min() - cellRes
+
+
+

@@ -13,7 +13,8 @@ controlled by file ~/.netrc
 
 
 """
-import subprocess
+#import subprocess
+import netCDF4 as nc
 #====================================================================
 # PARAMETERS/ARGS
 #====================================================================
@@ -35,9 +36,9 @@ PWD=unlist(strsplit(readLines("~/.netrc")[[3]]," "))[2]
 
 
 demDir = wd + '/spatial/'
-forcing_grid = src + '/dat/' + rst
+forcing_grid = wd + '/forcing/PLEVEL.nc'
 
-
-subprocess.check_output("gdalwarp -of GTiff -cutline " + shp + " -cl area_of_interest  -crop_to_cutline " +forcing_grid+  " out.tiff")
+f = nc.Dataset(forcing_grid)
+#subprocess.check_output("gdalwarp -of GTiff -cutline " + shp + " -cl area_of_interest  -crop_to_cutline " +forcing_grid+  " out.tiff")
 
 
