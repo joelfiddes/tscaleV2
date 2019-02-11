@@ -28,7 +28,7 @@
 # #
 # # Adaptated from matlab Code by Kristoffer Aalstad (March 7, 2018).
 
-import gdal as gd
+#import gdal as gd
 
 # read tif
 ds = gd.Open('ele_utm_sml.tif')
