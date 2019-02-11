@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -31,6 +32,8 @@ def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
         Monthly era surface files.	     
 
     """
+    product  = config["forcing"]["product"]
+    print(product)
     startDate = config["main"]["startDate"]
     endDate = config["main"]["endDate"]
     #grd =   config["era-interim"]["grid"]
@@ -39,8 +42,18 @@ def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
     
     num_cores = config['main']['num_cores']
     bbox=(str(latN) + "/" + str(lonW) + "/" + str(latS) + "/" + str(lonE) )
-
-
+    
+    if (product == "reanlysis"):
+	    time = [	    '00:00','01:00','02:00',\
+			    '03:00','04:00','05:00',\
+			    '06:00','07:00','08:00',\
+			    '09:00','10:00','11:00',\
+			    '12:00','13:00','14:00',\
+			    '15:00','16:00','17:00',\
+			    '18:00','19:00','20:00',\
+			    '21:00','22:00','23:00']
+    if (product == "ensemble_members"):
+	    time = ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00']
     # download buffer of +/- 1 month to ensure all necessary timestamps are there for interpolations and consistency between plevel and surf
     dates = [str(startDate), str(endDate)]
     start = datetime.strptime(dates[0], "%Y-%m-%d")
@@ -65,7 +78,7 @@ def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
       #  firstDate = "%04d%02d%02d" % (year, month, 1)
       #  numberOfDays = calendar.monthrange(year, month)[1]
       #  lastDate = "%04d%02d%02d" % (year, month, numberOfDays)
-        target = eraDir + "/SURF_%04d%02d.nc" % (year, month)
+        target = eraDir + "SURF_%04d%02d.nc" % (year, month)
     #    requestDates = (firstDate + "/TO/" + lastDate)
      #   requestDatesVec.append(requestDates)
         targetVec.append(target) 
@@ -88,7 +101,7 @@ def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
     monthVecNew  = [monthVec[i] for i in index]
 
     # https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
-    Parallel(n_jobs=int(num_cores))(delayed( era5_request_surf)(yearVecNew[i], monthVecNew[i], bbox, targetVec[i]) for i in range(0,len(yearVecNew)))
+    Parallel(n_jobs=int(num_cores))(delayed( era5_request_surf)(int(yearVecNew[i]), int(monthVecNew[i]), bbox, targetVecNew[i], product, time) for i in range(0,len(yearVecNew)))
 
 
 #@retry(wait_random_min=10000, wait_random_max=20000)
@@ -96,7 +109,7 @@ def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
 
 
 
-def era5_request_surf(year, month, bbox, target):
+def era5_request_surf(year, month, bbox, target, product, time):
 	"""CDS surface api call"""
 	c = cdsapi.Client()
 
@@ -107,11 +120,11 @@ def era5_request_surf(year, month, bbox, target):
 		'Total precipitation','2m_temperature', 'TOA incident solar radiation',
 		    'friction_velocity','instantaneous_moisture_flux','instantaneous_surface_sensible_heat_flux'
 		],
-		'product_type':'reanalysis',
+		'product_type': product,
 			"area": bbox,
-		'year':year,
+		'year':int(year),
 		'month':[
-		    month
+		    int(month)
 		],
 		'day':[
 		    '01','02','03',
@@ -126,21 +139,12 @@ def era5_request_surf(year, month, bbox, target):
 		    '28','29','30',
 		    '31'
 		],
-		'time':[
-		    '00:00','01:00','02:00',
-		    '03:00','04:00','05:00',
-		    '06:00','07:00','08:00',
-		    '09:00','10:00','11:00',
-		    '12:00','13:00','14:00',
-		    '15:00','16:00','17:00',
-		    '18:00','19:00','20:00',
-		    '21:00','22:00','23:00'
-		],
+		'time':time,
 		'format':'netcdf'
 
 	    },
 	    target)
-
+	print(target+ " complete")
 
 def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
     """ Sets up era5 pressure level retrieval.
@@ -161,6 +165,7 @@ def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
         Monthly era pressure level files.	     
 
     """
+    product  = config["forcing"]["product"]
     startDate = config["main"]["startDate"]
     endDate = config["main"]["endDate"]
     #grd =   config["era-interim"]["grid"]
@@ -170,6 +175,17 @@ def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
     num_cores = config['main']['num_cores']
     bbox=(str(latN) + "/" + str(lonW) + "/" + str(latS) + "/" + str(lonE) )
 
+    if (product == "reanlysis"):
+        time = [	    '00:00','01:00','02:00',\
+			    '03:00','04:00','05:00',\
+			    '06:00','07:00','08:00',\
+			    '09:00','10:00','11:00',\
+			    '12:00','13:00','14:00',\
+			    '15:00','16:00','17:00',\
+			    '18:00','19:00','20:00',\
+			    '21:00','22:00','23:00']
+    if (product == "ensemble_members"):
+        time = ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00']
 
     # download buffer of +/- 1 month to ensure all necessary timestamps are there for interpolations and consistency between plevel and surf
     dates = [str(startDate), str(endDate)]
@@ -195,7 +211,7 @@ def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
       #  firstDate = "%04d%02d%02d" % (year, month, 1)
       #  numberOfDays = calendar.monthrange(year, month)[1]
       #  lastDate = "%04d%02d%02d" % (year, month, numberOfDays)
-        target = eraDir + "/PLEV_%04d%02d.nc" % (year, month)
+        target = eraDir + "PLEV_%04d%02d.nc" % (year, month)
     #    requestDates = (firstDate + "/TO/" + lastDate)
      #   requestDatesVec.append(requestDates)
         targetVec.append(target) 
@@ -218,7 +234,7 @@ def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
     monthVecNew  = [monthVec[i] for i in index]
 
     # https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
-    Parallel(n_jobs=int(num_cores))(delayed( era5_request_surf)(yearVecNew[i], monthVecNew[i], bbox, targetVec[i]) for i in range(0,len(yearVecNew)))
+    Parallel(n_jobs=int(num_cores))(delayed( era5_request_plev)(int(yearVecNew[i]), int(monthVecNew[i]), bbox, targetVecNew[i], product, time) for i in range(0,len(yearVecNew)))
 
 
 #@retry(wait_random_min=10000, wait_random_max=20000)
@@ -226,14 +242,14 @@ def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
 
 
 
-def era5_request_plev(year, month, bbox, target):
+def era5_request_plev(year, month, bbox, target, product, time):
         """CDS plevel api call"""
 	c = cdsapi.Client()
 
 	c.retrieve(
 	    'reanalysis-era5-pressure-levels',
 	    {
-		'product_type':'reanalysis',
+		'product_type': product,
 		'format':'netcdf',
 		"area": bbox,
 		'variable':[
@@ -241,10 +257,7 @@ def era5_request_plev(year, month, bbox, target):
 		    'v_component_of_wind', 'relative_humidity'
 		],
 		'pressure_level':[
-		    '100','125',
-		    '150','175','200',
-		    '225','250','300',
-		    '350','400','450',
+		    '300','350','400','450',
 		    '500','550','600',
 		    '650','700','750',
 		    '775','800','825',
@@ -252,9 +265,9 @@ def era5_request_plev(year, month, bbox, target):
 		    '925','950','975',
 		    '1000'
 		],
-		'year':year,
+		'year':int(year),
 		'month':[
-		    month
+		    int(month)
 		],
 		'day':[
 		    '01','02','03',
@@ -269,20 +282,11 @@ def era5_request_plev(year, month, bbox, target):
 		    '28','29','30',
 		    '31'
 		],
-		'time':[
-		    '00:00','01:00','02:00',
-		    '03:00','04:00','05:00',
-		    '06:00','07:00','08:00',
-		    '09:00','10:00','11:00',
-		    '12:00','13:00','14:00',
-		    '15:00','16:00','17:00',
-		    '18:00','19:00','20:00',
-		    '21:00','22:00','23:00'
-		],
+		'time':time,
 		'format':'netcdf'
 	    },
 	    target)
-
+	print(target+ " complete")
 
 
 #if __name__ == "__main__":

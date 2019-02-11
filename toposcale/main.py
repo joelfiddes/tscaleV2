@@ -19,39 +19,49 @@ Todo:
 
 """
 
-
+import sys
+import os
 import pandas as pd 
 import matplotlib.pyplot as plt
 import numpy as np
 from configobj import ConfigObj
-
+import logging
 import era5 as e5
 import tscale as ts
 import helper as hp
 import fetch_era5 as fe
 #reload(helper)
-
 #====================================================================
 #	Config setup
 #====================================================================
 #os.system("python writeConfig.py") # update config DONE IN run.sh file
-config = ConfigObj("my.ini")
+config = ConfigObj(sys.argv[1])
+#os.remove("logfile")
+logging.basicConfig(level=logging.DEBUG, filename="logfile", filemode="a+",
+                        format="%(asctime)-15s %(levelname)-8s %(message)s")
 
-
+logging.info("Start run")
 #====================================================================
 #	Define paths
 #====================================================================
 wd= config["main"]["wd"]
-shpPath =  wd + "/spatial/" + config["main"]["shp"]
+#shpPath =  wd + "/spatial/" + config["main"]["shp"]
 eraDir = wd + "/forcing/"
+if not os.path.exists(eraDir):
+	os.makedirs(eraDir)
 #====================================================================
 #	Get domain extent from shape
 #====================================================================
-shp_extent = hp.get_shp_extent(shpPath)
-lonW = shp_extent[0]
-lonE = shp_extent[1]
-latS = shp_extent[2]
-latN = shp_extent[3]
+#shp_extent = hp.get_shp_extent(shpPath)
+#lonW = shp_extent[0]
+#lonE = shp_extent[1]
+#latS = shp_extent[2]
+#latN = shp_extent[3]
+
+lonW = config["main"]["lonW"]
+lonE = config["main"]["lonE"]
+latN = config["main"]["latN"]
+latS = config["main"]["latS"]
 
 #====================================================================
 #	Fetch forcing
