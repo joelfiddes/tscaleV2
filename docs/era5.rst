@@ -1,4 +1,4 @@
 era5
 ====
-.. automodule:: toposcale/era5
+.. automodule:: era5
    :members:
