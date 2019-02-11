@@ -1,5 +1,7 @@
 """main
 
+!!!!NOW REDUNDANT!!!
+
 Main toposcale run script.
 
 Object description:
