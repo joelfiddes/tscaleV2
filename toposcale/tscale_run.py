@@ -19,24 +19,23 @@ Todo:
 
 """
 
-
-
-
 import pandas as pd
 import era5 as e5
 import tscale as ts
 import helper as hp
 import numpy as np
+import sys
 #=== ARGS==============================================
-fp="/home/joel/src/tscaleV2/tests/plevel.nc" #ARG3
-fs="/home/joel/src/tscaleV2/tests/surface.nc"# ARG2
-lpfile= "/home/joel/src/tscaleV2/tests/listpoints.txt" # ARG1
-
+fp=sys.argv[1] # "/home/joel/src/tscaleV2/tests/plevel.nc" #ARG3
+fs= sys.argv[2] #"/home/joel/src/tscaleV2/tests/surface.nc"# ARG2
+lpfile= sys.argv[3] # "/home/joel/src/tscaleV2/tests/listpoints.txt" # ARG1
+product = sys.argv[4]
+member = int(sys.argv[5]) # ensemble member interval [0-9]
 # read in lispoints
 lp=pd.read_csv(lpfile)
 
 
-for i in range(lp.pk.size):
+for i in range(lp.id.size):
 
 	# station attribute structure
 	stat = hp.Bunch(ele = lp.ele[i], slp = lp.slp[i],asp = lp.asp[i],svf = lp.svf[i],lon = lp.lon[i], lat =lp.lat[i],sro = lp.surfRough[i],tz = lp.tz[i]  )
@@ -52,7 +51,10 @@ for i in range(lp.pk.size):
 		#v=p.varnames[1]
 		#p.getVar(v)
 		#name = p.myvar.name
-		p.extractCgc(v) # adds data to self
+		if product=="reanalysis":
+			p.extractCgc(v) # adds data to self
+		if product=="ensemble_members":
+			p.extractCgc5d(v, member) # adds data to self
 		p.addVar(v,p.var) # adds data again with correct name - redundancy
 		#can now remove p.var it is redundant
 
@@ -78,7 +80,10 @@ for i in range(lp.pk.size):
 		#print v
 		s.getVar(v)
 		#name = p.myvar.name
-		s.extractCgc(v) # adds data to self
+		if product=="reanalysis":
+			s.extractCgc(v) # adds data to self
+		if product=="ensemble_members":
+			s.extractCgc4d(v,member) # adds data to self
 		s.addVar(v,s.var) # adds data again with correct name - redundancy
 
 	""" rad conversions """

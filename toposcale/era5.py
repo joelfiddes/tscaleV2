@@ -83,6 +83,7 @@ class Plev(object):
 				if (v != ( u'time') 
 					and v != ( u'latitude') 
 					and v != ( u'longitude') 
+					and v != ( u'number') 
 					and v != ( u'level')):
 			 		self.varnames.append(v)
 		#return self.varnames
@@ -94,7 +95,9 @@ class Plev(object):
 		#return myvar
 
 	def extractCgc(self,var):
-		"""extract variable and cgc (now np array)"""
+		"""extract variable and cgc (now np array)
+		dimension order: time, level, lat,lon
+		"""
 		f = nc.Dataset(self.fp)
 
 		latbounds = [ self.mylat , self.mylat ]
@@ -110,6 +113,29 @@ class Plev(object):
 
 		# subset
 		self.var = f.variables[var][ :,: ,latli , lonli] 
+		#return mysub
+
+	def extractCgc5d(self,var, member):
+		"""extract variable, ensemble memeber and cgc (now np array) from 5d
+		nc files eg era5 ensemble (extra dimension ensemble 'number') 
+
+		dimension order: time, ensemble, level, lat,lon
+		"""
+		f = nc.Dataset(self.fp)
+
+		latbounds = [ self.mylat , self.mylat ]
+		lonbounds = [ self.mylon , self.mylon ] # degrees east ? 
+		lats = f.variables['latitude'][:] 
+		lons = f.variables['longitude'][:]
+
+		# latitude lower  index
+		latli = np.argmin( np.abs( lats - latbounds[0] ) )
+
+		# longitude lower index
+		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
+		
+		# subset
+		self.var = f.variables[var][ :,member ,:,latli , lonli] 
 		#return mysub
 
 	def addVar(self,varname,dat):
@@ -232,6 +258,28 @@ class Surf(Plev):
 
 		# subset
 		self.var = f.variables[var][ : ,latli , lonli] 
+		#return mysub
+
+	def extractCgc4d(self,var, member):
+		"""extract variable, ensemble memeber and cgc (now np array)from 4d
+		nc files eg era5 ensemble (extra dimension ensemble 'number') 
+
+		dimension order: time, ensemble, lat,lon"""
+		f = nc.Dataset(self.fp)
+
+		latbounds = [ self.mylat , self.mylat ]
+		lonbounds = [ self.mylon , self.mylon ] # degrees east ? 
+		lats = f.variables['latitude'][:] 
+		lons = f.variables['longitude'][:]
+
+		# latitude lower  index
+		latli = np.argmin( np.abs( lats - latbounds[0] ) )
+
+		# longitude lower index
+		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
+
+		# subset
+		self.var = f.variables[var][ : ,member, latli , lonli] 
 		#return mysub
 
 	def instRad(self):
