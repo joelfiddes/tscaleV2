@@ -283,18 +283,34 @@ class Surf(Plev):
 		self.var = f.variables[var][ startIndex:endIndex ,member, latli , lonli] 
 		#return mysub
 
-	def instRad(self):
+	def instRad(self, step):
 		""" Convert SWin from accumulated quantities in J/m2 to 
 		instantaneous W/m2 see: 
-		https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513"""
-		self.strd = self.strd/3600  
-		self.ssrd = self.ssrd/3600 
-		self.tisr = self.tisr/3600 
+		https://confluence.ecmwf.int/pages/viewpage.action?pageId=104241513
 
-	def tp2Inst(self):
-		""" convert tp from m/h (total accumulation over hourly timestep) to m/s """
-		self.tp = self.tp/3600 
-		self.tpmmhr = self.tp	*1000
+		Args:
+			step: timstep in seconds (era5=3600, ensemble=10800)
+
+		Note: both EDA (ensemble 3h) and HRES (1h) are accumulated over the timestep
+		and therefore treated here the same.
+		https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation
+				"""
+		self.strd = self.strd/step  
+		self.ssrd = self.ssrd/step
+		self.tisr = self.tisr/step 
+
+	def tp2rate(self, step):
+		""" convert tp from m/timestep (total accumulation over timestep) to rate in mm/h 
+
+			Args:
+				step: timstep in seconds (era5=3600, ensemble=10800)
+
+			Note: both EDA (ensemble 3h) and HRES (1h) are accumulated over the timestep
+			and therefore treated here the same.
+			https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation
+		"""
+		self.tp = self.tp/step*60*60 # convert metres per timestep -> m/hour 
+		self.pmmhr = self.tp	*1000 # m/hour-> mm/hour
 
 	def gridEle(self):
 		""" compute surface elevation of coarse grid"""

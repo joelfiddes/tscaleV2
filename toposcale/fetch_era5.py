@@ -7,13 +7,13 @@ import sys
 #from ecmwfapi import ECMWFDataServer
 import cdsapi
 from dateutil.relativedelta import *
-from retrying import retry
+#from retrying import retry
 import logging
 import glob    
 from joblib import Parallel, delayed 
 #import multiprocessing 
 
-def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
+def retrieve_era5_surf( product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
     """ Sets up era5 surface retrieval.
     * Creates list of year/month pairs to iterate through. 
     * MARS retrievals are most efficient when subset by time. 
@@ -32,10 +32,10 @@ def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
         Monthly era surface files.	     
 
     """
-    product  = config["forcing"]["product"]
-    print(product)
-    startDate = config["main"]["startDate"]
-    endDate = config["main"]["endDate"]
+    # product  = config["forcing"]["product"]
+    # print(product)
+    # startDate = config["main"]["startDate"]
+    # endDate = config["main"]["endDate"]
     #grd =   config["era-interim"]["grid"]
     #dataset = config["forcing"]["dataset"]
     #grid=str(grd) + "/" + str(grd)
@@ -52,8 +52,10 @@ def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
 			    '15:00','16:00','17:00',\
 			    '18:00','19:00','20:00',\
 			    '21:00','22:00','23:00']
+
     if (product == "ensemble_members"):
 	    time = ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00']
+
     # download buffer of +/- 1 month to ensure all necessary timestamps are there for interpolations and consistency between plevel and surf
     dates = [str(startDate), str(endDate)]
     start = datetime.strptime(dates[0], "%Y-%m-%d")
@@ -65,7 +67,7 @@ def retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW):
 
     print("Start date = " , dateList[0])
     print("End date = " , dateList[len(dateList)-1])
-    print("cores used = " + num_cores)
+    print("cores used = " + str(num_cores))
 	
     requestDatesVec = []
     targetVec=[]
@@ -146,7 +148,7 @@ def era5_request_surf(year, month, bbox, target, product, time):
 	    target)
 	print(target+ " complete")
 
-def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
+def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
     """ Sets up era5 pressure level retrieval.
     * Creates list of year/month pairs to iterate through. 
     * MARS retrievals are most efficient when subset by time. 
@@ -165,9 +167,9 @@ def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
         Monthly era pressure level files.	     
 
     """
-    product  = config["forcing"]["product"]
-    startDate = config["main"]["startDate"]
-    endDate = config["main"]["endDate"]
+    #product  = config["forcing"]["product"]
+    #startDate = config["main"]["startDate"]
+    #endDate = config["main"]["endDate"]
     #grd =   config["era-interim"]["grid"]
     #dataset = config["forcing"]["dataset"]
     #grid=str(grd) + "/" + str(grd)
@@ -184,6 +186,7 @@ def retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW):
 			    '15:00','16:00','17:00',\
 			    '18:00','19:00','20:00',\
 			    '21:00','22:00','23:00']
+
     if (product == "ensemble_members"):
         time = ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00']
 

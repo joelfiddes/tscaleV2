@@ -246,7 +246,11 @@ class tscale(object):
 		vpc=RHc*svpc/1e2
 
 		"""Use the vapor pressure and temperature to calculate clear sky
-		 # emssivity at grid and subgrid. [also function]"""
+		 # emssivity at grid and subgrid. [also function]
+		Konzelmann et al. 1994
+		Ta in kelvin
+
+		 """
 		x1=0.43 
 		x2=5.7
 		cef=0.23+x1*(vpf/tob.t)**(1/x2) #Pretty sure the use of Kelvin is correct.
@@ -268,6 +272,95 @@ class tscale(object):
 		#fout.LW(:,:,n)=LWf
 
 
+	def Rh2Wvp(tair,RH):
+		''''compute water vapour pressure
+
+		Args:
+			RH=relative humidity (%: 0-100)
+			tair=air temperature (kelvin)
+
+		'''
+		#constants
+		es0=6.11 #reference saturation vapor pressure (es at a certain temp, usually 0 deg C)
+		T0=273.15 #(273.15 Kelvin,  Kelvin = degree C +273.15)
+		lv=2.5E6 #latent heat of vaporization of water (2.5 * 10^6 joules per kilogram)
+		Rv=461.5 #gas constant for water vapor (461.5 joules* Kelvin / kilogram)
+
+		
+		es = es0 * np.exp( lv/Rv * (1/T0 - 1/tair))
+		e=(RH*es)/100
+		return(e)
+	
+
+	def relHumCalc(tair,tdew):
+		'''convert ERA interim surface dewpoint temp to relative humidity based on d2m and t2m
+			Args:
+				tdew=dewpoint temp (kelvin)
+				tair=air temperature (kelvin)
+		'''
+		#constants
+		es0=6.11 #reference saturation vapor pressure (es at a certain temp, usually 0 deg C)
+		T0=273.15 #(273.15 Kelvin,  Kelvin = degree C +273.15)
+		lv=2.5E6 #latent heat of vaporization of water (2.5 * 10^6 joules per kilogram)
+		Rv=461.5 #gas constant for water vapor (461.5 joules* Kelvin / kilogram)
+
+
+
+		e  = es0 * np.exp( lv/Rv * (1/T0 - 1/tdew))
+		es = es0 * np.exp( lv/Rv * (1/T0 - 1/tair))
+
+		RH = e/es * (100) 
+
+		return(RH)
+
+
+	def lwin_joel(self, sob,tob):
+		#All T in kelvin
+
+		T_sub=tob.t # K
+		RH=tob.r # 0-100
+		lwGrid= sob.strd#Wm**-2
+		tGrid= sob.t2m #T
+		rhGrid= relHumCalc(sob.t2m, sob.d2m)# 0-100
+		#calculate water vapour pressure at sub
+		pv_sub=Rh2Wvp(tair=T_sub, RH=RH)
+
+		#parameters
+		x1=0.484 # 0.484 or 0.43 Gubler 2012
+		x2=8 # 8 or 5.7 Gubler 2012
+		sb=5.67*10**-8
+
+		#calculate clear-sky emissivity subgrid according Konzelmann
+		Ecl_sub=0.23+ x1*(pv_sub*100/T_sub)**(1/x2)
+
+		#calculate clear-sky LWin
+		lwcl=Ecl_sub*sb*T_sub**4
+
+		#T grid in Kelvin
+		T_grid=tGrid
+		RH=rhGrid
+		#calculate all-sky emissivity at grid from SB equation
+		Eas_grid=lwGrid/(sb*T_grid**4)	
+		#constrain Eas_grid to max. 1
+		Eas_grid[Eas_grid>1]<-1	
+
+		#calculate water vapour pressure at grid
+		pv_grid=Rh2Wvp(tair=T_grid,RH=RH )
+		#calculate clear-sky emissivity grid according Konzelmann
+		Ecl_grid=0.23+ x1*((pv_grid*100)/T_grid)**(1/x2)	#Ecl_grid
+
+		#calculate cloud emissivivity at grid
+		deltaE=Eas_grid-Ecl_grid
+
+		#calculate all-sky emissivity subgrid 
+		Eas_sub=Ecl_sub+deltaE				#Eas_sub
+		Eas_sub[Eas_sub>1]<-1	
+
+		#calculate lwin subgrid
+		lwsub=Eas_sub*sb*T_sub**4
+
+		return(lwsub)
+		
 
 	def swin(self,pob,sob,tob, stat, dates):
 		
@@ -486,5 +579,5 @@ class tscale(object):
 		pfis = sob.dtime.month.map(lookups)
 		dz=(stat.ele-sob.gridEle)/1e3     # Elevation difference in kilometers between the fine and coarse surface.
 		lp=(1+pfis*dz)/(1-pfis*dz)# Precipitation correction factor.
-		Pf=sob.tp*lp
+		Pf=sob.pmmhr*lp
 		self.TPf=Pf

@@ -9,10 +9,15 @@ Example:
 
 	python main.py
 
-Attributes:
+Dependency:
+	- CDO
+	- NCO
+	- CDS API
+	- see note below
 
 Todo:
-
+	eracat and eracat5d could be combined as robust NCO based approach that accepts 
+	all dimensions - reduce depencdy by -1 (remove CDO)
 """
 
 import sys
@@ -50,9 +55,28 @@ latS = config["main"]["latS"]
 #====================================================================
 #	Fetch forcing
 #====================================================================
-fe.retrieve_era5_surf(config,eraDir, latN,latS,lonE,lonW)
-fe.retrieve_era5_plev(config,eraDir, latN,latS,lonE,lonW)
+fe.retrieve_era5_surf(   
+	config["forcing"]["product"] ,
+	config["main"]["startDate"], 
+	config["main"]["endDate"],
+	eraDir, 
+	latN,latS,lonE,lonW
+	)
 
-# concat monthly files
-eraCat(eraDir, "SURF")
-eraCat(eraDir, "PLEV")
+fe.retrieve_era5_plev(   
+	config["forcing"]["product"] ,
+	config["main"]["startDate"], 
+	config["main"]["endDate"],
+	eraDir, 
+	latN,latS,lonE,lonW
+	)
+
+''' concat monthly files using CDO'''
+if (product == "reanlysis"):
+	fe.eraCat(eraDir, "SURF")
+	fe. eraCat(eraDir, "PLEV")
+
+'''5d ensemble product requires NCO operators'''
+if (product == "ensemble_members"):
+	fe.eraCat5d(eraDir, "SURF")
+	fe. eraCat5d(eraDir, "PLEV")

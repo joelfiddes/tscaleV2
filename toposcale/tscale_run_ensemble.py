@@ -107,7 +107,9 @@ for i in range(lp.id.size):
 		s.addVar(v,s.var) # adds data again with correct name - redundancy
 
 	""" rad conversions """
-	s.instRad()
+	s.instRad(10800)
+	""" precip conversions """
+	s.tp2rate(10800)
 	""" dimensions of data """
 	s.addShape()
 	""" Datetime structure """
