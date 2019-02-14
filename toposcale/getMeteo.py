@@ -40,7 +40,6 @@ logging.info("Start run")
 #	Define paths
 #====================================================================
 wd= config["main"]["wd"]
-shpPath =  wd + "/spatial/" + config["main"]["shp"]
 eraDir = wd + "/forcing/"
 if not os.path.exists(eraDir):
 	os.makedirs(eraDir)
