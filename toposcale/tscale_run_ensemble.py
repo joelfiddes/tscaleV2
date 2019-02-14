@@ -1,9 +1,6 @@
 """main
 
-Main toposcale run script. Requires existence of:
-	- pressurelevel data file: "PLEV.nc"
-	- surface data file: "/SURF.nc"
-	- listpoints file: "/listpoints.txt"
+Main toposcale run script.
 
 Object description:
 
@@ -14,19 +11,14 @@ Object description:
 
 Example:
 
-	python  tscale_run.py
-				/home/joel/sim/topomapptest/forcing/
-				/home/joel/sim/topomapptest/sim/g1m1/
-				/home/joel/sim/topomapptest/sim/g1m1/forcing/
+	python main.py
+
 Args:
-	inDir: directory containing input meteo PLEV.nc and SURF.nc 
-		"/home/joel/sim/topomapptest/forcing/"
+	inDir: directory containing input meteo PLEV.nc and SURF.nc
 	listpointsLoc: location of listpoints.txt
-		"/home/joel/sim/topomapptest/sim/g1m1/"
 	outDir: location where output meteo files are written
-		"/home/joel/sim/topomapptest/sim/g1m1/forcing/"
-	startTime: ISO format #"2016-08-01 18:00:00"
-	endTime: ISO format #"2016-08-01 18:00:00"
+	memeber: which ensemble memeber is to be downscaled from era5 ensembles dataset [1-10]
+
 Todo:
 
 """
@@ -38,12 +30,14 @@ import helper as hp
 import numpy as np
 import sys
 import logging
+
 #=== ARGS==============================================
-inDir=sys.argv[1] # /home/joel/sim/topomapptest/forcing/PLEV.nc
+inDir=sys.argv[1]
 listpointsLoc=sys.argv[2]
 outDir = sys.argv[3]
-startTime = sys.argv[4]
-endTime = sys.argv[5]
+member = int(sys.argv[4])
+startTime = sys.argv[5]
+endTime = sys.argv[6]
 
 fp=inDir+"/PLEV.nc"
 fs=inDir+"/SURF.nc"
@@ -54,10 +48,12 @@ lp=pd.read_csv(lpfile)
 #===============================================================================
 #	Logging
 #===============================================================================
-logging.basicConfig(level=logging.DEBUG, filename=listpointsLoc+"/tscale_logfile", filemode="a+",
-                        format="%(asctime)-15s %(levelname)-8s %(message)s")
+#logging.basicConfig(level=logging.DEBUG, filename=wd+"/sim/"+ simdir+"/logfile", filemode="a+",
+                        #format="%(asctime)-15s %(levelname)-8s %(message)s")
+
 
 for i in range(lp.id.size):
+
 
 	# station attribute structure
 	stat = hp.Bunch(ele = lp.ele[i], slp = lp.slp[i],asp = lp.asp[i],svf = lp.svf[i],lon = lp.lon[i], lat =lp.lat[i],sro = lp.surfRough[i],tz = lp.tz[i]  )
@@ -72,6 +68,7 @@ for i in range(lp.id.size):
 	p.addTime()
 	startIndex = int(np.where(p.dtime==startTime)[0])#"2016-08-01 18:00:00"
 	endIndex = int(np.where(p.dtime==endTime)[0])#"2016-08-01 18:00:00"
+	p.dtime = p.dtime[startIndex:endIndex]
 
 
 	for v in p.varnames:
@@ -80,15 +77,13 @@ for i in range(lp.id.size):
 		#p.getVar(v)
 		#name = p.myvar.name
 
-		p.extractCgc(v, startIndex, endIndex) # adds data to self
-
+		p.extractCgc5d(v, member,startIndex, endIndex) # adds data to self
+		
 		p.addVar(v,p.var) # adds data again with correct name - redundancy
 		#can now remove p.var it is redundant
 
 	""" dimensions of data """
 	p.addShape()
-
-
 
 	""" Pressure level values """
 	p.plevels()
@@ -107,7 +102,7 @@ for i in range(lp.id.size):
 		s.getVar(v)
 		#name = p.myvar.name
 
-		s.extractCgc(v ,startIndex, endIndex) # adds data to self
+		s.extractCgc4d(v,member,startIndex, endIndex) # adds data to self
 
 		s.addVar(v,s.var) # adds data again with correct name - redundancy
 
@@ -117,6 +112,7 @@ for i in range(lp.id.size):
 	s.addShape()
 	""" Datetime structure """
 	s.addTime()
+	s.dtime = s.dtime[startIndex:endIndex]
 	""" surface elevation of coarse grid"""
 	s.gridEle()
 	sob = s
@@ -182,8 +178,8 @@ for i in range(lp.id.size):
 				},index=p.dtime)
 	df.index.name="datetime"
 
-	fileout=wd + "/sim/" + simdir + "/forcing/meteo"+"c"+str(i+1)+".csv"
+	fileout=outDir + "/meteo"+"c"+str(i+1)+".csv"
 	df.to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
-	logging.info(fileout + " complete")
+	print(fileout + " complete")
 
 

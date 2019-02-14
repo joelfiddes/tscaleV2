@@ -94,7 +94,7 @@ class Plev(object):
 		self.myvar = f.variables[var]
 		#return myvar
 
-	def extractCgc(self,var):
+	def extractCgc(self,var, startIndex, endIndex):
 		"""extract variable and cgc (now np array)
 		dimension order: time, level, lat,lon
 		"""
@@ -112,10 +112,10 @@ class Plev(object):
 		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
 
 		# subset
-		self.var = f.variables[var][ :,: ,latli , lonli] 
+		self.var = f.variables[var][ startIndex:endIndex,: ,latli , lonli] 
 		#return mysub
 
-	def extractCgc5d(self,var, member):
+	def extractCgc5d(self,var, member, startIndex, endIndex):
 		"""extract variable, ensemble memeber and cgc (now np array) from 5d
 		nc files eg era5 ensemble (extra dimension ensemble 'number') 
 
@@ -135,8 +135,9 @@ class Plev(object):
 		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
 		
 		# subset
-		self.var = f.variables[var][ :,member ,:,latli , lonli] 
+		self.var = f.variables[var][ startIndex:endIndex,member ,:,latli , lonli] 
 		#return mysub
+
 
 	def addVar(self,varname,dat):
 		""" rename attribute"""
@@ -241,7 +242,7 @@ class Surf(Plev):
 		varnames=p.varnames()
 	"""
 	
-	def extractCgc(self,var):
+	def extractCgc(self,var,startIndex, endIndex):
 		"""extract variable and cgc (now np array)"""
 		f = nc.Dataset(self.fp)
 
@@ -257,10 +258,10 @@ class Surf(Plev):
 		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
 
 		# subset
-		self.var = f.variables[var][ : ,latli , lonli] 
+		self.var = f.variables[var][ startIndex:endIndex ,latli , lonli] 
 		#return mysub
 
-	def extractCgc4d(self,var, member):
+	def extractCgc4d(self,var, member,startIndex, endIndex):
 		"""extract variable, ensemble memeber and cgc (now np array)from 4d
 		nc files eg era5 ensemble (extra dimension ensemble 'number') 
 
@@ -279,7 +280,7 @@ class Surf(Plev):
 		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
 
 		# subset
-		self.var = f.variables[var][ : ,member, latli , lonli] 
+		self.var = f.variables[var][ startIndex:endIndex ,member, latli , lonli] 
 		#return mysub
 
 	def instRad(self):
