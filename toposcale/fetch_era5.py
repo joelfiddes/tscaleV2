@@ -208,7 +208,7 @@ def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
 
 	print("Start date = " , dateList[0])
 	print("End date = " , dateList[len(dateList)-1])
-	print("cores used = " + num_cores)
+	print("cores used = " + str(num_cores)
 
 	requestDatesVec = []
 	targetVec=[]
