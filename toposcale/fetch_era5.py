@@ -10,7 +10,7 @@ from collections import OrderedDict
 import calendar
 import sys
 #from ecmwfapi import ECMWFDataServer
-import cdsapi_caduff
+import cdsapi
 from dateutil.relativedelta import *
 #from retrying import retry
 import logging
