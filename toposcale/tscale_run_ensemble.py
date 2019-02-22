@@ -20,7 +20,7 @@ Args:
 	memeber: which ensemble memeber is to be downscaled from era5 ensembles dataset [1-10]
 
 Todo:
-
+	merge with tscale_run.py, need to handle optional parameter "memebers" and extractCGC5d fun.
 """
 
 import pandas as pd # only required to import listpoints nicely, should be able to remove
@@ -95,6 +95,13 @@ for i in range(lp.id.size):
 	s=e5.Surf(fs, stat.lat, stat.lon)
 	s.getVarNames()
 
+	""" Datetime structure """
+	s.addTime()
+
+	# compute step in seconds for accumulated surface fields
+	a=s.dtime[2]-s.dtime[1]
+	step = a.seconds
+
 	for v in s.varnames:
 
 		#v=p.varnames[1]
@@ -107,13 +114,13 @@ for i in range(lp.id.size):
 		s.addVar(v,s.var) # adds data again with correct name - redundancy
 
 	""" rad conversions """
-	s.instRad(10800)
+	s.instRad(step)
 	""" precip conversions """
-	s.tp2rate(10800)
+	s.tp2rate(step)
 	""" dimensions of data """
 	s.addShape()
-	""" Datetime structure """
-	s.addTime()
+
+	# cut time vector to required length
 	s.dtime = s.dtime[startIndex:endIndex]
 	""" surface elevation of coarse grid"""
 	s.gridEle()

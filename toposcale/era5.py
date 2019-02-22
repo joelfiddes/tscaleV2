@@ -26,6 +26,7 @@ This plugin contains methods to:
 		- longwave Wm**2
 		- wind - U and V vectors
 		- time - iso
+		- relative humidity
 
 Example:
 	Initialise new era5 instance::
@@ -134,8 +135,8 @@ class Plev(object):
 		# longitude lower index
 		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
 		
-		# subset
-		self.var = f.variables[var][ startIndex:endIndex,member ,:,latli , lonli] 
+		# subset : memeber -1 convert from index 1-10 (input)to 0-9 (python)
+		self.var = f.variables[var][ startIndex:endIndex,member-1 ,:,latli , lonli] 
 		#return mysub
 
 
@@ -279,8 +280,8 @@ class Surf(Plev):
 		# longitude lower index
 		lonli = np.argmin( np.abs( lons - lonbounds[0] ) )
 
-		# subset
-		self.var = f.variables[var][ startIndex:endIndex ,member, latli , lonli] 
+		# subset : memeber -1 convert from index 1-10 (input)to 0-9 (python)
+		self.var = f.variables[var][ startIndex:endIndex ,member-1, latli , lonli] 
 		#return mysub
 
 	def instRad(self, step):

@@ -5,6 +5,8 @@ Main toposcale run script. Requires existence of:
 	- surface data file: "/SURF.nc"
 	- listpoints file: "/listpoints.txt"
 
+	- runs on however many pressure levels are downloaded
+
 Object description:
 
 	* pob - pressure level object
@@ -100,6 +102,12 @@ for i in range(lp.id.size):
 	s=e5.Surf(fs, stat.lat, stat.lon)
 	s.getVarNames()
 
+		""" Datetime structure """
+	s.addTime()
+	# compute step in seconds for accumulated surface fields
+	a=s.dtime[2]-s.dtime[1]
+	step = a.seconds
+
 	for v in s.varnames:
 
 		#v=p.varnames[1]
@@ -112,10 +120,10 @@ for i in range(lp.id.size):
 		s.addVar(v,s.var) # adds data again with correct name - redundancy
 
 	""" rad conversions """
-	s.instRad(3600)
+	s.instRad(step)
 
 	""" precip conversions """
-	s.tp2rate(3600)
+	s.tp2rate(step)
 
 	""" dimensions of data """
 	s.addShape()

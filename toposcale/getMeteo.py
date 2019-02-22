@@ -18,6 +18,9 @@ Dependency:
 Todo:
 	eracat and eracat5d could be combined as robust NCO based approach that accepts 
 	all dimensions - reduce depencdy by -1 (remove CDO)
+
+	- add time step args (config)
+	- add plevel args (config)
 """
 
 import sys
