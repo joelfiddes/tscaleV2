@@ -16,6 +16,7 @@ from dateutil.relativedelta import *
 import logging
 import glob	
 from joblib import Parallel, delayed 
+import subprocess
 #import multiprocessing 
 
 def retrieve_era5_surf( product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
@@ -326,7 +327,7 @@ def eraCat(wd, grepStr):
 		grepStr= "PLEV"
 		eraCat("/home/joel/mnt/myserver/sim/wfj_era5/eraDat/", "PLEV")
 	"""
-	import subprocess
+	
 	cmd	 = ("cdo -b F64 -f nc2 mergetime " 
 				+ wd 
 				+  grepStr
@@ -344,6 +345,7 @@ def eraCat5d(wd, grepStr):
 	*** NCO ***
 	Updated method to deal with 5D of ensemble datasets NOT supported by CDO
 	Concats monthly era (interim or 5) files by some keyword *grepStr*. Depends on NCO.
+	sudo apt-get install nco
 	- reads monthly ERA5 data files (MARS efficiency)
 	- concats to single file timeseries
 	- 2 steps 
@@ -358,7 +360,7 @@ def eraCat5d(wd, grepStr):
 		grepStr= "PLEV"
 		eraCat("/home/joel/mnt/myserver/sim/wfj_era5/eraDat/", "PLEV")
 	"""
-	import subprocess
+	
 	lst = glob.glob(grepStr+'*')
 	lst.sort()
 
