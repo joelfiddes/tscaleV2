@@ -32,7 +32,7 @@ variables (sw,lw).
 
 import recapp_era5 as rc
 import time
-import myplot
+#import myplot
 import os
 from os import path, remove
 import numpy as np
