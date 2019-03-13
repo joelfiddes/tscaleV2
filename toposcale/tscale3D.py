@@ -731,7 +731,7 @@ def main(wdir, mode, start, end):
 						},index=tob.dtime)
 			df.index.name="datetime"
 
-			fileout=wdir+"/meteo"+str(i)+".csv"
+			fileout=wdir+"/meteo"+str(i)+"_"+start+"_.csv"
 			column_order = ['TA', 'RH', 'WS', 'WD', 'LWIN', 'SWIN', 'PRATE']
 			df[column_order].to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 		#logging.info(fileout + " complete")
