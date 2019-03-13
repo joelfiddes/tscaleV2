@@ -1,19 +1,26 @@
 #!/usr/bin/env python
 
-"""tscale3d_era5.py
+"""tscale3d_era5_EDA.py
 
-Downscaling in 3d ERA5 pressure level data.
+Downscaling in 3d ERA5 EDA pressure level data.
 
 This module downscale ERA5 pl data air temp, rel hum, u, v and produces 2D grids
-(based on high res DEM) or point based timeseries (based on csv file)
+(based on high res DEM) or point based timeseries (based on csv file). It is called 
+by tscale3D_EDA.py.
 
 Example:
-	python tscale3d_era5.py grid t
+	python tscale3d_era5_src.py '/home/joel/sim/cci_perm/cci_test_ensemble/' 't' 'points' 0 10 1 "EDA"
 
 Attributes:
-	ARG1: "mode": grid or points
-	ARG2: "var": t (air temp) ,r (relhum),u (windU) or v (windV)
+	ARG1: "wdir": workdir	
+	ARG2: "mode": grid or points
+	ARG3: "var": t (air temp) ,r (relhum),u (windU) or v (windV)
+	ARG4: "starti": start index (numeric index for nc file)
+	ARG5: "endi": end index (numeric index for nc file)
+	ARG6: dataset: "HRES" (ERA5) or "EDA" (ensemble ERA5)
+	ARG7: ensemble member [1-10] or not declared (HRES)
 
+	
 Todo:
     * remove dependency on dem when running "points"
 	* input dem directly as netcdf or convert from tif
@@ -32,20 +39,50 @@ variables (sw,lw).
 
 import recapp_era5 as rc
 import time
-#import myplot
 import os
 from os import path, remove
 import numpy as np
 import pandas as pd
 import sys
 
-# Global stuff
-#var="v"
-#mode ='grid' #'grid'
+# Test
+wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
+var="t"
+mode ='points'
+starti=0
+endi=10
+member=1 
+dataset="EDA" 
 
+wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
+var="t"
+mode ='grid'
+starti=0
+endi=10
+member=1 
+dataset="EDA" 
 
-def main(wdir, mode, var, starti, endi):
+wdir='/home/joel/sim/cci_perm/cci_test/'
+var="t"
+mode ='points'
+starti=0
+endi=10
+member=1 
+dataset="HRES" 
+
+wdir='/home/joel/sim/cci_perm/cci_test/'
+var="t"
+mode ='grid'
+starti=0
+endi=10
+member=1 
+dataset="HRES" 
+
+def main(wdir, mode, var, starti, endi,dataset, member=None):
 	start_time = time.time()
+	
+
+
 	pl   = wdir+ '/forcing/PLEV.nc' #dataImport.plf_get()    # pressure level air temperature
 	stationsfile= wdir+'/points.csv'
         
@@ -59,8 +96,13 @@ def main(wdir, mode, var, starti, endi):
 
 		mystations=pd.read_csv(stationsfile)
 
-		# station case
-		ds = rc.tscale3dPl( pl=pl)
+		# Set up class object
+		if dataset=="HRES":
+			ds = rc.t3d( pl=pl)
+		if dataset=="EDA":
+			ds = rc.t3d_eda( pl=pl)
+
+
 		timesteps = ds.pl.variables['time'][:].size
 		out_xyz_dem, lats, lons, shape, names= ds.demGrid(stations=mystations)
 
@@ -69,9 +111,14 @@ def main(wdir, mode, var, starti, endi):
 		sa_vec = np.zeros((xdim))
 
 		for timestep in range(starti, endi):
-			#print(str(round(float(timestep)/float(timesteps)*100,0))+ "% done")
+			print(str(round(float(timestep)/float(endi-starti)*100,0))+ "% done")
 			gridT,gridZ,gridLat,gridLon=ds.gridValue(var,timestep)
-			t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
+
+			if dataset=="HRES":
+				t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
+			if dataset=="EDA":
+				t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem,member)
+
 			pl_obs = ds.fast1d(t_interp, z_interp, out_xyz_dem)
 			sa_vec=np.column_stack((sa_vec,pl_obs))
                 # drop init row
@@ -81,7 +128,7 @@ def main(wdir, mode, var, starti, endi):
 		tofile='False'
 		if tofile=="True":
 			df=pd.DataFrame(sa_vec.T)
-			df.to_csv("TSP_"+var+".csv")
+			df.to_csv(wdir+"points_"+var+".csv")
 
 		print(" %f minutes for total run" % round((time.time()/60 - start_time/60),2) )
 		return sa_vec.T
@@ -93,7 +140,14 @@ def main(wdir, mode, var, starti, endi):
 
 #============ GRID RUN =======================================================
 	if mode=="grid":
-		ds = rc.tscale3dPl( pl=pl, dem=dem_ncdf)
+
+		# Set up class object
+		if dataset=="HRES":
+			ds = rc.t3d( pl=pl, dem=dem_ncdf)
+		if dataset=="EDA":
+			ds = rc.t3d_eda( pl=pl, dem=dem_ncdf)
+
+
 		timesteps = ds.pl.variables['time'][:].size
 		out_xyz_dem, lats, lons, shape = ds.demGrid()
 
@@ -103,9 +157,14 @@ def main(wdir, mode, var, starti, endi):
 		sa_out = np.zeros((xdim,ydim))
 
 		for timestep in range(starti, endi):
-			print(str(round(float(timestep)/float(timesteps)*100,0))+ "% done")
+			print(str(round(float(timestep)/float(endi-starti)*100,0))+ "% done")
 			gridT,gridZ,gridLat,gridLon=ds.gridValue(var,timestep)
-			t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
+
+			if dataset=="HRES":
+				t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
+			if dataset=="EDA":
+				t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem,member)
+
 			pl_obs = ds.fast1d(t_interp, z_interp, out_xyz_dem)
 			sa_grid = pl_obs.reshape(xdim,ydim)
 			sa_grid = np.flip(sa_grid, 0) 
@@ -116,19 +175,25 @@ def main(wdir, mode, var, starti, endi):
 
 		print(" %f minutes for total run" % round((time.time()/60 - start_time/60),2) )
 
-		# mean
-		#l = a.mean(axis=(2))
-		#plot
-		
-		#myplot.main(l)
+		# for testing
+		plot='False'
+		if plot=="True":
+			import myplot
+			l = a.mean(axis=(2))
+			myplot.main(l)
+
 		return a
 #===============================================================================
 #	Calling Main
 #===============================================================================
 if __name__ == '__main__':
 	
-	mode = sys.argv[1]
-	var = sys.argv[2]
-	test=sys.argv[3]
-	main(mode, var, test)
+	wdir = sys.argv[1]
+	mode = sys.argv[2]
+	var=sys.argv[3]
+	starti=sys.argv[4]
+	endi=sys.argv[5]
+	dataset=sys.argv[6]
+	member=sys.argv[7]
+	main(wdir, mode,var, starti, endi, dataset, member)
 

@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 
-"""tscale2d_era5.py
+"""tscale3d_era5.py
 
-2D Interpolation of ERA5 surface data (no surface effects)
+Downscaling in 3d ERA5 pressure level data.
 
-This module interpolates ERA5 surface data ssrd, strd, p from coarse ERA5 grid 
-to a finescale DEM or set of points (points.csv).
-
+This module downscale ERA5 pl data air temp, rel hum, u, v and produces 2D grids
+(based on high res DEM) or point based timeseries (based on csv file)
 
 Example:
-	python tscale2d_era5.py grid t
+	python tscale3d_era5.py grid t
 
 Attributes:
 	ARG1: "mode": grid or points
-	ARG2: "var": t2m (air temp) ,'d2m','ssrd', strd, p
-	ARG3: test "True" limit of 20 timesteps "False"= all timesteps
+	ARG2: "var": t (air temp) ,r (relhum),u (windU) or v (windV)
+
 Todo:
-	
+    * remove dependency on dem when running "points"
+	* input dem directly as netcdf or convert from tif
+* make robust tif 	
 Notes:
 
 points.csv:
@@ -31,7 +32,7 @@ variables (sw,lw).
 
 import recapp_era5 as rc
 import time
-import myplot
+#import myplot
 import os
 from os import path, remove
 import numpy as np
@@ -44,49 +45,47 @@ import sys
 
 
 def main(wdir, mode, var, starti, endi):
-
 	start_time = time.time()
-	sa   =  wdir+'/forcing/SURF.nc' #dataImport.plf_get()    # pressure level air temperature
+	pl   = wdir+ '/forcing/PLEV.nc' #dataImport.plf_get()    # pressure level air temperature
 	stationsfile= wdir+'/points.csv'
-
-
+        
 	if mode=="grid":
-		dem_ncdf     = wdir+'/predictos/ele.nc'#dir_data+'/dem1km.nc'
-
+		dem_ncdf     =  wdir+"/predictors/ele.nc"
 
 #============ POINTS RUN =======================================================
-	if mode=="points" or mode=="point":
+	if mode=="points" or mode=="point": # catches common typo
 		if os.path.isfile(stationsfile) == False:
 			print("No points.csv found!")
 
 		mystations=pd.read_csv(stationsfile)
 
 		# station case
-		ds = rc.tscale3dPl( sa = sa, pl=None, dem=None)
-		timesteps = ds.sa.variables['time'][:].size
+		ds = rc.t3d( pl=pl)
+		timesteps = ds.pl.variables['time'][:].size
 		out_xyz_dem, lats, lons, shape, names= ds.demGrid(stations=mystations)
 
 		# init grid stack
 		xdim=shape[0]
 		sa_vec = np.zeros((xdim))
 
-
 		for timestep in range(starti, endi):
 			#print(str(round(float(timestep)/float(timesteps)*100,0))+ "% done")
-                        sa_t = ds.surTaPoint(timestep, mystations, var)
-			sa_vec=np.column_stack((sa_vec,sa_t))
-                
-		# drop init row
+			gridT,gridZ,gridLat,gridLon=ds.gridValue(var,timestep)
+			t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
+			pl_obs = ds.fast1d(t_interp, z_interp, out_xyz_dem)
+			sa_vec=np.column_stack((sa_vec,pl_obs))
+                # drop init row
 		sa_vec =sa_vec[:,1:]
-
+		
 		# export dataframe
 		tofile='False'
 		if tofile=="True":
 			df=pd.DataFrame(sa_vec.T)
 			df.to_csv("TSP_"+var+".csv")
-		
+
 		print(" %f minutes for total run" % round((time.time()/60 - start_time/60),2) )
 		return sa_vec.T
+
 	# Benchmark
 	#38809 1km cells
 	#6hr data
@@ -94,19 +93,22 @@ def main(wdir, mode, var, starti, endi):
 
 #============ GRID RUN =======================================================
 	if mode=="grid":
-		ds = rc.tscale3dPl( sa=sa, dem=dem_ncdf, pl=None)
-		timesteps = ds.sa.variables['time'][:].size
+		ds = rc.t3d( pl=pl, dem=dem_ncdf)
+		timesteps = ds.pl.variables['time'][:].size
 		out_xyz_dem, lats, lons, shape = ds.demGrid()
 
 		# init grid stack
 		xdim=shape[0]
 		ydim=shape[1]
 		sa_out = np.zeros((xdim,ydim))
-	
+
 		for timestep in range(starti, endi):
 			print(str(round(float(timestep)/float(timesteps)*100,0))+ "% done")
-			sa_t = ds.surTaGrid(timestep, lats, lons, var)
-			sa_grid = sa_t.reshape(xdim,ydim)
+			gridT,gridZ,gridLat,gridLon=ds.gridValue(var,timestep)
+			t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
+			pl_obs = ds.fast1d(t_interp, z_interp, out_xyz_dem)
+			sa_grid = pl_obs.reshape(xdim,ydim)
+			sa_grid = np.flip(sa_grid, 0) 
 			sa_out = np.dstack((sa_out, sa_grid))
 			
 		# drop init blank layer
@@ -117,6 +119,7 @@ def main(wdir, mode, var, starti, endi):
 		# mean
 		#l = a.mean(axis=(2))
 		#plot
+		
 		#myplot.main(l)
 		return a
 #===============================================================================

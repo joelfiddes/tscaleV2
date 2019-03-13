@@ -2,7 +2,7 @@
 3D toposcale of surface and pressurelevel fields including surface effects. Can be used to produce grids or point timeseries
 at specific locations with lon,lat. Not used by TopoSUB (1D interp).
 
-paralelise by time - just split into 2 year chuncks eg 20 cores for 40 years
+
 
  non-linear increase in unit time per step.
 > y=c(0.55,5.85,13.25,35.01, 87.94)
@@ -10,7 +10,7 @@ paralelise by time - just split into 2 year chuncks eg 20 cores for 40 years
 > plot(x,y)
 
 
-calls: tscale2d_era5.py and tscale3d_era5.py to perform interpolations.
+calls: tscale2d_era5_src.py and tscale3d_era5_src.py to perform interpolations.
         
 Args:
 	mode: 'grid' or 'points'
@@ -21,6 +21,29 @@ Returns:
                 
 Example: 
 
+Notes:
+- pressure level arrays in EDA (ascending) and inverse to HRES (descending)
+
+example EDA geopotential
+In [67]: z_interp[:,1]
+Out[67]: 
+array([ 1574.43959939,  3683.61224602,  5847.31984393,  8068.19587794,
+       10343.13090714, 12663.88264812, 15037.5650956 , 17468.52776509,
+       19963.81837095, 22529.31287884, 25170.64426949, 30685.20454384,
+       36544.61456106, 42786.12626777, 49468.28618534, 56662.69980236,
+       64459.43907668, 72955.92320608, 82299.63734099, 92752.36549403])
+
+example HRES geopotential
+In [25]: z_interp[:,1]
+Out[25]: 
+array([56332.15453   , 49194.88561242, 42571.16299455, 36401.05284972,
+       30615.17900161, 25151.02196225, 22524.83301162, 19964.00851129,
+       17465.31275158, 15028.14684696, 12649.5725558 , 10332.79436759,
+        8070.00635785,  5862.73901075,  3709.39604655,  1604.20734139])
+
+Todo:
+	- paralelise by time - just split into 2 year chuncks eg 20 cores for 40 years
+	- bring subroutines into single file eg *src.py
 """
 import os
 import sys
@@ -49,16 +72,18 @@ import tscale3d_era5_src as t3d
 #start="2014-09-01"
 #end="2016-09-01"
 
-def main(wdir, mode, start, end, member=None):
+def main(wdir, mode, start, end, dataset, member=None):
 
 	
-	#these pathnames are standard:
+	# make these names standard:
 	stationsfile= wdir+'/points.csv'
 	demfile = wdir+'/forcing/ele.nc'
 	surfile=wdir+'/forcing/SURF.nc'
 	plevfile=wdir+ '/forcing/PLEV.nc'
 
-
+	# convert to python indexing and int
+	if member!=None:
+		member =int(member)-1
 
 	if mode=="grid":
 		dem  = nc.Dataset(demfile)
@@ -116,7 +141,11 @@ def main(wdir, mode, start, end, member=None):
 		var='t'
 
 		# station case
-		ds = rc.tscale3dPl( pl=plevfile)
+		if dataset=="HRES":
+			ds = rc.t3d( pl=plevfile)
+		if dataset=="EDA":
+			ds = rc.t3d_eda( pl=plevfile)
+
 		#timesteps = ds.pl.variables['time'][:].size
 		out_xyz_dem, lats, lons, shape, names= ds.demGrid(stations=mystations)
 
@@ -132,7 +161,11 @@ def main(wdir, mode, start, end, member=None):
 		for timestep in range(starti,endi):
 			#print(str(round(float(timestep)/float(timesteps)*100,0))+ "% done")
 			gridT,gridZ,gridLat,gridLon=ds.gridValue(var,timestep)
-			t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
+			if dataset=="HRES":
+				t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
+			if dataset=="EDA":
+				t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem,member)
+
 			t_interp_out = np.dstack((t_interp_out, t_interp))
 			z_interp_out = np.dstack((z_interp_out, z_interp))
 		# drop init blank layer
@@ -145,11 +178,16 @@ def main(wdir, mode, start, end, member=None):
 		#===============================================================================
 		# tscale3d (results and input to radiation routines)
 		#===============================================================================
-		t = t3d.main(wdir, 'point', 't', starti,endi)
-		r = t3d.main(wdir, 'point', 'r', starti,endi)
-		u = t3d.main(wdir, 'point', 'u', starti,endi)
-		v = t3d.main(wdir, 'point', 'v', starti,endi)
-		
+		if dataset=="HRES":
+			t = t3d.main(wdir, 'point', 't', starti,endi, dataset )
+			r = t3d.main(wdir, 'point', 'r', starti,endi,dataset )
+			u = t3d.main(wdir, 'point', 'u', starti,endi,dataset )
+			v = t3d.main(wdir, 'point', 'v', starti,endi,dataset)
+		if dataset=="EDA":
+			t = t3d.main(wdir, 'point', 't', starti,endi, dataset, member)
+			r = t3d.main(wdir, 'point', 'r', starti,endi,dataset, member)
+			u = t3d.main(wdir, 'point', 'u', starti,endi,dataset, member)
+			v = t3d.main(wdir, 'point', 'v', starti,endi,dataset, member)
 		# compute wind speed and direction
 		ws = np.sqrt(u**2+v**2)
 		wd =   (180 / np.pi) * np.arctan(u/v) + np.where(v>0,180,np.where(u>0,360,0))
@@ -159,13 +197,23 @@ def main(wdir, mode, start, end, member=None):
 		#===============================================================================
 		# tscale2d
 		#===============================================================================
-		t2m = t2d.main(wdir, 'point', 't2m', starti,endi)
-		tp = t2d.main(wdir, 'point', 'tp', starti,endi)
-		ssrd = t2d.main(wdir, 'point', 'ssrd', starti,endi)
-		strd = t2d.main(wdir, 'point', 'strd', starti,endi)
-		tisr = t2d.main(wdir, 'point', 'tisr', starti,endi)
-		d2m = t2d.main(wdir, 'point', 'd2m', starti,endi)
-		z = t2d.main(wdir, 'point', 'z', starti,endi) # always true as this is time invariant
+		if dataset=="HRES":
+			t2m = t2d.main(wdir, 'point', 't2m', starti,endi,dataset)
+			tp = t2d.main(wdir, 'point', 'tp', starti,endi,dataset)
+			ssrd = t2d.main(wdir, 'point', 'ssrd', starti,endi,dataset)
+			strd = t2d.main(wdir, 'point', 'strd', starti,endi,dataset)
+			tisr = t2d.main(wdir, 'point', 'tisr', starti,endi,dataset)
+			d2m = t2d.main(wdir, 'point', 'd2m', starti,endi,dataset)
+			z = t2d.main(wdir, 'point', 'z', starti,endi,dataset) # always true as this is time invariant
+		if dataset=="EDA":
+			t2m = t2d.main(wdir, 'point', 't2m', starti,endi,dataset,member)
+			tp = t2d.main(wdir, 'point', 'tp', starti,endi,dataset,member)
+			ssrd = t2d.main(wdir, 'point', 'ssrd', starti,endi,dataset,member)
+			strd = t2d.main(wdir, 'point', 'strd', starti,endi,dataset,member)
+			tisr = t2d.main(wdir, 'point', 'tisr', starti,endi,dataset,member)
+			d2m = t2d.main(wdir, 'point', 'd2m', starti,endi,dataset,member)
+			z = t2d.main(wdir, 'point', 'z', starti,endi,dataset,member) # always true as this is time invariant
+
 		gridEle=z[0,:]/g
 
 		sob = hp.Bunch(t2m=t2m, tp=tp, ssrd=ssrd, strd=strd, tisr=tisr, d2m=d2m, z=z, gridEle=gridEle, dtime=dtime)
@@ -510,7 +558,10 @@ def main(wdir, mode, start, end, member=None):
 		def swin1D(pob,sob,tob, stat, dates, index):
 				# many arrays transposed
 				""" toposcale surface pressure using hypsometric equation - move to own 
-				class """
+				class 
+
+				index: index of station array (numeric)
+				"""
 				g= 9.81
 				R=287.05  # Gas constant for dry air.
 				tz=0 # ERA5 is always utc0, used to compute sunvector
@@ -522,7 +573,7 @@ def main(wdir, mode, start, end, member=None):
 				psf=[]
 				# loop through timesteps
 				#for i in range(starti,endi):
-				for i in range(0,dz.shape[1]):
+				for i in range(0,dates.size):
 					
 					# 	# find overlying layer
 					thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
@@ -707,11 +758,11 @@ def main(wdir, mode, start, end, member=None):
 				"""
 				# init grid stack
 		#init first row
-		xdim=dtime.shape[0]
-		ts_swin = np.zeros((xdim))
-		for i in range(0, mystations.shape[0]):
-			print i
-			ts= swin1D(pob=pob,sob=sob,tob=tob, stat=mystations, dates=dtime, index=i)
+		ntimestamps=dtime.shape[0]
+		ts_swin = np.zeros((ntimestamps))
+		for stationi in range(0, mystations.shape[0]):
+			print stationi
+			ts= swin1D(pob=pob,sob=sob,tob=tob, stat=mystations, dates=dtime, index=stationi)
 			ts_swin=np.column_stack((ts_swin,ts))
 
 		# drop init row
@@ -731,7 +782,7 @@ def main(wdir, mode, start, end, member=None):
 						},index=tob.dtime)
 			df.index.name="datetime"
 
-			fileout=wdir+"/meteo"+str(i)+"_"+start+"_.csv"
+			fileout=wdir+"/meteo"+str(i)+"_"+start+"_"+member+"_.csv"
 			column_order = ['TA', 'RH', 'WS', 'WD', 'LWIN', 'SWIN', 'PRATE']
 			df[column_order].to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 		#logging.info(fileout + " complete")
@@ -888,4 +939,6 @@ if __name__ == '__main__':
 	mode = sys.argv[2]
 	start = sys.argv[3]
 	end=sys.argv[4]
-	main(wdir, mode, start, end)
+	dataset=sys.argv[5]
+	member=sys.argv[6]
+	main(wdir, mode, start, end, dataset, member)

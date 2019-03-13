@@ -1,12 +1,18 @@
 '''
 
 Set of methods to interpolate ERA5 data based on station attributes or high res 
-dem.
+dem. Methods work for both ERA5 (HRES)  and ERA5 ensemble (EDA) products, however 
+only a single memebr can be passed to these functions at a time ie dimensionallity 
+must be reduced to equal HRES data. This is done in tscale3d_era5.py, for example
+
+Classes are defined for HRES (t3d) and EDA (t3d_eda)
 
 Changes required by ERA5:
 
+surVarPoint/Grid:
+	extra dimension required by EDA for members
 fast1D:
-	# reverse arrays to deal with ERA5 ascending order
+	# reverse arrays to deal with ERA5 ascending order (only HRES, EDA is descending)
         t_interp=t_interp[::-1]
         z_interp=z_interp[::-1]
 gridValue:
@@ -145,9 +151,9 @@ import glob as gl
 
 
 
-class tscale3dPl(object):
+class t3d(object):
     """
-    Return object for downscaling that has methods for interpolationg
+    Return object for ERA5 (HRES) that has methods for interpolationg
     upper-air temperature and surface influences at surface level
     based on disaggregating coarse-grid reanalysis and dem.
     
@@ -155,12 +161,7 @@ class tscale3dPl(object):
         dem: A required fine-scale dem in netcdf format
     
     Example:
-        dem  = 'example_alps.nc'
-        geop = 'alps_geop.nc'
-        sa   = 'alps_sa_79_15.nc'
-        pl   = 'alps_pl_79_15.nc'
-        
-        downscaling = downscaling(dem, geop, sa, pl)
+
         
     """
     
@@ -255,7 +256,7 @@ class tscale3dPl(object):
 
 
 
-    def surTaGrid(self, timestep, lats, lons,var):
+    def surVarGrid(self, timestep, lats, lons,var):
         """Return interpolated 2-metre temperature.
         
         Args:
@@ -283,7 +284,7 @@ class tscale3dPl(object):
 
         return t_sg
 
-    def surTaPoint(self, timestep, stations,var):
+    def surVarPoint(self, timestep, stations,var):
         """2D interpolated of surface firelds.
         
         Args:
@@ -411,9 +412,12 @@ class tscale3dPl(object):
             pl_obs = fast1d(t_interp, z_interp, out_xyz_dem)
         """
     	
-	# reverse arrays to deal with ERA5 ascending order
-        t_interp=t_interp[::-1]
-        z_interp=z_interp[::-1]
+	
+	# reverse arrays to deal with ERA5 HRES ascending order
+	t_interp=t_interp[::-1]
+	z_interp=z_interp[::-1]
+
+
 
         ele = out_xyz[:,2]
         size = np.arange(out_xyz.shape[0])
@@ -431,7 +435,209 @@ class tscale3dPl(object):
              
         return dG
     
-          
+
+class t3d_eda(t3d):
+    """
+    Return object for ERA5 (EDA) that has methods for interpolationg
+    upper-air temperature and surface influences at surface level
+    based on disaggregating coarse-grid reanalysis and dem.
+    
+    Args:
+        dem: A required fine-scale dem in netcdf format
+    
+    Example:
+
+      
         
+    """
+    
+   
+
+
+    def surVarGrid(self, timestep, lats, lons,var,member):
+        """Return interpolated 2-metre temperature.
+        
+        Args:
+            timestep: Timestep of interpolation as an interger (index)
+            lats: latitudes of high re dem
+	    lons: longitudes of high res dem
+
+  	Class specific changes:
+		in class t3d_eda dimension member added
+      
+        Returns:
+            t_sg: 2D interpolation of ERA surface field to high res dem 
+            
+        Example:
+            surTa = downscaling.surTaGrid(0, lats,lons, 't2m')
+        """
+            
+        in_v = self.sa[var][timestep,member,:,:]#geopotential
+        lat = self.sa.variables['latitude'][:]
+        lat=lat[::-1]
+        lon = self.sa.variables['longitude'][:]
+
+        f_sa = RegularGridInterpolator((lat,lon), in_v, 'linear', bounds_error=False)
+        out_xy = np.array([lats, lons]).T
+
+        t_sg = f_sa(out_xy) 
+
+        return t_sg
+
+    def surVarPoint(self, timestep, stations,var,member):
+        """2D interpolated of surface firelds.
+        
+        Args:
+            timestep: Timestep of interpolation as an interger (index)
+	    stations: pandas dataframe of input station csv file (id,lon,lat,ele)
+            var: surface variarble eg "ssrd"
+	
+	Class specific changes:
+		in class t3d_eda dimension member added
+        
+        Returns:
+            t_sp: 2D interpolation of ERA surface field to stations points
+            
+        Example:
+            surTa = ds.surTaPoint(0, mystations, 't2m')
+        """
+        #extra dim    
+        in_v = self.sa[var][timestep,member,:, :]#geopotential
+        lat = self.sa.variables['latitude'][:]
+        lat=lat[::-1]
+        lon = self.sa.variables['longitude'][:]
+
+        f_sa = RegularGridInterpolator((lat,lon), in_v, 'linear', bounds_error=False)
+
+	stations = stations.values
+        lats = stations[:,2] #[s['lat'] for s in stations]
+        lons = stations[:,1] #[s['lon'] for s in stations]
+        out_xy = np.asarray([lats,lons]).T
+
+        t_sp = f_sa(out_xy) 
+
+        return t_sp
+
+
+   
+    def inLevelInterp(self,gridT, gridZ, gridLat, gridLon, out_xyz,member):
+        """
+        This is a 2D interpolatation, and returns interpolated temperatures
+        of different pressure levels for ERA5 EDA.
+        
+        Args:
+            gridT: Grid temperatures of different pressure levels. Retruned 
+                temperature are formated in [level, lat, lon]
+            gridZ: Grid geopotential of different pressure levels. Retruned 
+                temperature are formated in [level, lat, lon]
+            gridLat: Grid longitude of pressure level variables
+            gridLon: Grid latitude of pressure level variables
+            out_xyz: Given sites, which will be interpolated.
+            member: ensemble member
+        Returns:
+            t_interp: Interpolated temperatre of different pressure levels. 
+                The returned values are fomrated in [level, lat, lon]
+            z_interp: Interpolated geopotential of different pressure levels. 
+                The returned values are fomrated in [level, lat, lon]
+        
+        Examples:
+            downscaling = downscaling(dem, geop, sa, pl)
+
+            out_xyz_dem, lats, lons, shape = downscaling.demGrid()
+            out_xyz_sur = downscaling.surGrid(lats, lons, None)
+
+            #interpolate 2-meter temperature
+            surTa = downscaling.surTa(0, out_xyz_sur)
+            #original ERA-I values
+            gridT,gridZ,gridLat,gridLon = downscaling.gridValue(variable,0)
+            #interpolate temperatures and geopotential of different 
+            pressure levels.
+
+            t_interp, z_interp = downscaling.inLevelInterp(gridT,gridZ,
+                                                           gridLat,gridLon,
+                                                           out_xyz_dem)
+        """
+        
+        shape = gridT.shape
+        #create array to hold interpolation resultes
+        t_interp = np.zeros([shape[1], len(out_xyz)])
+        z_interp = np.zeros([shape[1], len(out_xyz)])
+
+        #temperatue and elevation interpolation 2d
+        for i in range(shape[1]):
+            ft = RegularGridInterpolator((gridLat,gridLon), 
+                                          gridT[member,i,:,:], 'linear', bounds_error=False)
+            fz = RegularGridInterpolator((gridLat,gridLon), 
+                                          gridZ[member, i,:,:], 'linear', bounds_error=False)
+            t_interp[i,:] = ft(out_xyz[:,:2])#temperature
+            z_interp[i,:] = fz(out_xyz[:,:2])#elevation
+
+        #t_interp -= 273.15
+
+        return t_interp[::-1,:], z_interp[::-1,:]
+
+    def fast1d(self, t_interp, z_interp, out_xyz):
+        """This is a 1D interpoation. The function return interpolated 
+        upper air temperature at the given sites by 
+        interpolation between different pressure levels.
+        
+        Args:
+            t_interp: Interpolated temperatre of different pressure levels. 
+                The returned values are fomrated in [level, lat, lon]
+            z_interp: Interpolated geopotential of different pressure levels. 
+                The returned values are fomrated in [level, lat, lon]
+            out_xyz: Given sites with elevation, which will be interpolated.
+            
+	Class specific changes:
+		in class t3d_eda t_interp and z_interp are NOT reversed
+
+        Returns:
+            dG:upper-air temperature at given sites
+                
+        Example: 
+            downscaling = downscaling(dem, geop, sa, pl)
+
+            out_xyz_dem, lats, lons, shape = downscaling.demGrid()
+            out_xyz_sur = downscaling.surGrid(lats, lons, None)
+
+            
+            surTa = downscaling.surTa(0, out_xyz_sur)
+            #original ERA-I values
+            gridT,gridZ,gridLat,gridLon = downscaling.gridValue(variable,0)
+            #interpolate temperatures and geopotential of different 
+            pressure levels.
+
+            t_interp, z_interp = downscaling.inLevelInterp(gridT,gridZ,
+                                                           gridLat,gridLon,
+                                                           out_xyz_dem)
+            
+            #upper air temperature at the coarse and fine scale of elevation
+            pl_sa = fast1d(t_interp, z_interp, out_xyz_sur)
+            pl_obs = fast1d(t_interp, z_interp, out_xyz_dem)
+        """
+    	
+
+	# not reversed in EDA
+	t_interp=t_interp
+	z_interp=z_interp
+
+        ele = out_xyz[:,2]
+        size = np.arange(out_xyz.shape[0])
+        n = [bisect_left(z_interp[:,i], ele[i]) for i in size]
+        n = [x+1 if x == 0 else x for x in n]
+        
+        lowN = [l-1 for l in n]
+        
+        upperT = t_interp[n,size]
+        upperZ = z_interp[n,size]
+        dG  = upperT-t_interp[lowN,size]#<0
+        dG /= upperZ-z_interp[lowN,size]#<0
+        dG *= out_xyz[:,2] - upperZ#>0
+        dG += upperT
+             
+        return dG
+
+
+
 
 
