@@ -73,7 +73,12 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 
 	#Set up Log
-	logfile=wdir+"/logfile"+start
+	# make out path for results
+	logs = wdir+"/logs/"
+	if not os.path.exists(logs):
+		os.makedirs(logs)
+
+	logfile=logs+"/logfile"+start
 	if os.path.isfile(logfile) == True:
 		os.remove(logfile)
 	logging.basicConfig(level=logging.DEBUG, filename=logfile, filemode="a+",format="%(asctime)-15s %(levelname)-8s %(message)s")
