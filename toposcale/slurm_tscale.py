@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 import os
 import sys
@@ -10,6 +11,7 @@ import sys
 import tscale3D
 
 num_cores = int(sys.argv[1]) # Must input number of cores
+print(num_cores)
 wd=sys.argv[2]
 startDate=sys.argv[3]
 endDate=sys.argv[4]
@@ -38,12 +40,12 @@ njobs = len(a)-1
 
 
 
-
+print(num_cores)
 print("running tscale jobs: "+str(njobs))
 
 
 # run all memeber = 1 first
-Parallel(n_jobs=int(num_cores))(delayed(tscale3D.main)(wdir=wd, mode='points', start=datelist[i], end=datelist[i+1]) for i in range(0,njobs))
+Parallel(n_jobs=int(njobs))(delayed(tscale3D.main)(wdir=wd, mode='points', start=datelist[i], end=datelist[i+1]) for i in range(0,njobs))
 
 print("All cluster jobs complete!")
 
