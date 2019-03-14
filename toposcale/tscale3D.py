@@ -79,10 +79,10 @@ def main(wdir, mode, start, end, dataset, member=None):
 		os.makedirs(logs)
 
 	logfile=logs+"/logfile"+start
-	if os.path.isfile(logfile) == True:
-		os.remove(logfile)
+	#if os.path.isfile(logfile) == True:
+		#os.remove(logfile)
 	logging.basicConfig(level=logging.DEBUG, filename=logfile, filemode="a+",format="%(asctime)-15s %(levelname)-8s %(message)s")
-
+	logging.info("Running member"+ str(member))
 	# start timer
 	start_time = time.time()
 
@@ -119,7 +119,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 
 
-
+	
 	logging.info("Running "+ str(timesteps)+ " timesteps")
 	#===============================================================================
 	# Point stuff
