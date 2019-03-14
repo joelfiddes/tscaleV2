@@ -44,9 +44,11 @@ from os import path, remove
 import numpy as np
 import pandas as pd
 import sys
-from osgeo import gdal
-from osgeo import gdal_array
-from osgeo import osr
+#from osgeo import gdal
+#from osgeo import gdal_array
+#from osgeo import osr
+
+
 ## Test
 #wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
 #var="t"
