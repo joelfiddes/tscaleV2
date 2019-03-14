@@ -36,43 +36,46 @@ from os import path, remove
 import numpy as np
 import pandas as pd
 import sys
-
+from osgeo import gdal
+from osgeo import gdal_array
+from osgeo import osr
+		
 # Global stuff
 #var="v"
 #mode ='grid' #'grid'
 
 # Args
-wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
-var="t2m"
-mode ='points'
-starti=0
-endi=10
-member=1 
-dataset="EDA" 
+#wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
+#var="t2m"
+#mode ='points'
+#starti=0
+#endi=10
+#member=1 
+#dataset="EDA" 
 
-wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
-var="t2m"
-mode ='grid'
-starti=0
-endi=10
-member=1 
-dataset="EDA" 
+#wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
+#var="t2m"
+#mode ='grid'
+#starti=0
+#endi=10
+#member=1 
+#dataset="EDA" 
 
-wdir='/home/joel/sim/cci_perm/cci_test/'
-var="t2m"
-mode ='points'
-starti=0
-endi=10
-member=1 
-dataset="HRES" 
+#wdir='/home/joel/sim/cci_perm/cci_test/'
+#var="t2m"
+#mode ='points'
+#starti=0
+#endi=10
+#member=1 
+#dataset="HRES" 
 
-wdir='/home/joel/sim/cci_perm/cci_test/'
-var="t2m"
-mode ='grid'
-starti=0
-endi=10
-member=1 
-dataset="HRES"
+#wdir='/home/joel/sim/cci_perm/cci_test/'
+#var="t2m"
+#mode ='grid'
+#starti=0
+#endi=10
+#member=1 
+#dataset="HRES"
 
 
 def main(wdir, mode, var, starti, endi, dataset, member=None):
@@ -110,7 +113,7 @@ def main(wdir, mode, var, starti, endi, dataset, member=None):
 
 
 		for timestep in range(starti, endi):
-			print(str(round(float(timestep)/float(endi-starti)*100,0))+ "% done")
+			#print(str(round(float(timestep)/float(endi-starti)*100,0))+ "% done")
 			if dataset=="HRES":
                        		sa_t = ds.surVarPoint(timestep, mystations, var)
 			if dataset=="EDA":
@@ -151,7 +154,7 @@ def main(wdir, mode, var, starti, endi, dataset, member=None):
 		sa_out = np.zeros((xdim,ydim))
 	
 		for timestep in range(starti, endi):
-			print(str(round(float(timestep)/float(timesteps)*100,0))+ "% done")
+			#print(str(round(float(timestep)/float(timesteps)*100,0))+ "% done")
 
 			if dataset=="HRES":
                        		sa_t = ds.surVarGrid(timestep, lats, lons, var)
@@ -176,11 +179,7 @@ def main(wdir, mode, var, starti, endi, dataset, member=None):
 		writegrid='False'
 		if writegrid=="True":
 		# https://gis.stackexchange.com/questions/37238/writing-numpy-array-to-raster-file
-			import numpy as np
-			from osgeo import gdal
-			from osgeo import gdal_array
-			from osgeo import osr
-			import matplotlib.pylab as plt
+
 
 			array = l    
 			lat = out_xyz_dem[:,0].reshape(l.shape)

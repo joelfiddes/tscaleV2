@@ -44,7 +44,9 @@ from os import path, remove
 import numpy as np
 import pandas as pd
 import sys
-
+from osgeo import gdal
+from osgeo import gdal_array
+from osgeo import osr
 ## Test
 #wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
 #var="t"
@@ -54,13 +56,13 @@ import sys
 #member=1 
 #dataset="EDA" 
 
-wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
-var="t"
-mode ='grid'
-starti=0
-endi=10
-member=1 
-dataset="EDA" 
+#wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
+#var="t"
+#mode ='grid'
+#starti=0
+#endi=10
+#member=1 
+#dataset="EDA" 
 
 #wdir='/home/joel/sim/cci_perm/cci_test/'
 #var="t"
@@ -108,10 +110,10 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 
 		# init grid stack
 		xdim=shape[0]
-		sa_vec = np.zeros((xdim))
+		sa_vec = np.zeros(xdim)
 
 		for timestep in range(starti, endi):
-			print(str(round(float(timestep)/float(endi-starti)*100,0))+ "% done")
+			#print(str(round(float(timestep)/float(endi-starti)*100,0))+ "% done")
 			gridT,gridZ,gridLat,gridLon=ds.gridValue(var,timestep)
 
 			if dataset=="HRES":
@@ -157,7 +159,7 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 		sa_out = np.zeros((xdim,ydim))
 
 		for timestep in range(starti, endi):
-			print(str(round(float(timestep)/float(endi-starti)*100,0))+ "% done")
+			#print(str(round(float(timestep)/float(endi-starti)*100,0))+ "% done")
 			gridT,gridZ,gridLat,gridLon=ds.gridValue(var,timestep)
 
 			if dataset=="HRES":
@@ -185,11 +187,9 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 		writegrid='False'
 		if writegrid=="True":
 		# https://gis.stackexchange.com/questions/37238/writing-numpy-array-to-raster-file
-			import numpy as np
-			from osgeo import gdal
-			from osgeo import gdal_array
-			from osgeo import osr
-			import matplotlib.pylab as plt
+			
+
+			
 
 			array = l    
 			lat = out_xyz_dem[:,0].reshape(l.shape)
