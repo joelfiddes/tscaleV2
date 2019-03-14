@@ -2,12 +2,10 @@
 3D toposcale of surface and pressurelevel fields including surface effects. Can be used to produce grids or point timeseries
 at specific locations with lon,lat. Not used by TopoSUB (1D interp).
 
-
-
- non-linear increase in unit time per step.
-> y=c(0.55,5.85,13.25,35.01, 87.94)
-> x=c(216,2160,4368,8784, 17544)
-> plot(x,y)
+Non-linear increase in unit time per step. time/step increase with more steps, Why?
+y=c(0.55,5.85,13.25,35.01, 87.94)
+x=c(216,2160,4368,8784, 17544)
+plot(x,y, ylab="T in mins", xlab="timesteps")
 
 
 calls: tscale2d_era5_src.py and tscale3d_era5_src.py to perform interpolations.
@@ -75,7 +73,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 
 	#Set up Log
-	logfile=wdir+"/logfile"
+	logfile=wdir+"/logfile"+start
 	if os.path.isfile(logfile) == True:
 		os.remove(logfile)
 	logging.basicConfig(level=logging.DEBUG, filename=logfile, filemode="a+",format="%(asctime)-15s %(levelname)-8s %(message)s")

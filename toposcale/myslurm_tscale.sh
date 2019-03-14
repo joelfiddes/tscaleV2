@@ -10,6 +10,15 @@
 #SBATCH -t 2:00:00  # time requested in hour:minute:second
 
 
-python slurm_tscale.py 39 /home/caduff/sim/tscale 1979-09-01 2018-09-01
+python slurm_tscale.py 39 /home/caduff/sim/tscale 1979-09-01 2018-09-01 EDA 1
 
+#Args
+# 39 - number of cores/jobs
+# wdir
+# start date
+# end date
+# optional ensemble memeber number
+
+
+# run as: sbatch -J "tscale"  myslurm_tscale.sh
 

@@ -321,6 +321,9 @@ class t3d(object):
         """
         This is a 2D interpolatation, and returns interpolated temperatures
         of different pressure levels.
+	
+	Interpolated domain is smaller than original domain - original (ERA5) domain
+	should be one cell larger than expected point or grid domain.
         
         Args:
             gridT: Grid temperatures of different pressure levels. Retruned 

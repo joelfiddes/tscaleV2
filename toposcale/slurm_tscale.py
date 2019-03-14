@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 import os
 import sys
@@ -15,6 +14,8 @@ print(num_cores)
 wd=sys.argv[2]
 startDate=sys.argv[3]
 endDate=sys.argv[4]
+dataset=sys.argv[5]
+mymember=sys.argv[6]
 
 # args to set
 
@@ -22,6 +23,7 @@ endDate=sys.argv[4]
 # get years
 sy=startDate.split("-")[0]
 ey = endDate.split("-")[0]
+
 
 # get month
 sm = startDate.split("-")[1]
@@ -45,7 +47,11 @@ print("running tscale jobs: "+str(njobs))
 
 
 # run all memeber = 1 first
-Parallel(n_jobs=int(njobs))(delayed(tscale3D.main)(wdir=wd, mode='points', start=datelist[i], end=datelist[i+1]) for i in range(0,njobs))
+if dataset=="EDA":
+        Parallel(n_jobs=int(njobs))(delayed(tscale3D.main)(wdir=wd, mode='points', start=datelist[i], end=datelist[i+1], dataset=dataset, member=mymember) for i in range(0,num_cores))
+if dataset=="HRES":
+        Parallel(n_jobs=int(njobs))(delayed(tscale3D.main)(wdir=wd, mode='points', start=datelist[i], end=datelist[i+1], dataset=dataset) for i in range(0,njobs))
 
 print("All cluster jobs complete!")
+
 
