@@ -75,7 +75,7 @@ member=1
 dataset="HRES"
 
 
-def main(wdir, mode, var, starti, endi, dataset, member):
+def main(wdir, mode, var, starti, endi, dataset, member=None):
 
 	start_time = time.time()
 	sa   =  wdir+'/forcing/SURF.nc' #dataImport.plf_get()    # pressure level air temperature
@@ -172,6 +172,33 @@ def main(wdir, mode, var, starti, endi, dataset, member):
 			import myplot
 			l = a.mean(axis=(2))
 			myplot.main(l)
+
+		writegrid='False'
+		if writegrid=="True":
+		# https://gis.stackexchange.com/questions/37238/writing-numpy-array-to-raster-file
+			import numpy as np
+			from osgeo import gdal
+			from osgeo import gdal_array
+			from osgeo import osr
+			import matplotlib.pylab as plt
+
+			array = l    
+			lat = out_xyz_dem[:,0].reshape(l.shape)
+			lon = out_xyz_dem[:,1].reshape(l.shape)
+
+			xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+			nrows,ncols = np.shape(array)
+			xres = (xmax-xmin)/float(ncols)
+			yres = (ymax-ymin)/float(nrows)
+			geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+			output_raster = gdal.GetDriverByName('GTiff').Create('myraster.tif',ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
+			output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
+			output_raster.SetGeoTransform(geotransform)# Specify its coordinates
+			srs = osr.SpatialReference()# Establish its coordinate encoding
+			srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
+			output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
+			output_raster = None
 
 		return a
 #===============================================================================

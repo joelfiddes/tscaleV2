@@ -80,6 +80,11 @@ def main(wdir, mode, start, end, dataset, member=None):
 	demfile = wdir+'/forcing/ele.nc'
 	surfile=wdir+'/forcing/SURF.nc'
 	plevfile=wdir+ '/forcing/PLEV.nc'
+	
+	# make out path for results
+	out = wdir+"/out/"
+	if not os.path.exists(out):
+		os.makedirs(out)
 
 	# convert to python indexing and int
 	if member!=None:
@@ -762,8 +767,20 @@ def main(wdir, mode, start, end, dataset, member=None):
 		ts_swin = np.zeros((ntimestamps))
 		for stationi in range(0, mystations.shape[0]):
 			print stationi
-			ts= swin1D(pob=pob,sob=sob,tob=tob, stat=mystations, dates=dtime, index=stationi)
-			ts_swin=np.column_stack((ts_swin,ts))
+
+			'''here we test for array full of NaNs due to points being 
+			outside of grid. The NaN arrays are created in the 
+			interpolation but only break the code here. If array is
+ 			all NaN then we just fill that stations slot 
+			with NaN'''
+			testNans = np.count_nonzero(~np.isnan(pob.z[:,stationi,:]))
+			if testNans != 0:
+				ts= swin1D(pob=pob,sob=sob,tob=tob, stat=mystations, dates=dtime, index=stationi)
+				ts_swin=np.column_stack((ts_swin,ts))
+			if testNans == 0:
+				nan_vec = np.empty(ntimestamps) * np.nan
+				ts_swin=np.column_stack((ts_swin,nan_vec))
+			
 
 		# drop init row
 		tob.swin =ts_swin[:,1:]
@@ -781,8 +798,10 @@ def main(wdir, mode, start, end, dataset, member=None):
 						"PRATE":tob.prate[i,:]
 						},index=tob.dtime)
 			df.index.name="datetime"
-
-			fileout=wdir+"/meteo"+str(i)+"_"+start+"_"+member+"_.csv"
+			if member!=None:
+				fileout=wdir+"/out/meteo"+str(i)+"_"+start+"_"+str(member+1)+"_.csv" # convert member index back to 1-10
+			if member==None:
+				fileout=wdir+"/out/meteo"+str(i)+"_"+start+".csv" # convert member index back to 1-10
 			column_order = ['TA', 'RH', 'WS', 'WD', 'LWIN', 'SWIN', 'PRATE']
 			df[column_order].to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 		#logging.info(fileout + " complete")

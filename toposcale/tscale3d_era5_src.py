@@ -45,14 +45,14 @@ import numpy as np
 import pandas as pd
 import sys
 
-# Test
-wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
-var="t"
-mode ='points'
-starti=0
-endi=10
-member=1 
-dataset="EDA" 
+## Test
+#wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
+#var="t"
+#mode ='points'
+#starti=0
+#endi=10
+#member=1 
+#dataset="EDA" 
 
 wdir='/home/joel/sim/cci_perm/cci_test_ensemble/'
 var="t"
@@ -62,21 +62,21 @@ endi=10
 member=1 
 dataset="EDA" 
 
-wdir='/home/joel/sim/cci_perm/cci_test/'
-var="t"
-mode ='points'
-starti=0
-endi=10
-member=1 
-dataset="HRES" 
+#wdir='/home/joel/sim/cci_perm/cci_test/'
+#var="t"
+#mode ='points'
+#starti=0
+#endi=10
+#member=1 
+#dataset="HRES" 
 
-wdir='/home/joel/sim/cci_perm/cci_test/'
-var="t"
-mode ='grid'
-starti=0
-endi=10
-member=1 
-dataset="HRES" 
+#wdir='/home/joel/sim/cci_perm/cci_test/'
+#var="t"
+#mode ='grid'
+#starti=0
+#endi=10
+#member=1 
+#dataset="HRES" 
 
 def main(wdir, mode, var, starti, endi,dataset, member=None):
 	start_time = time.time()
@@ -182,6 +182,34 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 			l = a.mean(axis=(2))
 			myplot.main(l)
 
+		writegrid='False'
+		if writegrid=="True":
+		# https://gis.stackexchange.com/questions/37238/writing-numpy-array-to-raster-file
+			import numpy as np
+			from osgeo import gdal
+			from osgeo import gdal_array
+			from osgeo import osr
+			import matplotlib.pylab as plt
+
+			array = l    
+			lat = out_xyz_dem[:,0].reshape(l.shape)
+			lon = out_xyz_dem[:,1].reshape(l.shape)
+
+			xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+			nrows,ncols = np.shape(array)
+			xres = (xmax-xmin)/float(ncols)
+			yres = (ymax-ymin)/float(nrows)
+			geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+			output_raster = gdal.GetDriverByName('GTiff').Create('myraster.tif',ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
+			output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
+			output_raster.SetGeoTransform(geotransform)# Specify its coordinates
+			srs = osr.SpatialReference()# Establish its coordinate encoding
+			srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
+			output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
+			output_raster = None
+
+	
 		return a
 #===============================================================================
 #	Calling Main
@@ -196,4 +224,7 @@ if __name__ == '__main__':
 	dataset=sys.argv[6]
 	member=sys.argv[7]
 	main(wdir, mode,var, starti, endi, dataset, member)
+
+
+
 
