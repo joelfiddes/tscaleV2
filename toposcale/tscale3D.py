@@ -110,7 +110,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 	endi = np.asscalar(np.where(dtime==end+' 00:00:00')[0])
 	dtime = dtime[starti:endi,]
 	timesteps=len(dtime)
-	logging.info(timesteps)
+
 	# constants
 	g=9.81
 
@@ -946,7 +946,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 		ts_lwin = lwin(gsob,gtob)
 
 	logging.info("Toposcale complete!")
-	logging.info(" %f minutes for setup" % round((time.time()/60 - start_time/60),2) )
+	logging.info("%f minutes" % round((time.time()/60 - start_time/60),2) )
 
 #===============================================================================
 #	Calling Main
