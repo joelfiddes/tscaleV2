@@ -9,9 +9,11 @@
 #SBATCH -e errfile  # send stderr to errfile
 #SBATCH -t 2:00:00  # time requested in hour:minute:second
 
-
-python slurm_tscale.py 39 /home/caduff/sim/tscale 1979-09-01 2018-09-01 EDA 1
-
+for i in {1..10}
+do
+echo "computing member" $i
+python slurm_tscale.py 39 /home/caduff/sim/tscale 1979-09-01 2018-09-01 EDA $i
+done
 #Args
 # 39 - number of cores/jobs
 # wdir
