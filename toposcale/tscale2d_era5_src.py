@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 
 """tscale2d_era5.py
 

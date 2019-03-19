@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 
 """tscale3d_era5_EDA.py
 
