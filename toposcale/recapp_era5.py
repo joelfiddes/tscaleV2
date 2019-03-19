@@ -307,7 +307,7 @@ class t3d(object):
 
         f_sa = RegularGridInterpolator((lat,lon), in_v, 'linear', bounds_error=False)
 
-    stations = stations.values
+        stations = stations.values
         lats = stations[:,2] #[s['lat'] for s in stations]
         lons = stations[:,1] #[s['lon'] for s in stations]
         out_xy = np.asarray([lats,lons]).T
