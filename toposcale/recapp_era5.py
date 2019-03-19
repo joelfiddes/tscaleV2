@@ -167,11 +167,11 @@ class t3d(object):
     
     def __init__(self, pl=None,sa=None, dem = None):
         self.g    = 9.80665 #Gravitational acceleration [m/s2]
-     	
+
         if not (pl is None):
             self.pl   = nc.Dataset(pl)
         if not (sa is None):
-	    self.sa   = nc.Dataset(sa)
+            self.sa   = nc.Dataset(sa)
         if not (dem is None):
             self.dem  = nc.Dataset(dem)
         
