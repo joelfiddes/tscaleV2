@@ -10,16 +10,16 @@ Classes are defined for HRES (t3d) and EDA (t3d_eda)
 Changes required by ERA5:
 
 surVarPoint/Grid:
-	extra dimension required by EDA for members
+    extra dimension required by EDA for members
 fast1D:
-	# reverse arrays to deal with ERA5 ascending order (only HRES, EDA is descending)
+    # reverse arrays to deal with ERA5 ascending order (only HRES, EDA is descending)
         t_interp=t_interp[::-1]
         z_interp=z_interp[::-1]
 gridValue:
- 	#reverse latitude
-	gridLat = gridLat[::-1]
+     #reverse latitude
+    gridLat = gridLat[::-1]
 General:
-	naming in netcdf "lon/lat" (erai) ->"longitude/latitude" (era5)
+    naming in netcdf "lon/lat" (erai) ->"longitude/latitude" (era5)
 
 Methods adapted from REDCAPP available at: https://github.com/geocryology/REDCAPP
 '''
@@ -248,7 +248,7 @@ class t3d(object):
         #x and y
         
         gridLat = self.pl['latitude'][:]
-	gridLat = gridLat[::-1] # reverse to deal with ERA5 order
+        gridLat = gridLat[::-1] # reverse to deal with ERA5 order
         gridLon = self.pl['longitude'][:]
         
 
@@ -262,7 +262,7 @@ class t3d(object):
         Args:
             timestep: Timestep of interpolation as an interger (index)
             lats: latitudes of high re dem
-	    lons: longitudes of high res dem
+        lons: longitudes of high res dem
 
         
         Returns:
@@ -289,7 +289,7 @@ class t3d(object):
         
         Args:
             timestep: Timestep of interpolation as an interger (index)
-	    stations: pandas dataframe of input station csv file (id,lon,lat,ele)
+        stations: pandas dataframe of input station csv file (id,lon,lat,ele)
             var: surface variarble eg "ssrd"
 
         
@@ -307,7 +307,7 @@ class t3d(object):
 
         f_sa = RegularGridInterpolator((lat,lon), in_v, 'linear', bounds_error=False)
 
-	stations = stations.values
+    stations = stations.values
         lats = stations[:,2] #[s['lat'] for s in stations]
         lons = stations[:,1] #[s['lon'] for s in stations]
         out_xy = np.asarray([lats,lons]).T
@@ -321,9 +321,9 @@ class t3d(object):
         """
         This is a 2D interpolatation, and returns interpolated temperatures
         of different pressure levels.
-	
-	Interpolated domain is smaller than original domain - original (ERA5) domain
-	should be one cell larger than expected point or grid domain.
+    
+    Interpolated domain is smaller than original domain - original (ERA5) domain
+    should be one cell larger than expected point or grid domain.
         
         Args:
             gridT: Grid temperatures of different pressure levels. Retruned 
@@ -414,11 +414,11 @@ class t3d(object):
             pl_sa = fast1d(t_interp, z_interp, out_xyz_sur)
             pl_obs = fast1d(t_interp, z_interp, out_xyz_dem)
         """
-    	
-	
-	# reverse arrays to deal with ERA5 HRES ascending order
-	t_interp=t_interp[::-1]
-	z_interp=z_interp[::-1]
+        
+    
+    # reverse arrays to deal with ERA5 HRES ascending order
+        t_interp=t_interp[::-1]
+        z_interp=z_interp[::-1]
 
 
 
@@ -463,10 +463,10 @@ class t3d_eda(t3d):
         Args:
             timestep: Timestep of interpolation as an interger (index)
             lats: latitudes of high re dem
-	    lons: longitudes of high res dem
+        lons: longitudes of high res dem
 
-  	Class specific changes:
-		in class t3d_eda dimension member added
+      Class specific changes:
+        in class t3d_eda dimension member added
       
         Returns:
             t_sg: 2D interpolation of ERA surface field to high res dem 
@@ -492,11 +492,11 @@ class t3d_eda(t3d):
         
         Args:
             timestep: Timestep of interpolation as an interger (index)
-	    stations: pandas dataframe of input station csv file (id,lon,lat,ele)
+        stations: pandas dataframe of input station csv file (id,lon,lat,ele)
             var: surface variarble eg "ssrd"
-	
-	Class specific changes:
-		in class t3d_eda dimension member added
+    
+        Class specific changes:
+        in class t3d_eda dimension member added
         
         Returns:
             t_sp: 2D interpolation of ERA surface field to stations points
@@ -512,7 +512,7 @@ class t3d_eda(t3d):
 
         f_sa = RegularGridInterpolator((lat,lon), in_v, 'linear', bounds_error=False)
 
-	stations = stations.values
+        stations = stations.values
         lats = stations[:,2] #[s['lat'] for s in stations]
         lons = stations[:,1] #[s['lon'] for s in stations]
         out_xy = np.asarray([lats,lons]).T
@@ -591,8 +591,8 @@ class t3d_eda(t3d):
                 The returned values are fomrated in [level, lat, lon]
             out_xyz: Given sites with elevation, which will be interpolated.
             
-	Class specific changes:
-		in class t3d_eda t_interp and z_interp are NOT reversed
+    Class specific changes:
+        in class t3d_eda t_interp and z_interp are NOT reversed
 
         Returns:
             dG:upper-air temperature at given sites
@@ -618,11 +618,11 @@ class t3d_eda(t3d):
             pl_sa = fast1d(t_interp, z_interp, out_xyz_sur)
             pl_obs = fast1d(t_interp, z_interp, out_xyz_dem)
         """
-    	
+        
 
-	# not reversed in EDA
-	t_interp=t_interp
-	z_interp=z_interp
+        # not reversed in EDA
+        t_interp=t_interp
+        z_interp=z_interp
 
         ele = out_xyz[:,2]
         size = np.arange(out_xyz.shape[0])
