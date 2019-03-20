@@ -99,7 +99,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 		os.makedirs(out)
 
 	# convert to python indexing and int
-	if member!=None:
+	if dataset=='EDA':
 		member =int(member)-1
 
 	if mode=="grid":
@@ -799,9 +799,9 @@ def main(wdir, mode, start, end, dataset, member=None):
 						"PRATE":tob.prate[i,:]
 						},index=tob.dtime)
 			df.index.name="datetime"
-			if member!=None:
+			if dataset=='EDA':
 				fileout=wdir+"/out/meteo"+str(i)+"_"+start+"_"+str(member+1)+"_.csv" # convert member index back to 1-10
-			if member==None:
+			if dataset=='HRES':
 				fileout=wdir+"/out/meteo"+str(i)+"_"+start+".csv" # convert member index back to 1-10
 			column_order = ['TA', 'RH', 'WS', 'WD', 'LWIN', 'SWIN', 'PRATE']
 			df[column_order].to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
