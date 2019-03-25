@@ -453,7 +453,40 @@ class t3d_eda(t3d):
       
         
     """
-    
+    def gridValue(self, variable, timestep):
+        """
+        Return original grid temperatures and geopotential of differnet
+        pressure levels. The function are called by inLevelInterp() to
+        get the input ERA-Interim values.
+        
+        Args: 
+            variable: Given interpolated climate variable
+            timestep: Time need to be interpolated. Time is in interger (e.g.
+            0, 1, 2)
+            
+        Returns:
+            gridT: Grid temperatures of different pressure levels. Retruned 
+            temperature are formated in [level, lat, lon]
+            gridZ: Grid geopotential of different pressure levels. Retruned 
+            temperature are formated in [level, lat, lon]
+            gridLon: Grid longitude of pressure level variables
+            gridLat: Grid latitude of pressure level variables
+        
+        Example:
+            gridT,gridZ,gridLat,gridLon=downscaling.gridValue('Temperature',0)
+            
+        """
+        
+        gridT = self.pl.variables[variable][timestep,:,:,:,:]
+        gridZ = self.pl.variables['z'][timestep,:,:,:,:]
+        #x and y
+        
+        gridLat = self.pl['latitude'][:]
+        gridLat = gridLat[::-1] # reverse to deal with ERA5 order
+        gridLon = self.pl['longitude'][:]
+        
+
+        return gridT,gridZ,gridLat,gridLon  
    
 
 
@@ -567,6 +600,7 @@ class t3d_eda(t3d):
         z_interp = np.zeros([shape[1], len(out_xyz)])
 
         #temperatue and elevation interpolation 2d
+        # loop through pressure levels
         for i in range(shape[1]):
             ft = RegularGridInterpolator((gridLat,gridLon), 
                                           gridT[member,i,:,:], 'linear', bounds_error=False)
@@ -623,6 +657,8 @@ class t3d_eda(t3d):
         # not reversed in EDA
         t_interp=t_interp
         z_interp=z_interp
+        #t_interp=t_interp[::-1,]
+        #z_interp=z_interp[::-1,]
 
         ele = out_xyz[:,2]
         size = np.arange(out_xyz.shape[0])

@@ -89,7 +89,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 	# make these names standard:
 	stationsfile= wdir+'/points.csv'
-	demfile = wdir+'/forcing/ele.nc'
+	demfile = wdir+'/predictors/ele.nc'
 	surfile=wdir+'/forcing/SURF.nc'
 	plevfile=wdir+ '/forcing/PLEV.nc'
 	
@@ -802,7 +802,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 			if dataset=='EDA':
 				fileout=wdir+"/out/meteo"+str(i)+"_"+start+"_"+str(member+1)+"_.csv" # convert member index back to 1-10
 			if dataset=='HRES':
-				fileout=wdir+"/out/meteo"+str(i)+"_"+start+".csv" # convert member index back to 1-10
+				fileout=wdir+"/out/meteo"+dataset+str(i)+"_"+start+".csv" # convert member index back to 1-10
 			column_order = ['TA', 'RH', 'WS', 'WD', 'LWIN', 'SWIN', 'PRATE']
 			df[column_order].to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 		#logging.info(fileout + " complete")
@@ -818,20 +818,20 @@ def main(wdir, mode, start, end, dataset, member=None):
 		#===============================================================================
 
 		
-		t = t3d.main( wdir, 'grid', 't', starti,endi)
-		r = t3d.main( wdir, 'grid', 'r', starti,endi)
+		t = t3d.main( wdir, 'grid', 't', starti,endi,dataset)
+		r = t3d.main( wdir, 'grid', 'r', starti,endi,dataset)
 		gtob = hp.Bunch(t=t,r=r, dtime=dtime)
 
 		#===============================================================================
 		# tscale2d
 		#===============================================================================
-		t2m = t2d.main( wdir, 'grid', 't2m', starti,endi)
-		tp = t2d.main( wdir, 'grid', 'tp', starti,endi)
-		ssrd = t2d.main( wdir, 'grid', 'ssrd', starti,endi)
-		strd = t2d.main( wdir, 'grid', 'strd', starti,endi)
-		tisr = t2d.main( wdir, 'grid', 'tisr', starti,endi)
-		d2m = t2d.main( wdir, 'grid', 'd2m', starti,endi)
-		z = t2d.main( wdir, 'grid', 'z', starti,endi) # always true as this is time invariant
+		t2m = t2d.main( wdir, 'grid', 't2m', starti,endi,dataset)
+		tp = t2d.main( wdir, 'grid', 'tp', starti,endi,dataset)
+		ssrd = t2d.main( wdir, 'grid', 'ssrd', starti,endi,dataset)
+		strd = t2d.main( wdir, 'grid', 'strd', starti,endi,dataset)
+		tisr = t2d.main( wdir, 'grid', 'tisr', starti,endi,dataset)
+		d2m = t2d.main( wdir, 'grid', 'd2m', starti,endi,dataset)
+		z = t2d.main( wdir, 'grid', 'z', starti,endi,dataset) # always true as this is time invariant
 		gridEle=z[:,:,0]/g
 		gsob = hp.Bunch(t2m=t2m, tp=tp, ssrd=ssrd, strd=strd, tisr=tisr, d2m=d2m, z=z, gridEle=gridEle, dtime=dtime)
 
@@ -873,11 +873,73 @@ def main(wdir, mode, start, end, dataset, member=None):
 			
 			return Pf
 
+		def tp2rate(tp, step):
+			""" convert tp from m/timestep (total accumulation over timestep) to rate in mm/h 
+
+					Args:
+						step: timstep in seconds (era5=3600, ensemble=10800)
+
+					Note: both EDA (ensemble 3h) and HRES (1h) are accumulated over the timestep
+					and therefore treated here the same.
+					https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation
+			"""
+			tp = tp/step*60*60 # convert metres per timestep -> m/hour 
+			pmmhr = tp	*1000 # m/hour-> mm/hour
+			return pmmhr
 
 
 		gsob.pmmhr = tp2rate(tp,3600)
 		grid_prate = precipGrid(dem_ele,gsob)
+		
+		dem  = nc.Dataset(demfile)
+		lon = dem.variables['lon'][:]
+		lat = dem.variables['lat'][:]
+		# These packages problem on cluster
+		from osgeo import gdal
+		from osgeo import gdal_array
+		from osgeo import osr
 
+		for i in range(7, grid_prate.shape[2]):
+
+			myname=wdir+'/out/prate'+str(i)+'.tif'
+			array = grid_prate[::-1,:,i]
+			#lat = out_xyz_dem[:,0].reshape(l.shape)
+			#lon = out_xyz_dem[:,1].reshape(l.shape)
+
+			xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+			nrows,ncols = np.shape(array)
+			xres = (xmax-xmin)/float(ncols)
+			yres = (ymax-ymin)/float(nrows)
+			geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+			output_raster = gdal.GetDriverByName('GTiff').Create(myname,ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
+			output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
+			output_raster.SetGeoTransform(geotransform)# Specify its coordinates
+			srs = osr.SpatialReference()# Establish its coordinate encoding
+			srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
+			output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
+			output_raster = None
+
+		for i in range(0, t.shape[2]):
+
+			myname=wdir+'/out/t'+str(i)+'.tif'
+			array = t[:,:,i]
+			#lat = out_xyz_dem[:,0].reshape(l.shape)
+			#lon = out_xyz_dem[:,1].reshape(l.shape)
+
+			xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+			nrows,ncols = np.shape(array)
+			xres = (xmax-xmin)/float(ncols)
+			yres = (ymax-ymin)/float(nrows)
+			geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+			output_raster = gdal.GetDriverByName('GTiff').Create(myname,ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
+			output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
+			output_raster.SetGeoTransform(geotransform)# Specify its coordinates
+			srs = osr.SpatialReference()# Establish its coordinate encoding
+			srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
+			output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
+			output_raster = None
 		#===============================================================================
 		# Longwave
 		#===============================================================================

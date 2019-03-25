@@ -167,7 +167,7 @@ def main(wdir, mode, var, starti, endi, dataset, member=None):
 		# drop init blank layer
 		a =sa_out[:,:,1:]
 
-		print(" %f minutes for total run" % round((time.time()/60 - start_time/60),2) )
+		print(" %f minutes for run" % round((time.time()/60 - start_time/60),2) )
 
 		# for testing
 		plot='False'

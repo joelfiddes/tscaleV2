@@ -16,10 +16,14 @@ Object description:
 
 Example:
 
-	python  tscale_run.py
-				/home/joel/sim/topomapptest/forcing/
-				/home/joel/sim/topomapptest/sim/g1m1/
-				/home/joel/sim/topomapptest/sim/g1m1/forcing/
+					cmd = [
+				"python",  
+				tscale_root+"/tscaleV2/toposcale/tscale_run_EDA.py",
+				wd + "/forcing/", 
+				home,home+"/forcing/" ,
+				startTime,
+				endTime
+				]
 Args:
 	inDir: directory containing input meteo PLEV.nc and SURF.nc 
 		"/home/joel/sim/topomapptest/forcing/"
@@ -61,7 +65,7 @@ logging.basicConfig(level=logging.DEBUG, filename=listpointsLoc+"/tscale_logfile
 
 for i in range(lp.id.size):
 
-	# station attribute structure
+	# station attribute structure , tz always =0 for case of ERA5
 	stat = hp.Bunch(ele = lp.ele[i], slp = lp.slp[i],asp = lp.asp[i],svf = lp.svf[i],lon = lp.lon[i], lat =lp.lat[i],sro = lp.surfRough[i],tz = lp.tz[i]  )
 
 	#=== Pressure level object =============================================

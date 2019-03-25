@@ -18,6 +18,8 @@ Args:
 	listpointsLoc: location of listpoints.txt
 	outDir: location where output meteo files are written
 	memeber: which ensemble memeber is to be downscaled from era5 ensembles dataset [1-10]
+		startTime: ISO format #"2016-08-01 18:00:00"
+	endTime: ISO format #"2016-08-01 18:00:00"
 
 Todo:
 	merge with tscale_run.py, need to handle optional parameter "memebers" and extractCGC5d fun.

@@ -185,7 +185,7 @@ def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
 	num_cores = 4 #config['main']['num_cores']
 	bbox=(str(latN) + "/" + str(lonW) + "/" + str(latS) + "/" + str(lonE) )
 
-	if (product == "reanlysis"):
+	if (product == "reanalysis"):
 		time = [		'00:00','01:00','02:00',\
 				'03:00','04:00','05:00',\
 				'06:00','07:00','08:00',\

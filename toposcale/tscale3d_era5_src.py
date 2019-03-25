@@ -6,7 +6,7 @@ Downscaling in 3d ERA5 EDA pressure level data.
 
 This module downscale ERA5 pl data air temp, rel hum, u, v and produces 2D grids
 (based on high res DEM) or point based timeseries (based on csv file). It is called 
-by tscale3D_EDA.py.
+by tscale3D.py.
 
 Example:
 	python tscale3d_era5_src.py '/home/joel/sim/cci_perm/cci_test_ensemble/' 't' 'points' 0 10 1 "EDA"
@@ -122,7 +122,8 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 				t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
 			if dataset=="EDA":
 				t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem,member)
-
+#			if dataset=="EDA":
+#				t_interp, z_interp = ds.inLevelInterp(gridT[member,:,:,:],gridZ[member,:,:,:], gridLat,gridLon,out_xyz_dem)
 			pl_obs = ds.fast1d(t_interp, z_interp, out_xyz_dem)
 			sa_vec=np.column_stack((sa_vec,pl_obs))
                 # drop init row
@@ -177,7 +178,7 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 		# drop init blank layer
 		a =sa_out[:,:,1:]
 
-		print(" %f minutes for total run" % round((time.time()/60 - start_time/60),2) )
+		print(" %f minutes for run" % round((time.time()/60 - start_time/60),2) )
 
 		# for testing
 		plot='False'
