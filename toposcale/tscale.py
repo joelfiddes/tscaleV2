@@ -92,9 +92,13 @@ class tscale(object):
 
 			# first reverse vectors as elevation has to be ascending in order for interp to work
 			y = self.dat[i,]
-			y =y[::-1]
+
+			if dat[i,1]<dat[i,self.z.shape[1]-1]==False:
+				y =y[::-1]
 			x = self.ele[i,]
-			x =x[::-1]
+
+			if dat[i,1]<dat[i,self.z.shape[1]-1]==False:
+				x =x[::-1]
 
 			# check that elevation is ascending, required for interp method https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.interp.html
 			if np.all(np.diff(x) > 0) == False:
@@ -215,7 +219,7 @@ class tscale(object):
 
 			wind_downscaled.append(wind * valid_flag)
 
-		self.wscor = wind_downscaled	
+		self.ws = wind_downscaled	
 			
 			
 
@@ -259,7 +263,8 @@ class tscale(object):
 		"""Diagnose the all sky emissivity at grid."""
 		sbc=5.67e-8
 		aec=sob.strd/(sbc*sob.t2m**4)
-		# need to constrain to 1 as original code?
+		aec[aec>1]<-1	
+		# need to constrain to 1 as original code? I think so
 
 		""" Calculate the "cloud" emissivity at grid, assume this is the same at
 	 	subgrid."""
@@ -374,7 +379,7 @@ class tscale(object):
 
 		self.psf=[]
 		# loop through timesteps
-		for i in range(0,dz.shape[1]):
+		for i in range(0,dates.size):
 			
 			# 	# find overlying layer
 			thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
@@ -579,5 +584,6 @@ class tscale(object):
 		pfis = sob.dtime.month.map(lookups)
 		dz=(stat.ele-sob.gridEle)/1e3     # Elevation difference in kilometers between the fine and coarse surface.
 		lp=(1+pfis*dz)/(1-pfis*dz)# Precipitation correction factor.
-		Pf=sob.pmmhr*lp
-		self.TPf=Pf
+		
+		self.prate=sob.pmmhr*lp # mm/hour
+		self.psum=sob.tp*lp # m/timestep

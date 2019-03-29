@@ -18,6 +18,7 @@ Returns:
 	Timeseries of points or grids depending on mode
                 
 Example: 
+	python tscale3D.py '/home/joel/sim/cci_perm/cci_test/' 'grid' '2014-09-01' '2014-09-10' "HRES" None
 
 Notes:
 - pressure level arrays in EDA (ascending) and inverse to HRES (descending)
@@ -68,6 +69,13 @@ import time
 #test='False'
 #start="2014-09-01"
 #end="2016-09-01"
+
+# wdir='/home/joel/sim/cci_perm/cci_test/'
+# mode= 'grid'
+# start= '2014-09-01'
+# end='2014-09-02'
+# dataset="HRES"
+# member=None
 
 def main(wdir, mode, start, end, dataset, member=None):
 
@@ -883,7 +891,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 					and therefore treated here the same.
 					https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation
 			"""
-			tp = tp/step*60*60 # convert metres per timestep -> m/hour 
+			tp = tp/step*60*60 # convert metres per timestep (in secs) -> m/hour 
 			pmmhr = tp	*1000 # m/hour-> mm/hour
 			return pmmhr
 
@@ -899,7 +907,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 		from osgeo import gdal_array
 		from osgeo import osr
 
-		for i in range(7, grid_prate.shape[2]):
+		for i in range(0, grid_prate.shape[2]):
 
 			myname=wdir+'/out/prate'+str(i)+'.tif'
 			array = grid_prate[::-1,:,i]
@@ -920,26 +928,26 @@ def main(wdir, mode, start, end, dataset, member=None):
 			output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
 			output_raster = None
 
-		for i in range(0, t.shape[2]):
+		# for i in range(0, t.shape[2]):
 
-			myname=wdir+'/out/t'+str(i)+'.tif'
-			array = t[:,:,i]
-			#lat = out_xyz_dem[:,0].reshape(l.shape)
-			#lon = out_xyz_dem[:,1].reshape(l.shape)
+		# 	myname=wdir+'/out/t'+str(i)+'.tif'
+		# 	array = t[:,:,i]
+		# 	#lat = out_xyz_dem[:,0].reshape(l.shape)
+		# 	#lon = out_xyz_dem[:,1].reshape(l.shape)
 
-			xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
-			nrows,ncols = np.shape(array)
-			xres = (xmax-xmin)/float(ncols)
-			yres = (ymax-ymin)/float(nrows)
-			geotransform=(xmin,xres,0,ymax,0, -yres)   
+		# 	xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+		# 	nrows,ncols = np.shape(array)
+		# 	xres = (xmax-xmin)/float(ncols)
+		# 	yres = (ymax-ymin)/float(nrows)
+		# 	geotransform=(xmin,xres,0,ymax,0, -yres)   
 
-			output_raster = gdal.GetDriverByName('GTiff').Create(myname,ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
-			output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
-			output_raster.SetGeoTransform(geotransform)# Specify its coordinates
-			srs = osr.SpatialReference()# Establish its coordinate encoding
-			srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
-			output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
-			output_raster = None
+		# 	output_raster = gdal.GetDriverByName('GTiff').Create(myname,ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
+		# 	output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
+		# 	output_raster.SetGeoTransform(geotransform)# Specify its coordinates
+		# 	srs = osr.SpatialReference()# Establish its coordinate encoding
+		# 	srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
+		# 	output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
+		# 	output_raster = None
 		#===============================================================================
 		# Longwave
 		#===============================================================================
@@ -1010,6 +1018,34 @@ def main(wdir, mode, start, end, dataset, member=None):
 		instRad(gsob,3600)
 		ts_lwin = lwin(gsob,gtob)
 
+		dem  = nc.Dataset(demfile)
+		lon = dem.variables['lon'][:]
+		lat = dem.variables['lat'][:]
+		# These packages problem on cluster
+		from osgeo import gdal
+		from osgeo import gdal_array
+		from osgeo import osr
+
+		for i in range(0, t.shape[2]):
+
+			myname=wdir+'/out/lwin'+str(i)+'.tif'
+			array = t[:,:,i]
+			#lat = out_xyz_dem[:,0].reshape(l.shape)
+			#lon = out_xyz_dem[:,1].reshape(l.shape)
+
+			xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+			nrows,ncols = np.shape(array)
+			xres = (xmax-xmin)/float(ncols)
+			yres = (ymax-ymin)/float(nrows)
+			geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+			output_raster = gdal.GetDriverByName('GTiff').Create(myname,ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
+			output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
+			output_raster.SetGeoTransform(geotransform)# Specify its coordinates
+			srs = osr.SpatialReference()# Establish its coordinate encoding
+			srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
+			output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
+			output_raster = None
 	logging.info("Toposcale complete!")
 	logging.info("%f minutes" % round((time.time()/60 - start_time/60),2) )
 

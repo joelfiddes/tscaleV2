@@ -46,21 +46,22 @@ import sys
 import logging
 #=== ARGS==============================================
 inDir=sys.argv[1] # /home/joel/sim/topomapptest/forcing/PLEV.nc
-listpointsLoc=sys.argv[2]
+home=sys.argv[2]
 outDir = sys.argv[3]
 startTime = sys.argv[4]
 endTime = sys.argv[5]
+windCor=sys.argv[6]
 
 fp=inDir+"/PLEV.nc"
 fs=inDir+"/SURF.nc"
-lpfile=listpointsLoc + "/listpoints.txt"
+lpfile=home + "/listpoints.txt"
 # read in lispoints
 lp=pd.read_csv(lpfile)
 
 #===============================================================================
 #	Logging
 #===============================================================================
-logging.basicConfig(level=logging.DEBUG, filename=listpointsLoc+"/tscale_logfile", filemode="a+",
+logging.basicConfig(level=logging.DEBUG, filename=home+"/tscale_logfile", filemode="a+",
                         format="%(asctime)-15s %(levelname)-8s %(message)s")
 
 for i in range(lp.id.size):
@@ -79,6 +80,8 @@ for i in range(lp.id.size):
 	startIndex = int(np.where(p.dtime==startTime)[0])#"2016-08-01 18:00:00"
 	endIndex = int(np.where(p.dtime==endTime)[0])#"2016-08-01 18:00:00"
 
+	"""cut p.dtime to start and end"""
+	p.dtime=p.dtime[startIndex:endIndex]
 
 	for v in p.varnames:
 
@@ -106,8 +109,11 @@ for i in range(lp.id.size):
 	s=e5.Surf(fs, stat.lat, stat.lon)
 	s.getVarNames()
 
-		""" Datetime structure """
+	""" Datetime structure """
 	s.addTime()
+	"""cut p.dtime to start and end"""
+	s.dtime=s.dtime[startIndex:endIndex]
+
 	# compute step in seconds for accumulated surface fields
 	a=s.dtime[2]-s.dtime[1]
 	step = a.seconds
@@ -126,13 +132,13 @@ for i in range(lp.id.size):
 	""" rad conversions """
 	s.instRad(step)
 
-	""" precip conversions """
+	""" precip conversions m/timestep to mm/h"""
 	s.tp2rate(step)
 
 	""" dimensions of data """
 	s.addShape()
 	""" Datetime structure """
-	s.addTime()
+	#s.addTime()
 	""" surface elevation of coarse grid"""
 	s.gridEle()
 	sob = s
@@ -151,38 +157,43 @@ for i in range(lp.id.size):
 
 		t.tscale1D(dat,stat)
 		t.addVar(v,t.interpVar)
-	tob = t
+	
 
+	# constrain r to interval 0-100
+	t.r[t.r <1]=1
+	t.r[t.r>100]=100
+
+	tob = t
 	# compute downscaled longwave (LWf) Wm**2
 	t.lwin(sob, tob)
 
 	# compute downscaled shortwave (SWf) Wm**2
 	t.swin(pob, sob,tob, stat,p.dtime)
 
-	# compute downscaled precipitation in ms*1
+	# compute downscaled precipitation in mm/h (PRATE) and m/step (PSUM)
 	t.precip(sob,stat)
 
 	t.wind(tob)
 
+	if windCor=="TRUE":
+		# corrected wind
+		blend = 40 # blend height
+		statblend=stat # new instance of stat for correction only 
+		statblend.ele = statblend.ele + blend # add blend to stat ele
+		v='v'
+		dat = getattr(p, v) # allows dynamic call to instance variable
+		t.tscale1D(dat,statblend)
+		t.addVar('vblend',t.interpVar)
 
-	# corrected wind
-	blend = 40 # blend height
-	statblend=stat # new instance of stat for correction only 
-	statblend.ele = statblend.ele + blend # add blend to stat ele
-	v='v'
-	dat = getattr(p, v) # allows dynamic call to instance variable
-	t.tscale1D(dat,statblend)
-	t.addVar('vblend',t.interpVar)
+		v='u'
+		dat = getattr(p, v) # allows dynamic call to instance variable
+		t.tscale1D(dat,statblend)
+		t.addVar('ublend',t.interpVar)
 
-	v='u'
-	dat = getattr(p, v) # allows dynamic call to instance variable
-	t.tscale1D(dat,statblend)
-	t.addVar('ublend',t.interpVar)
+		# ws from vectors
+		t.wsblend = np.sqrt(tob.ublend**2+tob.vblend**2)
 
-	# ws from vectors
-	t.wsblend = np.sqrt(tob.ublend**2+tob.vblend**2)
-
-	t.windCorRough( tob, pob, sob, stat)
+		t.windCorRough( tob, pob, sob, stat)
 
 	 # plt.plot(t.SWfdirCor)
 	# plt.show()
@@ -190,15 +201,16 @@ for i in range(lp.id.size):
 
 	df = pd.DataFrame({	"TA":t.t, 
 				"RH":t.r,
-				"WS":t.wscor,
+				"WS":t.ws,
 				"WD":t.wd, 
 				"LWIN":t.LWf, 
 				"SWIN":t.SWfglob, 
-				"PRATE":t.TPf
+				"PRATE":t.prate,
+				"PSUM":t.psum
 				},index=p.dtime)
 	df.index.name="datetime"
 
-	fileout=wd + "/sim/" + simdir + "/forcing/meteo"+"c"+str(i+1)+".csv"
+	fileout=home+ "/forcing/meteo"+"c"+str(i+1)+".csv"
 	df.to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 	logging.info(fileout + " complete")
 
