@@ -259,7 +259,7 @@ def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW, s
 
 
 
-def era5_request_plev(year, month, bbox, target, product, time):
+def era5_request_plev(year, month, bbox, target, product, time,plevels):
 	"""CDS plevel api call"""
 	c = cdsapi.Client()
 
