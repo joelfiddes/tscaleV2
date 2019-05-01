@@ -15,24 +15,18 @@ Object description:
 	* stat - station object (points, cluster centroids or grid centroids)
 
 Example:
-
-					cmd = [
-				"python",  
-				tscale_root+"/tscaleV2/toposcale/tscale_run_EDA.py",
-				wd + "/forcing/", 
-				home,home+"/forcing/" ,
-				startTime,
-				endTime
-				]
+	python /home/joel/src/tscaleV2/toposcale/tscale_run.py /home/joel/sim/imis/forcing/ /home/joel/sim/imis/ /home/joel/sim/imis/forcing/ 2000-09-01 2001-09-01 FALSE
+	
 Args:
 	inDir: directory containing input meteo PLEV.nc and SURF.nc 
 		"/home/joel/sim/topomapptest/forcing/"
-	listpointsLoc: location of listpoints.txt
+	home: location of listpoints.txt
 		"/home/joel/sim/topomapptest/sim/g1m1/"
 	outDir: location where output meteo files are written
 		"/home/joel/sim/topomapptest/sim/g1m1/forcing/"
 	startTime: ISO format #"2016-08-01 18:00:00"
 	endTime: ISO format #"2016-08-01 18:00:00"
+	windCor: use sebs wind correction str: "TRUE" or "FALSE"
 Todo:
 
 """
@@ -45,12 +39,20 @@ import numpy as np
 import sys
 import logging
 #=== ARGS==============================================
-inDir=sys.argv[1] # /home/joel/sim/topomapptest/forcing/PLEV.nc
-home=sys.argv[2]
-outDir = sys.argv[3]
+inDir=sys.argv[1] # /home/joel/sim/imis/forcing/
+home=sys.argv[2] # /home/joel/sim/imis/
+outDir = sys.argv[3] # 
 startTime = sys.argv[4]
 endTime = sys.argv[5]
 windCor=sys.argv[6]
+
+# DEBUG
+# inDir= '/home/joel/sim/imis/forcing/'
+# home='/home/joel/sim/imis/'
+# outDir = inDir 
+# startTime = '2000-09-01'
+# endTime = '2001-09-01'
+# windCor='FALSE'
 
 fp=inDir+"/PLEV.nc"
 fs=inDir+"/SURF.nc"
@@ -159,9 +161,9 @@ for i in range(lp.id.size):
 		t.addVar(v,t.interpVar)
 	
 
-	# constrain r to interval 0-100
-	t.r[t.r <1]=1
-	t.r[t.r>100]=100
+	# constrain r to interval 0-100 - meteio
+	#t.r[t.r <1]=1
+	#t.r[t.r>100]=100
 
 	tob = t
 	# compute downscaled longwave (LWf) Wm**2
@@ -200,17 +202,17 @@ for i in range(lp.id.size):
 	
 
 	df = pd.DataFrame({	"TA":t.t, 
-				"RH":t.r,
-				"WS":t.ws,
-				"WD":t.wd, 
-				"LWIN":t.LWf, 
-				"SWIN":t.SWfglob, 
-				"PRATE":t.prate,
+				"RH":t.r*0.01, #meteoio 0-1
+				"VW":t.ws,
+				"DW":t.wd, 
+				"ILWR":t.LWf, 
+				"ISWR":t.SWfglob, 
+				"PINT":t.prate,
 				"PSUM":t.psum
 				},index=p.dtime)
 	df.index.name="datetime"
 
-	fileout=home+ "/forcing/meteo"+"c"+str(i+1)+".csv"
+	fileout=outDir+"/meteo"+"c"+str(i+1)+lp.name[i]+".csv"
 	df.to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 	logging.info(fileout + " complete")
 

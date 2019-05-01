@@ -53,7 +53,7 @@ def main(wdir, mode, start, end, member=None):
 
 	
 	#these pathnames are standard:
-	stationsfile= wdir+'/points.csv'
+	stationsfile= wdir+'/listpoints.csv'
 	demfile = wdir+'/forcing/ele.nc'
 	surfile=wdir+'/forcing/SURF.nc'
 	plevfile=wdir+ '/forcing/PLEV.nc'

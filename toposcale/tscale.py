@@ -88,23 +88,19 @@ class tscale(object):
 
 		self.ele=self.z/self.g
 		self.interpVar=[]
+
+		# this is a timestep loop
 		for i in range(0,(self.z.shape)[0]): 
-
-			# first reverse vectors as elevation has to be ascending in order for interp to work
+			
 			y = self.dat[i,]
-
-			if dat[i,1]<dat[i,self.z.shape[1]-1]==False:
-				y =y[::-1]
 			x = self.ele[i,]
 
-			if dat[i,1]<dat[i,self.z.shape[1]-1]==False:
+			# test if x (ele) is ascending (EDA), if not (HRES) reverse vectors
+			# required for interp method https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.interp.html
+			if not np.all(np.diff(x)>0):
 				x =x[::-1]
-
-			# check that elevation is ascending, required for interp method https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.interp.html
-			if np.all(np.diff(x) > 0) == False:
-				print "ERROR!! elevation vector not ascending, interpolation method cannot run"
-				break
-
+				y =y[::-1]
+			
 			self.interpVar.append(np.interp(stat.ele,x, y ))
 		self.interpVar = np.array(self.interpVar) # convert list to np array
 
@@ -500,8 +496,12 @@ class tscale(object):
 		# Calculate the "broadband" absorption coefficient. Elevation correction
 		# from Kris
 		ka=(self.g*muz/(self.psc))*np.log(SWtoa/SWcdir)	
-		ka.set_fill_value(0)
-		ka = ka.filled()
+		#ka.set_fill_value(0)
+		#ka = ka.filled()
+
+		# set inf (from SWtoa/SWcdir at nigh, zero division) to 0 (night)
+		ka[ka == -np.inf] = 0
+		ka[ka == np.inf] = 0
 		# Note this equation is obtained by inverting Beer's law, i.e. use
 		#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
 		# Along with hydrostatic equation to convert to pressure coordinates then
@@ -586,4 +586,4 @@ class tscale(object):
 		lp=(1+pfis*dz)/(1-pfis*dz)# Precipitation correction factor.
 		
 		self.prate=sob.pmmhr*lp # mm/hour
-		self.psum=sob.tp*lp # m/timestep
+		self.psum=sob.tp*1000*lp # mm/timestep

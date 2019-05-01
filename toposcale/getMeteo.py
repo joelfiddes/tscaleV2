@@ -47,18 +47,30 @@ eraDir = wd + "/forcing/"
 if not os.path.exists(eraDir):
 	os.makedirs(eraDir)
 #====================================================================
-#	Get domain extent from shape
+#	Get domain extent and parameters
 #====================================================================
 lonW = config["main"]["lonW"]
 lonE = config["main"]["lonE"]
 latN = config["main"]["latN"]
 latS = config["main"]["latS"]
 
+# timsteps to retrieve (1,3,6)
+step = config["forcing"]["step"]
+
+# pressure levels to retriev
+plevel = config["forcing"]["plevel"]
 #====================================================================
 #	Fetch forcing
 #====================================================================
 fe.retrieve_era5_surf(   
 	config["forcing"]["product"] ,
+	config["main"]["startDate"], 
+	config["main"]["endDate"],
+	eraDir, 
+	latN,latS,lonE,lonW
+	)
+
+fe.retrieve_era5_tpmm(   
 	config["main"]["startDate"], 
 	config["main"]["endDate"],
 	eraDir, 

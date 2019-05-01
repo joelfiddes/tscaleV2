@@ -59,6 +59,7 @@ import era5
 import tscale2d_era5_src as t2d
 import tscale3d_era5_src as t3d
 import time
+import xarray as xr
 #reload(t2d)
 #reload(t3d)
 
@@ -70,10 +71,10 @@ import time
 #start="2014-09-01"
 #end="2016-09-01"
 
-# wdir='/home/joel/sim/cci_perm/cci_test/'
-# mode= 'grid'
-# start= '2014-09-01'
-# end='2014-09-02'
+# wdir='/home/joel/sim/imis/'
+# mode= 'point'
+# start= '2004-09-01'
+# end='2005-09-01'
 # dataset="HRES"
 # member=None
 
@@ -96,7 +97,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 
 	# make these names standard:
-	stationsfile= wdir+'/points.csv'
+	stationsfile= wdir+'/listpoints.txt'
 	demfile = wdir+'/predictors/ele.nc'
 	surfile=wdir+'/forcing/SURF.nc'
 	plevfile=wdir+ '/forcing/PLEV.nc'
@@ -114,21 +115,38 @@ def main(wdir, mode, start, end, dataset, member=None):
 		dem  = nc.Dataset(demfile)
 		dem_ele = dem.variables['Band1'][:]
 
-	f = nc.Dataset( surfile)
+	
+	# this is main dtime used in code
+	f = nc.Dataset( plevfile)
 	nctime = f.variables['time']
 	dtime = pd.to_datetime(nc.num2date(nctime[:],nctime.units, calendar="standard"))
 	starti = np.asscalar(np.where(dtime==start+' 00:00:00')[0])
 	endi = np.asscalar(np.where(dtime==end+' 00:00:00')[0])
-	dtime = dtime[starti:endi,]
+	dtime= dtime[starti:endi,]
 	timesteps=len(dtime)
+
+	# this dtime is only to check for different timesteps
+	f = nc.Dataset( surfile)
+	nctime = f.variables['time']
+	dtime2 = pd.to_datetime(nc.num2date(nctime[:],nctime.units, calendar="standard"))
+	starti2 = np.asscalar(np.where(dtime2==start+' 00:00:00')[0])
+	endi2 = np.asscalar(np.where(dtime2==end+' 00:00:00')[0])
+	dtime2= dtime2[starti2:endi2,]
+	timesteps2=len(dtime2)
+
+	# catch cases of 3h plev and 1h surf
+	if len(dtime)!=len(dtime2):
+		print("resampling 1h surf data to 3h")
+		df =xr.open_dataset(surfile)
+		df2 =df.resample(time='3H').mean()
+		df2['tp']=df.tp*3
+		df2.to_netcdf(surfile)
 
 	# constants
 	g=9.81
 
-
-
-	
 	logging.info("Running "+ str(timesteps)+ " timesteps")
+	
 	#===============================================================================
 	# Point stuff
 	#
@@ -138,7 +156,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 	#===============================================================================
 	if mode=="points" or mode=="point":
 		if os.path.isfile(stationsfile) == False:
-			logging.info("No points.csv found!")
+			logging.info("No listpoints.txt found!")
 
 		logging.info("Start points run...")
 		
@@ -174,6 +192,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 		for timestep in range(starti,endi):
 			#logging.info(str(round(float(timestep)/float(timesteps)*100,0))+ "% done")
+
 			gridT,gridZ,gridLat,gridLon=ds.gridValue(var,timestep)
 			if dataset=="HRES":
 				t_interp, z_interp = ds.inLevelInterp(gridT,gridZ, gridLat,gridLon,out_xyz_dem)
@@ -279,9 +298,10 @@ def main(wdir, mode, start, end, dataset, member=None):
 			
 				   
 			lp=(1+pfis.T*dz[:,None])/(1-pfis.T*dz[:,None])# Precipitation correction factor.
-			Pf=sob.pmmhr.T*lp
-			
-			return Pf
+			#Pf=sob.pmmhr.T*lp
+			prate=sob.pmmhr.T*lp # mm/hour
+			psum=sob.tp.T*1000*lp # mm/timestep
+			return prate, psum
 
 
 
@@ -291,9 +311,11 @@ def main(wdir, mode, start, end, dataset, member=None):
 		#===============================================================================
 		# Precip
 		#===============================================================================
-		pmmhr = tp2rate(tp,3600)
+		a=dtime[2]-dtime[1]
+		step = a.seconds
+		pmmhr = tp2rate(tp,step)
 		sob.pmmhr = pmmhr
-		tob.prate = precipPoint(mystations.ele, sob)
+		tob.prate , tob.psum = precipPoint(mystations.ele, sob)
 		logging.info("made prate!")
 		#===============================================================================
 		# Longwave
@@ -708,7 +730,11 @@ def main(wdir, mode, start, end, dataset, member=None):
 				# Calculate the "broadband" absorption coefficient. Elevation correction
 				# from Kris
 				ka=(g*muz/(psc))*np.log(SWtoa/SWcdir)	
-				ka = np.nan_to_num(ka)
+				#ka.set_fill_value(0)
+				#ka = ka.filled()
+				# set inf (from SWtoa/SWcdir at nigh, zero division) to 0 (night)
+				ka[ka == -np.inf] = 0
+				ka[ka == np.inf] = 0
 
 				# Note this equation is obtained by inverting Beer's law, i.e. use
 				#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
@@ -795,23 +821,30 @@ def main(wdir, mode, start, end, dataset, member=None):
 		
 		#===============================================================================
 		# make dataframe (write individual files plus netcdf)
-		#===============================================================================
+		#==============================================================================
+
 		logging.info("Writing toposcale files...")
 		for i in range(0,tob.t.shape[1]):
 			df = pd.DataFrame({	"TA":tob.t[:,i], 
-						"RH":tob.r[:,i],
-						"WS":tob.ws[:,i],
-						"WD":tob.wd[:,i], 
-						"LWIN":tob.lwin[:,i], 
-						"SWIN":tob.swin[:,i], 
-						"PRATE":tob.prate[i,:]
+						"RH":tob.r[:,i]*0.01, #meteoio 0-1
+						"VW":tob.ws[:,i],
+						"DW":tob.wd[:,i],
+						"ILWR":tob.lwin[:,i], 
+						"ISWR":tob.swin[:,i], 
+						"PINT":tob.prate[i,:],
+						"PSUM":tob.psum[i,:]
 						},index=tob.dtime)
 			df.index.name="datetime"
+
+			# fill outstanding nan in SW routine with 0 (night)
+			df.ISWR = df.ISWR.fillna(0)
+
 			if dataset=='EDA':
 				fileout=wdir+"/out/meteo"+str(i)+"_"+start+"_"+str(member+1)+"_.csv" # convert member index back to 1-10
+
 			if dataset=='HRES':
-				fileout=wdir+"/out/meteo"+dataset+str(i)+"_"+start+".csv" # convert member index back to 1-10
-			column_order = ['TA', 'RH', 'WS', 'WD', 'LWIN', 'SWIN', 'PRATE']
+				fileout=wdir+"/out/meteo"+"c"+str(i+1)+".csv" # convert member index back to 1-10
+			column_order = ['TA', 'RH', 'VW', 'DW', 'ILWR', 'ISWR', 'PINT', 'PSUM']
 			df[column_order].to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 		#logging.info(fileout + " complete")
 
@@ -853,9 +886,9 @@ def main(wdir, mode, start, end, dataset, member=None):
 			# convert TP to mm/hr
 			
 			lookups = {
-				   1:0.35,
-				   2:0.35,
-				   3:0.35,
+				   1:0.3,
+				   2:0.3,
+				   3:0.3,
 				   4:0.3,
 				   5:0.25,
 				   6:0.2,
@@ -864,7 +897,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 				   9:0.2,
 				   10:0.25,
 				   11:0.3,
-				   12:0.35
+				   12:0.3
 			}
 
 			# Precipitation lapse rate, varies by month (Liston and Elder, 2006).
@@ -895,8 +928,9 @@ def main(wdir, mode, start, end, dataset, member=None):
 			pmmhr = tp	*1000 # m/hour-> mm/hour
 			return pmmhr
 
-
-		gsob.pmmhr = tp2rate(tp,3600)
+		a=dtime[2]-dtime[1]
+		step = a.seconds
+		gsob.pmmhr = tp2rate(tp,step)
 		grid_prate = precipGrid(dem_ele,gsob)
 		
 		dem  = nc.Dataset(demfile)

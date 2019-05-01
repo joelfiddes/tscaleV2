@@ -88,7 +88,7 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 
 
 	pl   = wdir+ '/forcing/PLEV.nc' #dataImport.plf_get()    # pressure level air temperature
-	stationsfile= wdir+'/points.csv'
+	stationsfile= wdir+'/listpoints.txt'
         
 	if mode=="grid":
 		dem_ncdf     =  wdir+"/predictors/ele.nc"

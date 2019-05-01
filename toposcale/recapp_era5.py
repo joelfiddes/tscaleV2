@@ -307,10 +307,11 @@ class t3d(object):
 
         f_sa = RegularGridInterpolator((lat,lon), in_v, 'linear', bounds_error=False)
 
-        stations = stations.values
-        lats = stations[:,2] #[s['lat'] for s in stations]
-        lons = stations[:,1] #[s['lon'] for s in stations]
-        out_xy = np.asarray([lats,lons]).T
+        #stations = stations.values
+        lats = stations.lon #[s['lat'] for s in stations]
+        lons = stations.lat #[s['lon'] for s in stations]
+        out_xy = np.asarray([lons,lats]).T
+
 
         t_sp = f_sa(out_xy) 
 
@@ -417,8 +418,8 @@ class t3d(object):
         
     
     # reverse arrays to deal with ERA5 HRES ascending order
-        t_interp=t_interp[::-1]
-        z_interp=z_interp[::-1]
+        #t_interp=t_interp[::-1]
+        #z_interp=z_interp[::-1]
 
 
 

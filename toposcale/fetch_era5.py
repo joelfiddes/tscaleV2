@@ -319,6 +319,8 @@ def eraCat(wd, grepStr):
 	- reads monthly ERA5 data files (MARS efficiency)
 	- concats to single file timeseries
 
+	Syntax: cdo -b F64 -f nc2 mergetime SURF* SURF.nc
+
 	Args:
 		wd: directory of era monthly datafiles
 		grepStr: "PLEV" or "SURF"
@@ -373,3 +375,58 @@ def eraCat5d(wd, grepStr):
 
 
 	
+def retrieve_era5_tpmm( startDate,endDate,eraDir, latN,latS,lonE,lonW):
+	"""
+	retrive monthly tp means to correct 6 or 3h TP retrieval
+	documented era5 here: https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation#ERA5datadocumentation-Monthlymeans
+	values are mean daily for that month, weight by number of days in month eg annualtotal = sum(wfj_m*c(31,28,31,30,31,30,31,31,30,31,30,31))
+	"""
+	# eraDir='/home/joel/sim/imis/forcing/'	
+	# latN=47.9
+	# latS=45.75
+	# lonW=5.7
+	# lonE=10.6
+
+	# startDate = '1979-09-01'                        # adjust to your requirements - as of 2017-07 only 2010-01-01 onwards is available
+	# endDate = '2018-09-01'   
+	param='total_precipitation'                     # adjust to your requirements
+	months = [1,2,3,4,5,6,7,8,9,10,11,12] 
+	
+	dates = [str(startDate), str(endDate)]
+	start = datetime.strptime(dates[0], "%Y-%m-%d")
+	end = datetime.strptime(dates[1], "%Y-%m-%d")
+	start = start+relativedelta(months=-1)
+	end = end+relativedelta(months=+1)
+	dateList = OrderedDict(((start + timedelta(_)).strftime(r"%Y-%m"), None) for _ in xrange((end - start).days)).keys()
+	#target = eraDir + "tp_%04d%02d.nc" % (startDate, endDate)
+	target = eraDir + "tpmm.nc"
+	bbox=(str(latN) + "/" + str(lonW) + "/" + str(latS) + "/" + str(lonE) )
+	
+	yearVec=[]
+	for date in dateList:	
+		strsplit = date.split('-' )
+		year =  int(strsplit[0])
+		yearVec.append(year)
+	
+
+	myyears = list(sorted(set(yearVec)))
+
+	c = cdsapi.Client()
+
+	c.retrieve(
+	    'reanalysis-era5-single-levels-monthly-means',
+	    {
+		'product_type':'reanalysis-monthly-means-of-daily-means',
+		'area': bbox,
+		'variable': param,
+		'year':	myyears,
+		'month':[
+		    '01','02','03',
+		    '04','05','06',
+		    '07','08','09',
+		    '10','11','12'
+		],
+		'time':'00:00',
+		'format':'netcdf'
+	    },
+	    target)
