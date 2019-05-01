@@ -159,7 +159,7 @@ def era5_request_surf(year, month, bbox, target, product, time):
 		target)
 	print(target+ " complete")
 
-def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW, step, plevel):
+def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW, step, plevels):
 	""" Sets up era5 pressure level retrieval.
 	* Creates list of year/month pairs to iterate through. 
 	* MARS retrievals are most efficient when subset by time. 
@@ -251,7 +251,7 @@ def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW, s
 	monthVecNew  = [monthVec[i] for i in index]
 
 	# https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
-	Parallel(n_jobs=int(num_cores))(delayed( era5_request_plev)(int(yearVecNew[i]), int(monthVecNew[i]), bbox, targetVecNew[i], product, time,plevel) for i in range(0,len(yearVecNew)))
+	Parallel(n_jobs=int(num_cores))(delayed( era5_request_plev)(int(yearVecNew[i]), int(monthVecNew[i]), bbox, targetVecNew[i], product, time,plevels) for i in range(0,len(yearVecNew)))
 
 
 #@retry(wait_random_min=10000, wait_random_max=20000)
@@ -273,15 +273,7 @@ def era5_request_plev(year, month, bbox, target, product, time):
 			'geopotential','temperature','u_component_of_wind',
 			'v_component_of_wind', 'relative_humidity'
 		],
-		'pressure_level':[
-			'300','350','400','450',
-			'500','550','600',
-			'650','700','750',
-			'800',
-			'850','900',
-			'950',
-			'1000'
-		],
+		'pressure_level':plevels,
 		'year':int(year),
 		'month':[
 			int(month)

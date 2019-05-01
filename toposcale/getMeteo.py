@@ -58,7 +58,7 @@ latS = config["main"]["latS"]
 step = config["forcing"]["step"]
 
 # pressure levels to retriev
-plevel = config["forcing"]["plevel"]
+plevels = config["forcing"]["plevels"]
 #====================================================================
 #	Fetch forcing
 #====================================================================
@@ -67,7 +67,7 @@ fe.retrieve_era5_surf(
 	config["main"]["startDate"], 
 	config["main"]["endDate"],
 	eraDir, 
-	latN,latS,lonE,lonW
+	latN,latS,lonE,lonW,step
 	)
 
 fe.retrieve_era5_tpmm(   
@@ -82,7 +82,7 @@ fe.retrieve_era5_plev(
 	config["main"]["startDate"], 
 	config["main"]["endDate"],
 	eraDir, 
-	latN,latS,lonE,lonW
+	latN,latS,lonE,lonW,step,plevels
 	)
 
 ''' concat monthly files using CDO'''
