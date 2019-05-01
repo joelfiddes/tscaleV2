@@ -19,7 +19,7 @@ from joblib import Parallel, delayed
 import subprocess
 #import multiprocessing 
 
-def retrieve_era5_surf( product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
+def retrieve_era5_surf( product, startDate,endDate,eraDir, latN,latS,lonE,lonW, step):
 	""" Sets up era5 surface retrieval.
 	* Creates list of year/month pairs to iterate through. 
 	* MARS retrievals are most efficient when subset by time. 
@@ -51,7 +51,7 @@ def retrieve_era5_surf( product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
 	num_cores = 4 #config['main']['num_cores']
 	bbox=(str(latN) + "/" + str(lonW) + "/" + str(latS) + "/" + str(lonE) )
 	
-	if (product == "reanlysis"):
+	if (step == "1"):
 		time = [		'00:00','01:00','02:00',\
 				'03:00','04:00','05:00',\
 				'06:00','07:00','08:00',\
@@ -61,8 +61,11 @@ def retrieve_era5_surf( product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
 				'18:00','19:00','20:00',\
 				'21:00','22:00','23:00']
 
-	if (product == "ensemble_members"):
+	if (step == "3"):
 		time = ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00']
+
+	if (step == "6"):
+		time = ['00:00','06:00','12:00','18:00']
 
 	# download buffer of +/- 1 month to ensure all necessary timestamps are there for interpolations and consistency between plevel and surf
 	dates = [str(startDate), str(endDate)]
@@ -156,7 +159,7 @@ def era5_request_surf(year, month, bbox, target, product, time):
 		target)
 	print(target+ " complete")
 
-def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
+def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW, step, plevel):
 	""" Sets up era5 pressure level retrieval.
 	* Creates list of year/month pairs to iterate through. 
 	* MARS retrievals are most efficient when subset by time. 
@@ -185,7 +188,7 @@ def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
 	num_cores = 4 #config['main']['num_cores']
 	bbox=(str(latN) + "/" + str(lonW) + "/" + str(latS) + "/" + str(lonE) )
 
-	if (product == "reanalysis"):
+	if (step == "1"):
 		time = [		'00:00','01:00','02:00',\
 				'03:00','04:00','05:00',\
 				'06:00','07:00','08:00',\
@@ -195,8 +198,11 @@ def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
 				'18:00','19:00','20:00',\
 				'21:00','22:00','23:00']
 
-	if (product == "ensemble_members"):
+	if (step == "3"):
 		time = ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00']
+
+	if (step == "6"):
+		time = ['00:00','06:00','12:00','18:00']
 
 	# download buffer of +/- 1 month to ensure all necessary timestamps are there for interpolations and consistency between plevel and surf
 	dates = [str(startDate), str(endDate)]
@@ -245,7 +251,7 @@ def retrieve_era5_plev(product, startDate,endDate,eraDir, latN,latS,lonE,lonW):
 	monthVecNew  = [monthVec[i] for i in index]
 
 	# https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
-	Parallel(n_jobs=int(num_cores))(delayed( era5_request_plev)(int(yearVecNew[i]), int(monthVecNew[i]), bbox, targetVecNew[i], product, time) for i in range(0,len(yearVecNew)))
+	Parallel(n_jobs=int(num_cores))(delayed( era5_request_plev)(int(yearVecNew[i]), int(monthVecNew[i]), bbox, targetVecNew[i], product, time,plevel) for i in range(0,len(yearVecNew)))
 
 
 #@retry(wait_random_min=10000, wait_random_max=20000)
@@ -271,9 +277,9 @@ def era5_request_plev(year, month, bbox, target, product, time):
 			'300','350','400','450',
 			'500','550','600',
 			'650','700','750',
-			'775','800','825',
-			'850','875','900',
-			'925','950','975',
+			'800',
+			'850','900',
+			'950',
 			'1000'
 		],
 		'year':int(year),
