@@ -86,11 +86,17 @@ fe.retrieve_era5_plev(
 	)
 
 ''' concat monthly files using CDO'''
-if (product == "reanlysis"):
+if (config["forcing"]["product"] == "reanlysis"):
 	fe.eraCat(eraDir, "SURF")
 	fe. eraCat(eraDir, "PLEV")
 
 '''5d ensemble product requires NCO operators'''
-if (product == "ensemble_members"):
+if (config["forcing"]["product"] == "ensemble_members"):
 	fe.eraCat5d(eraDir, "SURF")
 	fe. eraCat5d(eraDir, "PLEV")
+
+
+cmd = ["Rscript",  config['main']['tscale_root']+"tpCorrect.R",eraDir+ "tpmm.nc" , eraDir, "SURF.nc"]
+subprocess.check_output(cmd)
+
+
