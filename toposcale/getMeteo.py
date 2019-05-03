@@ -28,7 +28,7 @@ import os
 from configobj import ConfigObj
 import logging
 import fetch_era5 as fe
-
+import subprocess
 #====================================================================
 #	Config setup
 #====================================================================
