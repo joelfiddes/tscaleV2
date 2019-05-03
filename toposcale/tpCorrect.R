@@ -16,12 +16,12 @@ require(ncdf4)
 require(raster)
 
 # pars 
-#args = commandArgs(trailingOnly=TRUE)
-#mmfile=args[1] # monthly mean tp file eg "/home/joel/sim/imis/forcing/tpmm.nc"
-#t6hfile = args[2] # subdaily file likely 6 or 3 h step but can be anything eg 
+args = commandArgs(trailingOnly=TRUE)
+mmfile=args[1] # monthly mean tp file eg "/home/joel/sim/imis/forcing/tpmm.nc"
+t6hfile = args[2] # subdaily file likely 6 or 3 h step but can be anything eg 
 
-mmfile="/home/joel/sim/imis/forcing/tpmm.nc"
-t6hfile ="/home/joel/sim/imis/forcing/SURF.nc"
+#mmfile="/home/joel/sim/imis/forcing/tpmm.nc"
+#t6hfile ="/home/joel/sim/imis/forcing/SURF.nc"
 
 
 
