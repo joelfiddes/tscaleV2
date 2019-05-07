@@ -132,7 +132,7 @@ for i in range(lp.id.size):
 		s.addVar(v,s.var) # adds data again with correct name - redundancy
 
 	""" rad conversions """
-	s.instRad(step)
+	s.instRad(3600)
 
 	""" precip conversions m/timestep to mm/h"""
 	s.tp2rate(step)
@@ -161,9 +161,9 @@ for i in range(lp.id.size):
 		t.addVar(v,t.interpVar)
 	
 
-	# constrain r to interval 0-100 - meteio
-	#t.r[t.r <1]=1
-	#t.r[t.r>100]=100
+	# constrain r to interval 5-100 - do here as required by LWin parameterisation
+	t.r[t.r <5]=5
+	t.r[t.r>100]=100
 
 	tob = t
 	# compute downscaled longwave (LWf) Wm**2
@@ -176,6 +176,7 @@ for i in range(lp.id.size):
 	t.precip(sob,stat)
 
 	t.wind(tob)
+	t.ws[t.ws<0]=0
 
 	if windCor=="TRUE":
 		# corrected wind
@@ -212,7 +213,9 @@ for i in range(lp.id.size):
 				},index=p.dtime)
 	df.index.name="datetime"
 
-	fileout=outDir+"/meteo"+"c"+str(i+1)+lp.name[i]+".csv"
+	# fill outstanding nan in SW routine with 0 (night)
+	df.ISWR = df.ISWR.fillna(0)
+	fileout=outDir+"/meteo"+"c"+str(i+1)+".csv"
 	df.to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 	logging.info(fileout + " complete")
 

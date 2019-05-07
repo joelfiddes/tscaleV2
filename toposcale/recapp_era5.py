@@ -418,8 +418,24 @@ class t3d(object):
         
     
     # reverse arrays to deal with ERA5 HRES ascending order
-        #t_interp=t_interp[::-1]
-        #z_interp=z_interp[::-1]
+
+
+
+        # test if x (z_interp) is ascending (EDA), if not (HRES) reverse vectors
+        # required otherwise get error:
+
+            #         /home/joel/src/tscaleV2/toposcale/recapp_era5.py in fast1d(self, t_interp, z_interp, out_xyz)
+            #     437         lowN = [l-1 for l in n]
+            #     438 
+            # --> 439         upperT = t_interp[n,size]
+            #     440         upperZ = z_interp[n,size]
+            #     441         dG  = upperT-t_interp[lowN,size]#<0
+
+            # IndexError: index 16 is out of bounds for axis 0 with size 16
+
+        # if not np.all(np.diff(z_interp)>0):
+        #     t_interp=t_interp[::-1]
+        #     z_interp=z_interp[::-1]
 
 
 
@@ -654,10 +670,13 @@ class t3d_eda(t3d):
             pl_obs = fast1d(t_interp, z_interp, out_xyz_dem)
         """
         
-
+        # should be correct order but just in case
+        if not np.all(np.diff(z_interp)>0):
+            t_interp=t_interp[::-1,]
+            z_interp=z_interp[::-1,]
         # not reversed in EDA
-        t_interp=t_interp
-        z_interp=z_interp
+        # t_interp=t_interp
+        # z_interp=z_interp
         #t_interp=t_interp[::-1,]
         #z_interp=z_interp[::-1,]
 

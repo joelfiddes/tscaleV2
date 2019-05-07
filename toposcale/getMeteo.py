@@ -96,7 +96,7 @@ if (config["forcing"]["product"] == "ensemble_members"):
 	fe. eraCat5d(eraDir, "PLEV")
 
 
-cmd = ["Rscript",  config['main']['tscale_root']+"/tpCorrect.R",eraDir+ "tpmm.nc" , eraDir+ "SURF.nc"]
+cmd = ["Rscript",  config['main']['tscale_root']+"/tscaleV2/toposcale/tpCorrect.R",eraDir+ "tpmm.nc" , eraDir+ "SURF.nc"]
 subprocess.check_output(cmd)
 
 

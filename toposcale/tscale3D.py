@@ -122,25 +122,27 @@ def main(wdir, mode, start, end, dataset, member=None):
 	dtime = pd.to_datetime(nc.num2date(nctime[:],nctime.units, calendar="standard"))
 	starti = np.asscalar(np.where(dtime==start+' 00:00:00')[0])
 	endi = np.asscalar(np.where(dtime==end+' 00:00:00')[0])
-	dtime= dtime[starti:endi,]
+	dtime= dtime[(starti):endi,] # 
 	timesteps=len(dtime)
 
+	# DONT SUPPORT this now: potential source of error
+
 	# this dtime is only to check for different timesteps
-	f = nc.Dataset( surfile)
-	nctime = f.variables['time']
-	dtime2 = pd.to_datetime(nc.num2date(nctime[:],nctime.units, calendar="standard"))
-	starti2 = np.asscalar(np.where(dtime2==start+' 00:00:00')[0])
-	endi2 = np.asscalar(np.where(dtime2==end+' 00:00:00')[0])
-	dtime2= dtime2[starti2:endi2,]
-	timesteps2=len(dtime2)
+	# f = nc.Dataset( surfile)
+	# nctime = f.variables['time']
+	# dtime2 = pd.to_datetime(nc.num2date(nctime[:],nctime.units, calendar="standard"))
+	# starti2 = np.asscalar(np.where(dtime2==start+' 00:00:00')[0])
+	# endi2 = np.asscalar(np.where(dtime2==end+' 00:00:00')[0])
+	# dtime2= dtime2[starti2-1:endi2,]
+	# timesteps2=len(dtime2)
 
 	# catch cases of 3h plev and 1h surf
-	if len(dtime)!=len(dtime2):
-		print("resampling 1h surf data to 3h")
-		df =xr.open_dataset(surfile)
-		df2 =df.resample(time='3H').mean()
-		df2['tp']=df.tp*3
-		df2.to_netcdf(surfile)
+	# if len(dtime)!=len(dtime2):
+	# 	print("resampling 1h surf data to 3h")
+	# 	df =xr.open_dataset(surfile)
+	# 	df2 =df.resample(time='3H').mean()
+	# 	df2['tp']=df.tp*3
+	# 	df2.to_netcdf(surfile)
 
 	# constants
 	g=9.81
@@ -226,6 +228,17 @@ def main(wdir, mode, start, end, dataset, member=None):
 		wd =   (180 / np.pi) * np.arctan(u/v) + np.where(v>0,180,np.where(u>0,360,0))
 
 		tob = hp.Bunch(t=t,r=r,u=u, v=v, ws=ws,wd=wd, dtime=dtime)
+
+		# Physical filters
+
+		# constrain RH to 0-100 interval
+		# constrain r to interval 5-100 - do here as required by LWin parameterisation
+		tob.r[tob.r <5]=5
+		tob.r[tob.r>100]=100
+
+		tob.ws[tob.ws<0]=0
+
+
 		logging.info("made a tob!")
 		#===============================================================================
 		# tscale2d
