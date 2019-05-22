@@ -78,7 +78,7 @@ import time
 # dataset="HRES"
 # member=None
 
-def main(wdir, mode, start, end, dataset, member=None):
+def main(wdir,forcing, mode, start, end, dataset, member=None):
 
 
 	#Set up Log
@@ -99,8 +99,8 @@ def main(wdir, mode, start, end, dataset, member=None):
 	# make these names standard:
 	stationsfile= wdir+'/listpoints.txt'
 	demfile = wdir+'/predictors/ele.nc'
-	surfile=wdir+'/forcing/SURF.nc'
-	plevfile=wdir+ '/forcing/PLEV.nc'
+	surfile=forcing+'/SURF.nc'
+	plevfile=forcing+ '/PLEV.nc'
 	
 	# make out path for results
 	out = wdir+"/out/"
@@ -1101,9 +1101,10 @@ def main(wdir, mode, start, end, dataset, member=None):
 #===============================================================================
 if __name__ == '__main__':
 	wdir = sys.argv[1]
-	mode = sys.argv[2]
-	start = sys.argv[3]
-	end=sys.argv[4]
-	dataset=sys.argv[5]
-	member=sys.argv[6]
-	main(wdir, mode, start, end, dataset, member)
+	forcing= sys.argv[2]
+	mode = sys.argv[3]
+	start = sys.argv[4]
+	end=sys.argv[5]
+	dataset=sys.argv[6]
+	member=sys.argv[7]
+	main(wdir,forcing, mode, start, end, dataset, member)

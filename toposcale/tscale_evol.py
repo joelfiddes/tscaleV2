@@ -1,3 +1,6 @@
+# this script uses speed up of vectorised tscale in tscale3D and applies to tsub samples
+
+
 """
 3D toposcale of surface and pressurelevel fields including surface effects. Can be used to produce grids or point timeseries
 at specific locations with lon,lat. Not used by TopoSUB (1D interp).
@@ -59,7 +62,7 @@ import era5
 import tscale2d_era5_src as t2d
 import tscale3d_era5_src as t3d
 import time
-#import xarray as xr
+import xarray as xr
 #reload(t2d)
 #reload(t3d)
 
@@ -125,26 +128,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 	dtime= dtime[(starti):endi,] # 
 	timesteps=len(dtime)
 
-	# DONT SUPPORT this now: potential source of error
 
-	# this dtime is only to check for different timesteps
-	# f = nc.Dataset( surfile)
-	# nctime = f.variables['time']
-	# dtime2 = pd.to_datetime(nc.num2date(nctime[:],nctime.units, calendar="standard"))
-	# starti2 = np.asscalar(np.where(dtime2==start+' 00:00:00')[0])
-	# endi2 = np.asscalar(np.where(dtime2==end+' 00:00:00')[0])
-	# dtime2= dtime2[starti2-1:endi2,]
-	# timesteps2=len(dtime2)
-
-	# catch cases of 3h plev and 1h surf
-	# if len(dtime)!=len(dtime2):
-	# 	print("resampling 1h surf data to 3h")
-	# 	df =xr.open_dataset(surfile)
-	# 	df2 =df.resample(time='3H').mean()
-	# 	df2['tp']=df.tp*3
-	# 	df2.to_netcdf(surfile)
-
-	# constants
 	g=9.81
 
 	logging.info("Running "+ str(timesteps)+ " timesteps")
@@ -400,210 +384,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 		instRad(sob,3600)
 		tob.lwin = lwin(sob,tob)
 		logging.info("made lwin")
-		#===============================================================================
-		# Shortwave
-		#===============================================================================
-		#def swin2D(pob,sob,tob, stat, dates): # does not work yet (booleen indexing of 2d arraya fauiles as np.min returns single value when we need 161
-		#	
-		#	""" toposcale surface pressure using hypsometric equation - move to own 
-		#	class """
-		#	g=9.81
-		#	R=287.05  # Gas constant for dry air.
-		#	ztemp = pob.z
-		#	Ttemp = pob.t
-		#	statz = stat.ele*g
-		#	dz=ztemp.transpose()-statz[None,:,None] # transpose not needed but now consistent with CGC surface pressure equations
-
-		#	psf=[]
-		#	# loop through timesteps
-		#	for i in range(0,dz.shape[0]):
-		#		
-		#		# 	# find overlying layer
-		#		thisp = dz[i,0,:]==np.min(dz[i,0,:][dz[i,0,:]>0])
-		#		thispVec = thisp.T.reshape(thisp.size)
-		#		TtempVec = Ttemp.reshape(16*161, 20)
-
-		#		# booleen indexing
-		#		T1=TtempVec[thispVec,i]
-
-
-		#		T1=Ttemp[thisp.T,i]
-		#		z1=ztemp[thisp.T,i]
-		#		p1=pob.levels[thisp]*1e2 #Convert to Pa.
-		#		Tbar=np.mean([T1, tob.t[i]],axis=0)
-		#		""" Hypsometric equation."""
-		#		psf.append(p1*np.exp((z1-statz)*(g/(Tbar*R))))
-
-		#	psf=np.array(psf).squeeze()
-
-		#	## Specific humidity routine.
-		#	# mrvf=0.622.*vpf./(psf-vpf); #Mixing ratio for water vapor at subgrid.
-		#	#  qf=mrvf./(1+mrvf); # Specific humidity at subgrid [kg/kg].
-		#	# fout.q(:,:,n)=qf; 
-
-
-		#	""" Maybe follow Dubayah's approach (as in Rittger and Girotto) instead
-		#	for the shortwave downscaling, other than terrain effects. """
-
-		#	""" Height of the "grid" (coarse scale)"""
-		#	Zc=sob.z
-
-		#	""" toa """
-		#	SWtoa = sob.tisr 
-
-		#	""" Downwelling shortwave flux of the "grid" using nearest neighbor."""
-		#	SWc=sob.ssrd
-
-		#	"""Calculate the clearness index."""
-		#	kt=SWc/SWtoa
-
-		#	#kt[is.na(kt)==T]<-0 # make sure 0/0 =0
-		#	#kt[is.infinite(kt)==T]<-0 # make sure 0/0 =0
-		#	kt[kt<0]=0
-		#	kt[kt>1]=0.8 #upper limit of kt
-		#	kt=kt
-
-
-		#	"""
-		#	Calculate the diffuse fraction following the regression of Ruiz-Arias 2010 
-		#	
-		#	"""
-		#	kd=0.952-1.041*np.exp(-1*np.exp(2.3-4.702*kt))
-		#	kd = kd
-
-		#	""" Use this to calculate the downwelling diffuse and direct shortwave radiation at grid. """
-		#	SWcdiff=kd*SWc
-		#	SWcdir=(1-kd)*SWc
-		#	SWcdiff=SWcdiff
-		#	SWcdir=SWcdir
-
-		#	""" Use the above with the sky-view fraction to calculate the 
-		#	downwelling diffuse shortwave radiation at subgrid. """
-		#	SWfdiff=stat.svf*SWcdiff
-		#	SWfdiff.set_fill_value(0)
-		#	SWfdiff = SWfdiff.filled()
-
-		#	""" Direct shortwave routine, modified from Joel. 
-		#	Get surface pressure at "grid" (coarse scale). Can remove this
-		#	part once surface pressure field is downloaded, or just check
-		#	for existance. """
-
-		#	ztemp = pob.z
-		#	Ttemp = pob.t
-		#	dz=ztemp.transpose()-sob.z
-
-		#	psc=[]
-		#	for i in range(0,dz.shape[1]):
-		#	
-		#		#thisp.append(np.argmin(dz[:,i][dz[:,i]>0]))
-		#		thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
-		#		z0 = sob.z[i]
-		#		T0 = sob.t2m[i]
-		#		T1=Ttemp[i,thisp]
-		#		z1=ztemp[i,thisp]
-		#		p1=pob.levels[thisp]*1e2 #Convert to Pa.
-		#		Tbar=np.mean([T0, T1],axis=0)
-		#		""" Hypsometric equation."""
-		#		psc.append(p1*np.exp((z1-z0)*(g/(Tbar*R))))
-
-		#	psc=np.array(psc).squeeze()
-
-		#	#T1=Ttemp(thisp)
-		#	#z1=ztemp(thisp)
-		#	#p1=pob.levels(thisp)*1e2 #Convert to Pa.
-		#	#Tbar=mean([T0 T1])
-		#	
-		#	"""compute julian dates"""
-		#	jd= sg.to_jd(dates)
-
-		#	"""
-		#	Calculates a unit vector in the direction of the sun from the observer 
-		#	position.
-		#	"""
-		#	sunv=sg.sunvector(jd=jd, latitude=stat.lat, longitude=stat.lon, timezone=stat.tz)
-
-		#	"""
-		#	Computes azimuth , zenith  and sun elevation 
-		#	for each timestamp
-		#	"""
-		#	sp=sg.sunpos(sunv)
-		#	sp=sp
-
-		#	# Cosine of the zenith angle.
-		#	sp.zen=sp.zen
-		#	#sp.zen=sp.zen*(sp.zen>0) # Sun might be below the horizon.
-		#	muz=np.cos(sp.zen) 
-		#	muz = muz
-		#	# NB! psc must be in Pa (NOT hPA!).
-		#	#if np.max(psc<1.5e3): # Obviously not in Pa
-		#		#psc=psc*1e2
-		#   
-		#	
-		#	# Calculate the "broadband" absorption coefficient. Elevation correction
-		#	# from Kris
-		#	ka=(g*muz/(psc))*np.log(SWtoa/SWcdir)	
-		#	ka.set_fill_value(0)
-		#	ka = ka.filled()
-		#	# Note this equation is obtained by inverting Beer's law, i.e. use
-		#	#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
-		#	# Along with hydrostatic equation to convert to pressure coordinates then
-		#	# solve for ka using p(z=inf)=0.
-		#	
-		#	
-		#	# Now you can (finally) find the direct component at subgrid. 
-		#	SWfdir=SWtoa*np.exp(-ka*psf/(g*muz))
-
-		#	""" Then perform the terrain correction. [Corripio 2003 / rpackage insol port]."""
-
-		#	"""compute mean horizon elevation - why negative hor.el possible??? """
-		#	horel=(((np.arccos(np.sqrt(stat.svf))*180)/np.pi)*2)-stat.slp
-		#	if horel < 0:
-		#		horel = 0 
-		#	meanhorel = horel
-
-		#	"""
-		#	normal vector - Calculates a unit vector normal to a surface defined by 
-		#	slope inclination and slope orientation.
-		#	"""
-		#	nv = sg.normalvector(slope=stat.slp, aspect=stat.asp)
-
-		#	"""
-		#	Method 1: Computes the intensity according to the position of the sun (sunv) and 
-		#	dotproduct normal vector to slope.
-		#	From corripio r package
-		#	"""
-		#	dotprod=np.dot(sunv ,np.transpose(nv)) 
-		#	dprod = dotprod.squeeze()
-		#	dprod[dprod<0] = 0 #negative indicates selfshading
-		#	dprod = dprod
-
-		#	"""Method 2: Illumination angles. Dozier"""
-		#	saz=sp.azi
-		#	cosis=muz*np.cos(stat.slp)+np.sin(sp.zen)*np.sin(stat.slp)*np.cos(sp.azi-stat.asp)# cosine of illumination angle at subgrid.
-		#	cosic=muz # cosine of illumination angle at grid (slope=0).
-
-		#	"""
-		#	SUN ELEVATION below hor.el set to 0 - binary mask
-		#	"""
-		#	selMask = sp.sel
-		#	selMask[selMask<horel]=0
-		#	selMask[selMask>0]=1
-		#	selMask = selMask
-
-		#	"""
-		#	derive incident radiation on slope accounting for self shading and cast 
-		#	shadow and solar geometry
-		#	BOTH formulations seem to be broken
-		#	"""
-		#	#SWfdirCor=selMask*(cosis/cosic)*SWfdir
-		#	SWfdirCor=selMask*dprod*SWfdir
-		#   
-		#	SWfglob =  SWfdiff+ SWfdirCor
-		#	return SWfglob
-		#	""" 
-		#	Missing components
-		#	- terrain reflection
-		#	"""
+		
 		def swin1D(pob,sob,tob, stat, dates, index):
 				# many arrays transposed
 				""" toposcale surface pressure using hypsometric equation - move to own 
@@ -856,7 +637,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 				fileout=wdir+"/out/meteo"+str(i)+"_"+start+"_"+str(member+1)+"_.csv" # convert member index back to 1-10
 
 			if dataset=='HRES':
-				fileout=wdir+"/forcing/meteo"+"c"+str(i+1)+".csv" # convert member index back to 1-10
+				fileout=wdir+"/out/meteo"+"c"+str(i+1)+".csv" # convert member index back to 1-10
 			column_order = ['TA', 'RH', 'VW', 'DW', 'ILWR', 'ISWR', 'PINT', 'PSUM']
 			df[column_order].to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 		#logging.info(fileout + " complete")

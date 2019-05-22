@@ -120,7 +120,7 @@ for ( i in 1:length(a) ){
 		corVec = c(corVec, rep(corVec[length(corVec)], ntimes))
 		}
 	# timeseries for grid i of corrected 6 h data adjusted by monthly totals and scaled by timestep
-	corP = c(corP,tph_flat[i,]*corVec*6 )
+	corP = c(corP,tph_flat[i,]*corVec*timestep )
 }
 
 
@@ -129,7 +129,8 @@ corP_array2 = array(corP_array , dim = c(dim(tphr)[1] ,dim(tphr)[2], dim(tphr)[3
 
 ncvar_put( nc=nc1, varid='tp', vals=corP_array2, start=NA, count=NA, verbose=FALSE )
 
-print(paste("Original domain wide totals multiplied by timestep (rough scaling)=", round(sum(tphr)*6,0), "m"))
+print(paste("timestep=", timestep))
+print(paste("Original domain wide totals multiplied by timestep (rough scaling)=", round(sum(tphr)*timestep,0), "m"))
 print(paste("Monthly totals=", round(sum(tpmm3),0), "m"))
 print(paste("New totals after correction=", round(sum(corP_array2),0), "m"))
 #print(mean(unlist(cfl), na.rm=T))
