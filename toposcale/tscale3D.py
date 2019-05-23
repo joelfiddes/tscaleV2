@@ -397,7 +397,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 			LWf=aef*sbc*tob.t**4
 			return(LWf)
 
-		instRad(sob,3600)
+		instRad(sob,3600) # 1h is used as even tho we use 3h or 6h data the value is accumulated over 1h - we do not lose budget in same way as P.
 		tob.lwin = lwin(sob,tob)
 		logging.info("made lwin")
 		#===============================================================================
@@ -856,7 +856,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 				fileout=wdir+"/out/meteo"+str(i)+"_"+start+"_"+str(member+1)+"_.csv" # convert member index back to 1-10
 
 			if dataset=='HRES':
-				fileout=wdir+"/forcing/meteo"+"c"+str(i+1)+".csv" # convert member index back to 1-10
+				fileout=wdir+"/out/meteo"+"c"+str(i+1)+start+".csv" # convert member index back to 1-10
 			column_order = ['TA', 'RH', 'VW', 'DW', 'ILWR', 'ISWR', 'PINT', 'PSUM']
 			df[column_order].to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 		#logging.info(fileout + " complete")
@@ -867,6 +867,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 		#===============================================================================
 	if mode=="grid":
 		logging.info("Running TopoSCALE3D grid")
+		writegrid='False'
 		#===============================================================================
 		# tscale3d
 		#===============================================================================
@@ -874,7 +875,9 @@ def main(wdir, mode, start, end, dataset, member=None):
 		
 		t = t3d.main( wdir, 'grid', 't', starti,endi,dataset)
 		r = t3d.main( wdir, 'grid', 'r', starti,endi,dataset)
-		gtob = hp.Bunch(t=t,r=r, dtime=dtime)
+		u = t3d.main( wdir, 'grid', 'u', starti,endi,dataset)
+		v = t3d.main( wdir, 'grid', 'v', starti,endi,dataset)
+		gtob = hp.Bunch(t=t,r=r,u=u,v=v, dtime=dtime)
 
 		#===============================================================================
 		# tscale2d
@@ -949,31 +952,34 @@ def main(wdir, mode, start, end, dataset, member=None):
 		dem  = nc.Dataset(demfile)
 		lon = dem.variables['lon'][:]
 		lat = dem.variables['lat'][:]
-		# These packages problem on cluster
-		from osgeo import gdal
-		from osgeo import gdal_array
-		from osgeo import osr
 
-		for i in range(0, grid_prate.shape[2]):
 
-			myname=wdir+'/out/prate'+str(i)+'.tif'
-			array = grid_prate[::-1,:,i]
-			#lat = out_xyz_dem[:,0].reshape(l.shape)
-			#lon = out_xyz_dem[:,1].reshape(l.shape)
+		# if writegrid=="True":
+		# 	# These packages problem on cluster
+		# 	from osgeo import gdal
+		# 	from osgeo import gdal_array
+		# 	from osgeo import osr
 
-			xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
-			nrows,ncols = np.shape(array)
-			xres = (xmax-xmin)/float(ncols)
-			yres = (ymax-ymin)/float(nrows)
-			geotransform=(xmin,xres,0,ymax,0, -yres)   
+		# 	for i in range(0, grid_prate.shape[2]):
 
-			output_raster = gdal.GetDriverByName('GTiff').Create(myname,ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
-			output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
-			output_raster.SetGeoTransform(geotransform)# Specify its coordinates
-			srs = osr.SpatialReference()# Establish its coordinate encoding
-			srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
-			output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
-			output_raster = None
+		# 		myname=wdir+'/out/prate'+str(i)+'.tif'
+		# 		array = grid_prate[::-1,:,i]
+		# 		#lat = out_xyz_dem[:,0].reshape(l.shape)
+		# 		#lon = out_xyz_dem[:,1].reshape(l.shape)
+
+		# 		xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+		# 		nrows,ncols = np.shape(array)
+		# 		xres = (xmax-xmin)/float(ncols)
+		# 		yres = (ymax-ymin)/float(nrows)
+		# 		geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+		# 		output_raster = gdal.GetDriverByName('GTiff').Create(myname,ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
+		# 		output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
+		# 		output_raster.SetGeoTransform(geotransform)# Specify its coordinates
+		# 		srs = osr.SpatialReference()# Establish its coordinate encoding
+		# 		srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
+		# 		output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
+		# 		output_raster = None
 
 		# for i in range(0, t.shape[2]):
 
@@ -1068,33 +1074,211 @@ def main(wdir, mode, start, end, dataset, member=None):
 		dem  = nc.Dataset(demfile)
 		lon = dem.variables['lon'][:]
 		lat = dem.variables['lat'][:]
-		# These packages problem on cluster
-		from osgeo import gdal
-		from osgeo import gdal_array
-		from osgeo import osr
 
-		for i in range(0, t.shape[2]):
 
-			myname=wdir+'/out/lwin'+str(i)+'.tif'
-			array = t[:,:,i]
-			#lat = out_xyz_dem[:,0].reshape(l.shape)
-			#lon = out_xyz_dem[:,1].reshape(l.shape)
+		# IF WANT TIFFS GENERATE FROM NETCDF in R
+		# if writegrid=="True":
+		# 	# These packages problem on cluster
+		# 	#from osgeo import gdal
+		# 	#from osgeo import gdal_array
+		# 	#from osgeo import osr
 
-			xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
-			nrows,ncols = np.shape(array)
-			xres = (xmax-xmin)/float(ncols)
-			yres = (ymax-ymin)/float(nrows)
-			geotransform=(xmin,xres,0,ymax,0, -yres)   
+		# 	for i in range(0, t.shape[2]):
 
-			output_raster = gdal.GetDriverByName('GTiff').Create(myname,ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
-			output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
-			output_raster.SetGeoTransform(geotransform)# Specify its coordinates
-			srs = osr.SpatialReference()# Establish its coordinate encoding
-			srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
-			output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
-			output_raster = None
+		# 		myname=wdir+'/out/lwin'+str(i)+'.tif'
+		# 		array = t[:,:,i]
+		# 		#lat = out_xyz_dem[:,0].reshape(l.shape)
+		# 		#lon = out_xyz_dem[:,1].reshape(l.shape)
+
+		# 		xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+		# 		nrows,ncols = np.shape(array)
+		# 		xres = (xmax-xmin)/float(ncols)
+		# 		yres = (ymax-ymin)/float(nrows)
+		# 		geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+		# 		output_raster = gdal.GetDriverByName('GTiff').Create(myname,ncols, nrows, 1 ,gdal.GDT_Float32)# Open the file
+		# 		output_raster.GetRasterBand(1).WriteArray( array )  # Writes my array to the raster
+		# 		output_raster.SetGeoTransform(geotransform)# Specify its coordinates
+		# 		srs = osr.SpatialReference()# Establish its coordinate encoding
+		# 		srs.ImportFromEPSG(4326)   # This one specifies WGS84 lat long.
+		# 		output_raster.SetProjection(srs.ExportToWkt())# Exports the coordinate system 
+		# 		output_raster = None
+
+
+
+
+	#http://pyhogs.github.io/intro_netcdf4.html
+
+	
+
+	ntime = len(dtime)
+	a =(dtime[1]-dtime[0])
+	stephr =a.seconds/60/60
+	rtime=np.array(range(len(dtime)))*stephr
+
+
+
+	## Longwave
+
+	#open
+	f = nc.Dataset('lwin.nc','w', format='NETCDF4')
+
+
+	#make dimensions
+	f.createDimension('time', ntime)
+	f.createDimension('lat', len(lat))
+	f.createDimension('lon', len(lon))
+
+	#make dimension variables
+	mytime = f.createVariable('time', 'i', ('time',))
+	latitude  = f.createVariable('lat',    'f4',('lat',))
+	longitude = f.createVariable('lon',    'f4',('lon',))
+	lwin = f.createVariable('lwin',    'f4',('lat','lon','time'))
+
+	#assign dimensions
+	mytime[:] = rtime
+	latitude[:]  = lat
+	longitude[:] = lon
+	lwin[:] = np.flip(ts_lwin, 0)
+	
+			#metadata
+	f.history = 'Created by toposcale on '+time.ctime()
+	mytime.units = 'hours since '+str(dtime[0])
+
+	f.close()
+
+	## ta
+	
+	#open
+	f = nc.Dataset('ta.nc','w', format='NETCDF4')
+	#make dimensions
+	f.createDimension('time', ntime)
+	f.createDimension('lat', len(lat))
+	f.createDimension('lon', len(lon))
+
+	#make dimension variables
+	mytime = f.createVariable('time', 'i', ('time',))
+	latitude  = f.createVariable('lat',    'f4',('lat',))
+	longitude = f.createVariable('lon',    'f4',('lon',))
+	lwin = f.createVariable('ta',    'f4',('lat','lon','time'))
+
+	#assign dimensions
+	mytime[:] = rtime
+	latitude[:]  = lat
+	longitude[:] = lon
+	lwin[:] = np.flip(gtob.t,0)
+	
+	#metadata
+	f.history = 'Created by toposcale on '+time.ctime()
+	mytime.units = 'hours since '+str(dtime[0])
+
+	f.close()
+
+	# rh
+	
+	f = nc.Dataset('rh.nc','w', format='NETCDF4')
+	#make dimensions
+	f.createDimension('time', ntime)
+	f.createDimension('lat', len(lat))
+	f.createDimension('lon', len(lon))
+
+	#make dimension variables
+	mytime = f.createVariable('time', 'i', ('time',))
+	latitude  = f.createVariable('lat',    'f4',('lat',))
+	longitude = f.createVariable('lon',    'f4',('lon',))
+	lwin = f.createVariable('rh',    'f4',('lat','lon','time'))
+
+	#assign dimensions
+	mytime[:] = rtime
+	latitude[:]  = lat
+	longitude[:] = lon
+	lwin[:] = np.flip(gtob.r,0)
+	
+	#metadata
+	f.history = 'Created by toposcale on '+time.ctime()
+	mytime.units = 'hours since '+str(dtime[0])
+
+	f.close()
+
+	# rh
+	
+	f = nc.Dataset('.nc','w', format='NETCDF4')
+	#make dimensions
+	f.createDimension('time', ntime)
+	f.createDimension('lat', len(lat))
+	f.createDimension('lon', len(lon))
+
+	#make dimension variables
+	mytime = f.createVariable('time', 'i', ('time',))
+	latitude  = f.createVariable('lat',    'f4',('lat',))
+	longitude = f.createVariable('lon',    'f4',('lon',))
+	lwin = f.createVariable('u',    'f4',('lat','lon','time'))
+
+	#assign dimensions
+	mytime[:] = rtime
+	latitude[:]  = lat
+	longitude[:] = lon
+	lwin[:] = np.flip(gtob.u,0)
+	
+	#metadata
+	f.history = 'Created by toposcale on '+time.ctime()
+	mytime.units = 'hours since '+str(dtime[0])
+
+	f.close()
+
+		# rh
+	
+	f = nc.Dataset('v.nc','w', format='NETCDF4')
+	#make dimensions
+	f.createDimension('time', ntime)
+	f.createDimension('lat', len(lat))
+	f.createDimension('lon', len(lon))
+
+	#make dimension variables
+	mytime = f.createVariable('time', 'i', ('time',))
+	latitude  = f.createVariable('lat',    'f4',('lat',))
+	longitude = f.createVariable('lon',    'f4',('lon',))
+	lwin = f.createVariable('v',    'f4',('lat','lon','time'))
+
+	#assign dimensions
+	mytime[:] = rtime
+	latitude[:]  = lat
+	longitude[:] = lon
+	lwin[:] = np.flip(gtob.v,0)
+	
+	#metadata
+	f.history = 'Created by toposcale on '+time.ctime()
+	mytime.units = 'hours since '+str(dtime[0])
+
+	f.close()
+
+	f = nc.Dataset('PINT.nc','w', format='NETCDF4')
+	#make dimensions
+	f.createDimension('time', ntime)
+	f.createDimension('lat', len(lat))
+	f.createDimension('lon', len(lon))
+
+	#make dimension variables
+	mytime = f.createVariable('time', 'i', ('time',))
+	latitude  = f.createVariable('lat',    'f4',('lat',))
+	longitude = f.createVariable('lon',    'f4',('lon',))
+	lwin = f.createVariable('pint',    'f4',('lat','lon','time'))
+
+	#assign dimensions
+	mytime[:] = rtime
+	latitude[:]  = lat
+	longitude[:] = lon
+	lwin[:] = np.flip(grid_prate,0)
+	
+	#metadata
+	f.history = 'Created by toposcale on '+time.ctime()
+	mytime.units = 'hours since '+str(dtime[0])
+
+	f.close()
 	logging.info("Toposcale complete!")
 	logging.info("%f minutes" % round((time.time()/60 - start_time/60),2) )
+
+
 
 #===============================================================================
 #	Calling Main

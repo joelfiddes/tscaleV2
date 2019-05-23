@@ -135,7 +135,7 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 			df=pd.DataFrame(sa_vec.T)
 			df.to_csv(wdir+"points_"+var+".csv")
 
-		print(" %f minutes for total run" % round((time.time()/60 - start_time/60),2) )
+		print(" %f minutes for total run of " + var % round((time.time()/60 - start_time/60),2) )
 		return sa_vec.T
 
 	# Benchmark
@@ -181,7 +181,7 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 		print(" %f minutes for run" % round((time.time()/60 - start_time/60),2) )
 
 		# for testing
-		plot='False'
+		plot='True'
 		if plot=="True":
 			import myplot
 			l = a.mean(axis=(2))
