@@ -165,7 +165,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 		#open points
 		mystations=pd.read_csv(stationsfile)
 	#===============================================================================
-	# make a pob hack
+	# make a pob hack - required as input to swin routine
 	#===============================================================================
 
 		import recapp_era5 as rc
@@ -397,213 +397,241 @@ def main(wdir, mode, start, end, dataset, member=None):
 			LWf=aef*sbc*tob.t**4
 			return(LWf)
 
-		instRad(sob,3600) # 1h is used as even tho we use 3h or 6h data the value is accumulated over 1h - we do not lose budget in same way as P.
+		instRad(sob,3600) # 1h is used as even tho we use 3h or 6h data the value is accumulated over 1h - we do not lose budget in same way as P, just resolution.
 		tob.lwin = lwin(sob,tob)
 		logging.info("made lwin")
 		#===============================================================================
-		# Shortwave
+		# Shortwave -vectorise!!
 		#===============================================================================
-		#def swin2D(pob,sob,tob, stat, dates): # does not work yet (booleen indexing of 2d arraya fauiles as np.min returns single value when we need 161
-		#	
-		#	""" toposcale surface pressure using hypsometric equation - move to own 
-		#	class """
-		#	g=9.81
-		#	R=287.05  # Gas constant for dry air.
-		#	ztemp = pob.z
-		#	Ttemp = pob.t
-		#	statz = stat.ele*g
-		#	dz=ztemp.transpose()-statz[None,:,None] # transpose not needed but now consistent with CGC surface pressure equations
+		def swin2D(pob,sob,tob, stat, dates): # does not work yet (booleen indexing of 2d arraya fauiles as np.min returns single value when we need 161
+			
+			""" toposcale surface pressure using hypsometric equation - move to own 
+			class """
+			g=9.81
+			R=287.05  # Gas constant for dry air.
+			#ztemp = pob.z # geopotential height b = np.transpose(a, (2, 0, 1))
+			ztemp = np.transpose(pob.z, (2, 0, 1))
+			#Ttemp = pob.t
+			Ttemp = np.transpose(pob.t, (2, 0, 1))
+			statz = np.array(stat.ele)*g
+			#dz=ztemp.transpose()-statz[None,:,None] # transpose not needed but now consistent with CGC surface pressure equations
+			dz=ztemp-statz # dimensions of dz : time, levels, stations
+			
+			# set all levels below surface to very big number so they canot be found by min
+			newdz=dz
+			newdz[newdz<0]=999999
+			
+			psf =np.zeros( (dates.size, statz.shape[0]) )
 
-		#	psf=[]
-		#	# loop through timesteps
-		#	for i in range(0,dz.shape[0]):
-		#		
-		#		# 	# find overlying layer
-		#		thisp = dz[i,0,:]==np.min(dz[i,0,:][dz[i,0,:]>0])
-		#		thispVec = thisp.T.reshape(thisp.size)
-		#		TtempVec = Ttemp.reshape(16*161, 20)
+			# loop through timesteps
+			for i in range(0,dates.size):
+				
+				# find overlying layer
+				thisp = dz[i,:,:]==np.min(newdz[i,:,:],axis=0) # thisp is a booleen matrix of levels x stations with true indicating overlying plevel over station surface ele
 
-		#		# booleen indexing
-		#		T1=TtempVec[thispVec,i]
-
-
-		#		T1=Ttemp[thisp.T,i]
-		#		z1=ztemp[thisp.T,i]
-		#		p1=pob.levels[thisp]*1e2 #Convert to Pa.
-		#		Tbar=np.mean([T1, tob.t[i]],axis=0)
-		#		""" Hypsometric equation."""
-		#		psf.append(p1*np.exp((z1-statz)*(g/(Tbar*R))))
-
-		#	psf=np.array(psf).squeeze()
-
-		#	## Specific humidity routine.
-		#	# mrvf=0.622.*vpf./(psf-vpf); #Mixing ratio for water vapor at subgrid.
-		#	#  qf=mrvf./(1+mrvf); # Specific humidity at subgrid [kg/kg].
-		#	# fout.q(:,:,n)=qf; 
+				# flatten to 1 dimension order='Fortran' or row major
+				thispVec =thisp.reshape(thisp.size,order='F')
+				TtempVec = Ttemp.reshape(Ttemp.shape[0], Ttemp.shape[1]*Ttemp.shape[2], order='F')
+				ztempVec = ztemp.reshape(ztemp.shape[0], ztemp.shape[1]*ztemp.shape[2], order='F')
+				
+				# booleen indexing to find temp and geopotential that correspond to lowesest overlying layer
+				T1=TtempVec[i,thispVec]
+				z1=ztempVec[i,thispVec]
 
 
-		#	""" Maybe follow Dubayah's approach (as in Rittger and Girotto) instead
-		#	for the shortwave downscaling, other than terrain effects. """
+				p1=np.tile(pob.levels[::-1],statz.shape[0])[thispvec]*1e2 #Convert to Pa. Reverse levels to ensure low ele (hig pressure) to high elel (low pressure)
+				Tbar=np.mean([T1, tob.t[i, :]],axis=0) # temperature midway between surface (toposcale T) and loweset overlying level (T1)
+				""" Hypsometric equation.""" #P1 is above surface is this correct? Yes!
+				psf[i,:]=(p1*np.exp((z1-statz)*(g/(Tbar*R)))) # exponent is positive ie increases pressure as surface is lower than pressure level
 
-		#	""" Height of the "grid" (coarse scale)"""
-		#	Zc=sob.z
-
-		#	""" toa """
-		#	SWtoa = sob.tisr 
-
-		#	""" Downwelling shortwave flux of the "grid" using nearest neighbor."""
-		#	SWc=sob.ssrd
-
-		#	"""Calculate the clearness index."""
-		#	kt=SWc/SWtoa
-
-		#	#kt[is.na(kt)==T]<-0 # make sure 0/0 =0
-		#	#kt[is.infinite(kt)==T]<-0 # make sure 0/0 =0
-		#	kt[kt<0]=0
-		#	kt[kt>1]=0.8 #upper limit of kt
-		#	kt=kt
+			#psf=np.array(psf).squeeze()
 
 
-		#	"""
-		#	Calculate the diffuse fraction following the regression of Ruiz-Arias 2010 
-		#	
-		#	"""
-		#	kd=0.952-1.041*np.exp(-1*np.exp(2.3-4.702*kt))
-		#	kd = kd
 
-		#	""" Use this to calculate the downwelling diffuse and direct shortwave radiation at grid. """
-		#	SWcdiff=kd*SWc
-		#	SWcdir=(1-kd)*SWc
-		#	SWcdiff=SWcdiff
-		#	SWcdir=SWcdir
 
-		#	""" Use the above with the sky-view fraction to calculate the 
-		#	downwelling diffuse shortwave radiation at subgrid. """
-		#	SWfdiff=stat.svf*SWcdiff
-		#	SWfdiff.set_fill_value(0)
-		#	SWfdiff = SWfdiff.filled()
+			## Specific humidity routine.
+			# mrvf=0.622.*vpf./(psf-vpf); #Mixing ratio for water vapor at subgrid.
+			#  qf=mrvf./(1+mrvf); # Specific humidity at subgrid [kg/kg].
+			# fout.q(:,:,n)=qf; 
 
-		#	""" Direct shortwave routine, modified from Joel. 
-		#	Get surface pressure at "grid" (coarse scale). Can remove this
-		#	part once surface pressure field is downloaded, or just check
-		#	for existance. """
 
-		#	ztemp = pob.z
-		#	Ttemp = pob.t
-		#	dz=ztemp.transpose()-sob.z
+			""" Maybe follow Dubayah's approach (as in Rittger and Girotto) instead
+			for the shortwave downscaling, other than terrain effects. """
 
-		#	psc=[]
-		#	for i in range(0,dz.shape[1]):
-		#	
-		#		#thisp.append(np.argmin(dz[:,i][dz[:,i]>0]))
-		#		thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
-		#		z0 = sob.z[i]
-		#		T0 = sob.t2m[i]
-		#		T1=Ttemp[i,thisp]
-		#		z1=ztemp[i,thisp]
-		#		p1=pob.levels[thisp]*1e2 #Convert to Pa.
-		#		Tbar=np.mean([T0, T1],axis=0)
-		#		""" Hypsometric equation."""
-		#		psc.append(p1*np.exp((z1-z0)*(g/(Tbar*R))))
+			""" Height of the "grid" (coarse scale)"""
+			Zc=sob.z
 
-		#	psc=np.array(psc).squeeze()
+			""" toa """
+			SWtoa = sob.tisr 
 
-		#	#T1=Ttemp(thisp)
-		#	#z1=ztemp(thisp)
-		#	#p1=pob.levels(thisp)*1e2 #Convert to Pa.
-		#	#Tbar=mean([T0 T1])
-		#	
-		#	"""compute julian dates"""
-		#	jd= sg.to_jd(dates)
+			""" Downwelling shortwave flux of the "grid" using nearest neighbor."""
+			SWc=sob.ssrd
 
-		#	"""
-		#	Calculates a unit vector in the direction of the sun from the observer 
-		#	position.
-		#	"""
-		#	sunv=sg.sunvector(jd=jd, latitude=stat.lat, longitude=stat.lon, timezone=stat.tz)
+			"""Calculate the clearness index."""
+			kt=SWc/SWtoa
 
-		#	"""
-		#	Computes azimuth , zenith  and sun elevation 
-		#	for each timestamp
-		#	"""
-		#	sp=sg.sunpos(sunv)
-		#	sp=sp
+			#kt[is.na(kt)==T]<-0 # make sure 0/0 =0
+			#kt[is.infinite(kt)==T]<-0 # make sure 0/0 =0
+			kt[kt<0]=0
+			kt[kt>1]=0.8 #upper limit of kt
+			kt=kt
 
-		#	# Cosine of the zenith angle.
-		#	sp.zen=sp.zen
-		#	#sp.zen=sp.zen*(sp.zen>0) # Sun might be below the horizon.
-		#	muz=np.cos(sp.zen) 
-		#	muz = muz
-		#	# NB! psc must be in Pa (NOT hPA!).
-		#	#if np.max(psc<1.5e3): # Obviously not in Pa
-		#		#psc=psc*1e2
-		#   
-		#	
-		#	# Calculate the "broadband" absorption coefficient. Elevation correction
-		#	# from Kris
-		#	ka=(g*muz/(psc))*np.log(SWtoa/SWcdir)	
-		#	ka.set_fill_value(0)
-		#	ka = ka.filled()
-		#	# Note this equation is obtained by inverting Beer's law, i.e. use
-		#	#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
-		#	# Along with hydrostatic equation to convert to pressure coordinates then
-		#	# solve for ka using p(z=inf)=0.
-		#	
-		#	
-		#	# Now you can (finally) find the direct component at subgrid. 
-		#	SWfdir=SWtoa*np.exp(-ka*psf/(g*muz))
 
-		#	""" Then perform the terrain correction. [Corripio 2003 / rpackage insol port]."""
+			"""
+			Calculate the diffuse fraction following the regression of Ruiz-Arias 2010 
+			
+			"""
+			kd=0.952-1.041*np.exp(-1*np.exp(2.3-4.702*kt))
+			kd = kd
 
-		#	"""compute mean horizon elevation - why negative hor.el possible??? """
-		#	horel=(((np.arccos(np.sqrt(stat.svf))*180)/np.pi)*2)-stat.slp
-		#	if horel < 0:
-		#		horel = 0 
-		#	meanhorel = horel
+			""" Use this to calculate the downwelling diffuse and direct shortwave radiation at grid. """
+			SWcdiff=kd*SWc
+			SWcdir=(1-kd)*SWc
+			SWcdiff=SWcdiff
+			SWcdir=SWcdir
 
-		#	"""
-		#	normal vector - Calculates a unit vector normal to a surface defined by 
-		#	slope inclination and slope orientation.
-		#	"""
-		#	nv = sg.normalvector(slope=stat.slp, aspect=stat.asp)
+			""" Use the above with the sky-view fraction to calculate the 
+			downwelling diffuse shortwave radiation at subgrid. """
+			SWfdiff=np.array(stat.svf)*SWcdiff
+			SWfdiff = np.nan_to_num(SWfdiff) # convert nans (night) to 0
 
-		#	"""
-		#	Method 1: Computes the intensity according to the position of the sun (sunv) and 
-		#	dotproduct normal vector to slope.
-		#	From corripio r package
-		#	"""
-		#	dotprod=np.dot(sunv ,np.transpose(nv)) 
-		#	dprod = dotprod.squeeze()
-		#	dprod[dprod<0] = 0 #negative indicates selfshading
-		#	dprod = dprod
+			""" Direct shortwave routine, modified from Joel. 
+			Get surface pressure at "grid" (coarse scale). Can remove this
+			part once surface pressure field is downloaded, or just check
+			for existance. """
 
-		#	"""Method 2: Illumination angles. Dozier"""
-		#	saz=sp.azi
-		#	cosis=muz*np.cos(stat.slp)+np.sin(sp.zen)*np.sin(stat.slp)*np.cos(sp.azi-stat.asp)# cosine of illumination angle at subgrid.
-		#	cosic=muz # cosine of illumination angle at grid (slope=0).
+			#ztemp = pob.z
+			#Ttemp = pob.t
+			#dz=ztemp.transpose()-sob.z
 
-		#	"""
-		#	SUN ELEVATION below hor.el set to 0 - binary mask
-		#	"""
-		#	selMask = sp.sel
-		#	selMask[selMask<horel]=0
-		#	selMask[selMask>0]=1
-		#	selMask = selMask
+			ztemp = np.transpose(pob.z, (0, 2, 1))
+			Ttemp = np.transpose(pob.t, (0, 2, 1))
+			dz=ztemp-sob.z # dimensions of dz : levels, time, stations
 
-		#	"""
-		#	derive incident radiation on slope accounting for self shading and cast 
-		#	shadow and solar geometry
-		#	BOTH formulations seem to be broken
-		#	"""
-		#	#SWfdirCor=selMask*(cosis/cosic)*SWfdir
-		#	SWfdirCor=selMask*dprod*SWfdir
-		#   
-		#	SWfglob =  SWfdiff+ SWfdirCor
-		#	return SWfglob
-		#	""" 
-		#	Missing components
-		#	- terrain reflection
-		#	"""
+			# set all levels below surface to very big number so they canot be found by min
+			newdz=dz
+			newdz[newdz<0]=999999
+
+			psc =np.zeros( (dates.size, statz.shape[0]) )
+			for i in range(0,dates.size):
+			
+				#thisp.append(np.argmin(dz[:,i][dz[:,i]>0]))
+				# find overlying layer
+				thisp = dz[:,i,:]==np.min(newdz[:,i,:],axis=0) # thisp is a booleen matrix of levels x stations with true indicating overlying plevel over station surface ele !! time index in middle this time!!!
+				z0 = sob.z[i,:]
+				T0 = sob.t2m[i,:]
+
+				# flatten to 1 dimension order='Fortran' or row major
+				thispVec =thisp.reshape(thisp.size,order='F')
+				TtempVec = Ttemp.reshape(Ttemp.shape[1], Ttemp.shape[0]*Ttemp.shape[2], order='F') # !! order of permutations is different from pressure at finegrid routine (time is middle dimension)
+				ztempVec = ztemp.reshape(ztemp.shape[1], ztemp.shape[0]*ztemp.shape[2], order='F')# !! order of permutations is different from pressure at finegrid routine (time is middle dimension)
+				
+				# booleen indexing to find temp and geopotential that correspond to lowesest overlying layer
+				T1=TtempVec[i,thispVec]
+				z1=ztempVec[i,thispVec]
+
+				p1=np.tile(pob.levels[::-1],statz.shape[0])[thispvec]*1e2 #Convert to Pa.
+				Tbar=np.mean([T0, T1],axis=0)
+				""" Hypsometric equation."""
+				psc[i,:] = (p1*np.exp((z1-z0)*(g/(Tbar*R))))
+
+
+			
+			"""compute julian dates"""
+			jd= sg.to_jd(dates)
+
+			"""
+			Calculates a unit vector in the direction of the sun from the observer 
+			position.
+			"""
+			#sunv=sg.sunvector(jd=jd, latitude=stat.lat, longitude=stat.lon, timezone=stat.tz)
+			svx,svy,svz =	sg.sunvectorMD(jd=jd, latitude=stat.lat, longitude=stat.lon, timezone=stat.tz)
+			"""
+			Computes azimuth , zenith  and sun elevation 
+			for each timestamp
+			"""
+			sp=sg.sunpos(sunv)
+			sp=sp
+
+			# Cosine of the zenith angle.
+			sp.zen=sp.zen
+			#sp.zen=sp.zen*(sp.zen>0) # Sun might be below the horizon.
+			muz=np.cos(sp.zen) 
+			muz = muz
+			# NB! psc must be in Pa (NOT hPA!).
+			#if np.max(psc<1.5e3): # Obviously not in Pa
+				#psc=psc*1e2
+		  
+			
+			# Calculate the "broadband" absorption coefficient. Elevation correction
+			# from Kris
+			ka=(g*muz/(psc))*np.log(SWtoa/SWcdir)	
+			ka.set_fill_value(0)
+			ka = ka.filled()
+			# Note this equation is obtained by inverting Beer's law, i.e. use
+			#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
+			# Along with hydrostatic equation to convert to pressure coordinates then
+			# solve for ka using p(z=inf)=0.
+			
+			
+			# Now you can (finally) find the direct component at subgrid. 
+			SWfdir=SWtoa*np.exp(-ka*psf/(g*muz))
+
+			""" Then perform the terrain correction. [Corripio 2003 / rpackage insol port]."""
+
+			"""compute mean horizon elevation - why negative hor.el possible??? """
+			horel=(((np.arccos(np.sqrt(stat.svf))*180)/np.pi)*2)-stat.slp
+			if horel < 0:
+				horel = 0 
+			meanhorel = horel
+
+			"""
+			normal vector - Calculates a unit vector normal to a surface defined by 
+			slope inclination and slope orientation.
+			"""
+			nv = sg.normalvector(slope=stat.slp, aspect=stat.asp)
+
+			"""
+			Method 1: Computes the intensity according to the position of the sun (sunv) and 
+			dotproduct normal vector to slope.
+			From corripio r package
+			"""
+			dotprod=np.dot(sunv ,np.transpose(nv)) 
+			dprod = dotprod.squeeze()
+			dprod[dprod<0] = 0 #negative indicates selfshading
+			dprod = dprod
+
+			"""Method 2: Illumination angles. Dozier"""
+			saz=sp.azi
+			cosis=muz*np.cos(stat.slp)+np.sin(sp.zen)*np.sin(stat.slp)*np.cos(sp.azi-stat.asp)# cosine of illumination angle at subgrid.
+			cosic=muz # cosine of illumination angle at grid (slope=0).
+
+			"""
+			SUN ELEVATION below hor.el set to 0 - binary mask
+			"""
+			selMask = sp.sel
+			selMask[selMask<horel]=0
+			selMask[selMask>0]=1
+			selMask = selMask
+
+			"""
+			derive incident radiation on slope accounting for self shading and cast 
+			shadow and solar geometry
+			BOTH formulations seem to be broken
+			"""
+			#SWfdirCor=selMask*(cosis/cosic)*SWfdir
+			SWfdirCor=selMask*dprod*SWfdir
+		  
+			SWfglob =  SWfdiff+ SWfdirCor
+			return SWfglob
+			""" 
+			Missing components
+			- terrain reflection
+			"""
+
+		#===============================================================================
+		# Shortwave - loop
+		#===============================================================================
 		def swin1D(pob,sob,tob, stat, dates, index):
 				# many arrays transposed
 				""" toposcale surface pressure using hypsometric equation - move to own 
@@ -694,7 +722,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 				dz=ztemp.transpose()-sob.z[:,index]
 
 				psc=[]
-				for i in range(0,dz.shape[1]):
+				for i in range(0,dates.size):
 				
 					#thisp.append(np.argmin(dz[:,i][dz[:,i]>0]))
 					thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
@@ -814,7 +842,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 		ntimestamps=dtime.shape[0]
 		ts_swin = np.zeros((ntimestamps))
 		for stationi in range(0, mystations.shape[0]):
-
+			print stationi 
 			'''here we test for array full of NaNs due to points being 
 			outside of grid. The NaN arrays are created in the 
 			interpolation but only break the code here. If array is
@@ -831,7 +859,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 		# drop init row
 		tob.swin =ts_swin[:,1:]
-		
+		logging.info("Made Swin")
 		#===============================================================================
 		# make dataframe (write individual files plus netcdf)
 		#==============================================================================
@@ -1111,170 +1139,173 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 	
 
-	ntime = len(dtime)
-	a =(dtime[1]-dtime[0])
-	stephr =a.seconds/60/60
-	rtime=np.array(range(len(dtime)))*stephr
+		ntime = len(dtime)
+		a =(dtime[1]-dtime[0])
+		stephr =a.seconds/60/60
+		rtime=np.array(range(len(dtime)))*stephr
 
 
 
-	## Longwave
+		## Longwave
 
-	#open
-	f = nc.Dataset('lwin.nc','w', format='NETCDF4')
+		#open
+		f = nc.Dataset('lwin.nc','w', format='NETCDF4')
 
 
-	#make dimensions
-	f.createDimension('time', ntime)
-	f.createDimension('lat', len(lat))
-	f.createDimension('lon', len(lon))
+		#make dimensions
+		f.createDimension('time', ntime)
+		f.createDimension('lat', len(lat))
+		f.createDimension('lon', len(lon))
 
-	#make dimension variables
-	mytime = f.createVariable('time', 'i', ('time',))
-	latitude  = f.createVariable('lat',    'f4',('lat',))
-	longitude = f.createVariable('lon',    'f4',('lon',))
-	lwin = f.createVariable('lwin',    'f4',('lat','lon','time'))
+		#make dimension variables
+		mytime = f.createVariable('time', 'i', ('time',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		lwin = f.createVariable('lwin',    'f4',('lat','lon','time'))
 
-	#assign dimensions
-	mytime[:] = rtime
-	latitude[:]  = lat
-	longitude[:] = lon
-	lwin[:] = np.flip(ts_lwin, 0)
-	
-			#metadata
-	f.history = 'Created by toposcale on '+time.ctime()
-	mytime.units = 'hours since '+str(dtime[0])
+		#assign dimensions
+		mytime[:] = rtime
+		latitude[:]  = lat
+		longitude[:] = lon
+		lwin[:] = np.flip(ts_lwin, 0)
+		
+				#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
 
-	f.close()
+		f.close()
 
-	## ta
-	
-	#open
-	f = nc.Dataset('ta.nc','w', format='NETCDF4')
-	#make dimensions
-	f.createDimension('time', ntime)
-	f.createDimension('lat', len(lat))
-	f.createDimension('lon', len(lon))
+		## ta
+		
+		#open
+		f = nc.Dataset('ta.nc','w', format='NETCDF4')
+		#make dimensions
+		f.createDimension('time', ntime)
+		f.createDimension('lat', len(lat))
+		f.createDimension('lon', len(lon))
 
-	#make dimension variables
-	mytime = f.createVariable('time', 'i', ('time',))
-	latitude  = f.createVariable('lat',    'f4',('lat',))
-	longitude = f.createVariable('lon',    'f4',('lon',))
-	lwin = f.createVariable('ta',    'f4',('lat','lon','time'))
+		#make dimension variables
+		mytime = f.createVariable('time', 'i', ('time',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		lwin = f.createVariable('ta',    'f4',('lat','lon','time'))
 
-	#assign dimensions
-	mytime[:] = rtime
-	latitude[:]  = lat
-	longitude[:] = lon
-	lwin[:] = np.flip(gtob.t,0)
-	
-	#metadata
-	f.history = 'Created by toposcale on '+time.ctime()
-	mytime.units = 'hours since '+str(dtime[0])
+		#assign dimensions
+		mytime[:] = rtime
+		latitude[:]  = lat
+		longitude[:] = lon
+		lwin[:] = np.flip(gtob.t,0)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
 
-	f.close()
-
-	# rh
-	
-	f = nc.Dataset('rh.nc','w', format='NETCDF4')
-	#make dimensions
-	f.createDimension('time', ntime)
-	f.createDimension('lat', len(lat))
-	f.createDimension('lon', len(lon))
-
-	#make dimension variables
-	mytime = f.createVariable('time', 'i', ('time',))
-	latitude  = f.createVariable('lat',    'f4',('lat',))
-	longitude = f.createVariable('lon',    'f4',('lon',))
-	lwin = f.createVariable('rh',    'f4',('lat','lon','time'))
-
-	#assign dimensions
-	mytime[:] = rtime
-	latitude[:]  = lat
-	longitude[:] = lon
-	lwin[:] = np.flip(gtob.r,0)
-	
-	#metadata
-	f.history = 'Created by toposcale on '+time.ctime()
-	mytime.units = 'hours since '+str(dtime[0])
-
-	f.close()
-
-	# rh
-	
-	f = nc.Dataset('.nc','w', format='NETCDF4')
-	#make dimensions
-	f.createDimension('time', ntime)
-	f.createDimension('lat', len(lat))
-	f.createDimension('lon', len(lon))
-
-	#make dimension variables
-	mytime = f.createVariable('time', 'i', ('time',))
-	latitude  = f.createVariable('lat',    'f4',('lat',))
-	longitude = f.createVariable('lon',    'f4',('lon',))
-	lwin = f.createVariable('u',    'f4',('lat','lon','time'))
-
-	#assign dimensions
-	mytime[:] = rtime
-	latitude[:]  = lat
-	longitude[:] = lon
-	lwin[:] = np.flip(gtob.u,0)
-	
-	#metadata
-	f.history = 'Created by toposcale on '+time.ctime()
-	mytime.units = 'hours since '+str(dtime[0])
-
-	f.close()
+		f.close()
 
 		# rh
+		
+		f = nc.Dataset('rh.nc','w', format='NETCDF4')
+		#make dimensions
+		f.createDimension('time', ntime)
+		f.createDimension('lat', len(lat))
+		f.createDimension('lon', len(lon))
+
+		#make dimension variables
+		mytime = f.createVariable('time', 'i', ('time',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		lwin = f.createVariable('rh',    'f4',('lat','lon','time'))
+
+		#assign dimensions
+		mytime[:] = rtime
+		latitude[:]  = lat
+		longitude[:] = lon
+		lwin[:] = np.flip(gtob.r,0)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
+
+		# rh
+		
+		f = nc.Dataset('.nc','w', format='NETCDF4')
+		#make dimensions
+		f.createDimension('time', ntime)
+		f.createDimension('lat', len(lat))
+		f.createDimension('lon', len(lon))
+
+		#make dimension variables
+		mytime = f.createVariable('time', 'i', ('time',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		lwin = f.createVariable('u',    'f4',('lat','lon','time'))
+
+		#assign dimensions
+		mytime[:] = rtime
+		latitude[:]  = lat
+		longitude[:] = lon
+		lwin[:] = np.flip(gtob.u,0)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
+
+			# rh
+		
+		f = nc.Dataset('v.nc','w', format='NETCDF4')
+		#make dimensions
+		f.createDimension('time', ntime)
+		f.createDimension('lat', len(lat))
+		f.createDimension('lon', len(lon))
+
+		#make dimension variables
+		mytime = f.createVariable('time', 'i', ('time',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		lwin = f.createVariable('v',    'f4',('lat','lon','time'))
+
+		#assign dimensions
+		mytime[:] = rtime
+		latitude[:]  = lat
+		longitude[:] = lon
+		lwin[:] = np.flip(gtob.v,0)
+		
+		#metadata
+		
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
+
+		f = nc.Dataset('PINT.nc','w', format='NETCDF4')
+		#make dimensions
+		f.createDimension('time', ntime)
+		f.createDimension('lat', len(lat))
+		f.createDimension('lon', len(lon))
+
+		#make dimension variables
+		mytime = f.createVariable('time', 'i', ('time',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		lwin = f.createVariable('pint',    'f4',('lat','lon','time'))
+
+		#assign dimensions
+		mytime[:] = rtime
+		latitude[:]  = lat
+		longitude[:] = lon
+		lwin[:] = np.flip(grid_prate,0)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
 	
-	f = nc.Dataset('v.nc','w', format='NETCDF4')
-	#make dimensions
-	f.createDimension('time', ntime)
-	f.createDimension('lat', len(lat))
-	f.createDimension('lon', len(lon))
 
-	#make dimension variables
-	mytime = f.createVariable('time', 'i', ('time',))
-	latitude  = f.createVariable('lat',    'f4',('lat',))
-	longitude = f.createVariable('lon',    'f4',('lon',))
-	lwin = f.createVariable('v',    'f4',('lat','lon','time'))
-
-	#assign dimensions
-	mytime[:] = rtime
-	latitude[:]  = lat
-	longitude[:] = lon
-	lwin[:] = np.flip(gtob.v,0)
-	
-	#metadata
-	f.history = 'Created by toposcale on '+time.ctime()
-	mytime.units = 'hours since '+str(dtime[0])
-
-	f.close()
-
-	f = nc.Dataset('PINT.nc','w', format='NETCDF4')
-	#make dimensions
-	f.createDimension('time', ntime)
-	f.createDimension('lat', len(lat))
-	f.createDimension('lon', len(lon))
-
-	#make dimension variables
-	mytime = f.createVariable('time', 'i', ('time',))
-	latitude  = f.createVariable('lat',    'f4',('lat',))
-	longitude = f.createVariable('lon',    'f4',('lon',))
-	lwin = f.createVariable('pint',    'f4',('lat','lon','time'))
-
-	#assign dimensions
-	mytime[:] = rtime
-	latitude[:]  = lat
-	longitude[:] = lon
-	lwin[:] = np.flip(grid_prate,0)
-	
-	#metadata
-	f.history = 'Created by toposcale on '+time.ctime()
-	mytime.units = 'hours since '+str(dtime[0])
-
-	f.close()
 	logging.info("Toposcale complete!")
 	logging.info("%f minutes" % round((time.time()/60 - start_time/60),2) )
 

@@ -94,6 +94,38 @@ def hourangle(jd, longitude, timezone):
 	omegar = np.pi * (((hour + deltalontime + myeqtime/60.)/12.) - 1.)
 	return(omegar)
 
+def hourangleMD(jd, longitude, timezone): 
+	""" 
+	Hour angle, internal function for solar position.
+
+	THIS IS MLTIDIMENSIONAL VERSION LONGITUDE/TIMEZONE are vectors (of stations) not scalars 
+
+	jd: Julian Day and decimal fraction.
+	latitude: Latitude of observer in degrees and decimal fraction.
+	longitude: Longitude of observer in degrees and decimal fraction.
+	timezone: in hours, west of Greenwich is negative eg CH is "1"
+
+	cat("USAGE: hourangle(jd,longitude,timezone)\n julian day, degrees, hours. 
+	Return radians \n") 
+	"""
+	hour = ((jd - np.floor(jd)) * 24. + 12.)%24.
+	myeqtime = eqtime(jd)
+	stndmeridian = timezone * 15.
+	deltalontime = longitude - stndmeridian
+	deltalontime = deltalontime * 24./360.
+
+	a=np.array(hour)
+	b =np.tile(a,8950)
+	hour2=b.reshape(4,8950, order='F')
+
+	a=np.array(myeqtime)
+	b =np.tile(a,8950)
+	myeqtime2=b.reshape(4,8950, order='F')
+
+
+	omegar = np.pi * (((hour2 + np.array(deltalontime) + myeqtime2/60.)/12.) - 1.)
+	return(omegar)
+
 def declination(jd): 
 	""" 
 	Computes the declination of the Sun for a given Julian Day.
@@ -137,6 +169,37 @@ def sunvector (jd, latitude, longitude, timezone):
 	# sv= Bunch(x=svx,y=svy,z=svz)   
 	sv = np.c_[svx,svy,svz]
 	return(sv)
+
+def sunvectorMD (jd, latitude, longitude, timezone): 
+	"""
+	Calculates a unit vector in the direction of the sun from the observer position
+
+	jd: Julian Day and decimal fraction.
+	latitude: Latitude of observer in degrees and decimal fraction.
+	longitude: Longitude of observer in degrees and decimal fraction.
+	timezone: Time zone in hours, west is negative.
+	# cat("USAGE: sunvector(jd,latitude,longitude,timezone)\n values in jd, degrees, hours\n")
+	"""
+	omegar = hourangleMD(jd, longitude, timezone)
+	deltar = np.radians(declination(jd))
+	a=np.array(deltar)
+	b =np.tile(a,8950)
+	deltar=b.reshape(4,8950, order='F')
+
+	lambdar = np.radians(latitude)
+	a=np.array(lambdar)
+	b =np.tile(a,4)
+	lambdar=b.reshape(4,8950)
+
+	svx = -np.sin(omegar) * np.cos(deltar)
+	svy = np.sin(lambdar) * np.cos(omegar) * np.cos(deltar) - np.cos(lambdar) * np.sin(deltar)
+	svz = np.cos(lambdar) * np.cos(omegar) * np.cos(deltar) + np.sin(lambdar) * np.sin(deltar)
+	# class Bunch:
+	# 	def __init__(self, **kwds):
+	# 		self.__dict__.update(kwds)
+	# sv= Bunch(x=svx,y=svy,z=svz)   
+	#sv = np.c_[svx,svy,svz]
+	return(svx,svy,svz)
 
 def normalvector (slope, aspect): 
 	"""

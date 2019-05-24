@@ -129,7 +129,8 @@ def main(wdir, mode, var, starti, endi, dataset, member=None):
 			df=pd.DataFrame(sa_vec.T)
 			df.to_csv("points_"+var+".csv")
 		
-		print(" %f minutes for total run" % round((time.time()/60 - start_time/60),2) )
+		#print(" %f minutes for total run" % round((time.time()/60 - start_time/60),2) )
+		print(" %f minutes for 2D interpolation %s" % (round((time.time()/60 - start_time/60),2),var) )
 		return sa_vec.T
 	# Benchmark
 	#38809 1km cells
@@ -167,7 +168,8 @@ def main(wdir, mode, var, starti, endi, dataset, member=None):
 		# drop init blank layer
 		a =sa_out[:,:,1:]
 
-		print(" %f minutes for run" % round((time.time()/60 - start_time/60),2) )
+		#print(" %f minutes for run" % round((time.time()/60 - start_time/60),2) )
+		print(" %f minutes for 2D interpolation %s" % (round((time.time()/60 - start_time/60),2),var) )
 
 		# for testing
 		plot='False'

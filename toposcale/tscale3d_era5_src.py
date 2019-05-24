@@ -135,7 +135,8 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 			df=pd.DataFrame(sa_vec.T)
 			df.to_csv(wdir+"points_"+var+".csv")
 
-		print(" %f minutes for total run of " + var % round((time.time()/60 - start_time/60),2) )
+		#print("%f minutes for total run" % round((time.time()/60 - start_time/60),2) )
+		print(" %f minutes for 3D interpolation %s" % (round((time.time()/60 - start_time/60),2),var) )
 		return sa_vec.T
 
 	# Benchmark
@@ -178,10 +179,10 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 		# drop init blank layer
 		a =sa_out[:,:,1:]
 
-		print(" %f minutes for run" % round((time.time()/60 - start_time/60),2) )
-
+		#print(" %f minutes for run" % round((time.time()/60 - start_time/60),2) )
+		print(" %f minutes for 3D interpolation %s" % (round((time.time()/60 - start_time/60),2),var) )
 		# for testing
-		plot='True'
+		plot='False'
 		if plot=="True":
 			import myplot
 			l = a.mean(axis=(2))
