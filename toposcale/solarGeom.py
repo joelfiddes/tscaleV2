@@ -94,7 +94,7 @@ def hourangle(jd, longitude, timezone):
 	omegar = np.pi * (((hour + deltalontime + myeqtime/60.)/12.) - 1.)
 	return(omegar)
 
-def hourangleMD(jd, longitude, timezone): 
+def hourangleMD(jd, longitude, timezone,statsize,timesize): 
 	""" 
 	Hour angle, internal function for solar position.
 
@@ -115,12 +115,12 @@ def hourangleMD(jd, longitude, timezone):
 	deltalontime = deltalontime * 24./360.
 
 	a=np.array(hour)
-	b =np.tile(a,8950)
-	hour2=b.reshape(4,8950, order='F')
+	b =np.tile(a,statsize)
+	hour2=b.reshape(timesize,statsize, order='F')
 
 	a=np.array(myeqtime)
-	b =np.tile(a,8950)
-	myeqtime2=b.reshape(4,8950, order='F')
+	b =np.tile(a,statsize)
+	myeqtime2=b.reshape(timesize,statsize, order='F')
 
 
 	omegar = np.pi * (((hour2 + np.array(deltalontime) + myeqtime2/60.)/12.) - 1.)
@@ -170,7 +170,7 @@ def sunvector (jd, latitude, longitude, timezone):
 	sv = np.c_[svx,svy,svz]
 	return(sv)
 
-def sunvectorMD (jd, latitude, longitude, timezone): 
+def sunvectorMD (jd, latitude, longitude, timezone, statsize,timesize): 
 	"""
 	Calculates a unit vector in the direction of the sun from the observer position
 
@@ -180,16 +180,16 @@ def sunvectorMD (jd, latitude, longitude, timezone):
 	timezone: Time zone in hours, west is negative.
 	# cat("USAGE: sunvector(jd,latitude,longitude,timezone)\n values in jd, degrees, hours\n")
 	"""
-	omegar = hourangleMD(jd, longitude, timezone)
+	omegar = hourangleMD(jd, longitude, timezone,statsize,timesize)
 	deltar = np.radians(declination(jd))
 	a=np.array(deltar)
-	b =np.tile(a,8950)
-	deltar=b.reshape(4,8950, order='F')
+	b =np.tile(a,statsize)
+	deltar=b.reshape(timesize,statsize, order='F')
 
 	lambdar = np.radians(latitude)
 	a=np.array(lambdar)
-	b =np.tile(a,4)
-	lambdar=b.reshape(4,8950)
+	b =np.tile(a,timesize)
+	lambdar=b.reshape(timesize,statsize)
 
 	svx = -np.sin(omegar) * np.cos(deltar)
 	svy = np.sin(lambdar) * np.cos(omegar) * np.cos(deltar) - np.cos(lambdar) * np.sin(deltar)
@@ -240,3 +240,20 @@ def sunpos(sunv):
 	sp=Bunch(azi=azimuth, zen=zenith, sel=sunel)
 	return(sp)
 
+def sunposMD(sunx,suny,sunz): 
+	"""
+	Returns a matrix of azimuth and zenith angles of the sun given the unit 
+	vectors from the observer to
+	the direction of the sun. Plus sun elevation.
+
+	sunv: sunvector
+	#print("USAGE: sunpos(sunvector) 3D vector")
+	"""
+	azimuth = np.degrees(np.pi - np.arctan2(sunx, suny))
+	zenith = np.degrees(np.arccos(sunz))
+	sunel = 90-zenith # sun elevation
+	class Bunch:
+		def __init__(self, **kwds):
+			self.__dict__.update(kwds)
+	sp=Bunch(azi=azimuth, zen=zenith, sel=sunel)
+	return(sp)

@@ -78,6 +78,14 @@ import time
 # dataset="HRES"
 # member=None
 
+#wdir="/home/joel/sim/tscale3Dbig/"
+#mode="grid"
+#start="2013-09-01"
+#end="2013-09-02"
+#dataset="HRES"
+#member="None"
+#member=None
+
 def main(wdir, mode, start, end, dataset, member=None):
 
 
@@ -405,6 +413,9 @@ def main(wdir, mode, start, end, dataset, member=None):
 		#===============================================================================
 		def swin2D(pob,sob,tob, stat, dates): # does not work yet (booleen indexing of 2d arraya fauiles as np.min returns single value when we need 161
 			
+			
+			timesize=len(dates)
+			statsize=len(stat.ele)
 			""" toposcale surface pressure using hypsometric equation - move to own 
 			class """
 			g=9.81
@@ -439,7 +450,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 				z1=ztempVec[i,thispVec]
 
 
-				p1=np.tile(pob.levels[::-1],statz.shape[0])[thispvec]*1e2 #Convert to Pa. Reverse levels to ensure low ele (hig pressure) to high elel (low pressure)
+				p1=np.tile(pob.levels[::-1],statz.shape[0])[thispVec]*1e2 #Convert to Pa. Reverse levels to ensure low ele (hig pressure) to high elel (low pressure)
 				Tbar=np.mean([T1, tob.t[i, :]],axis=0) # temperature midway between surface (toposcale T) and loweset overlying level (T1)
 				""" Hypsometric equation.""" #P1 is above surface is this correct? Yes!
 				psf[i,:]=(p1*np.exp((z1-statz)*(g/(Tbar*R)))) # exponent is positive ie increases pressure as surface is lower than pressure level
@@ -530,7 +541,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 				T1=TtempVec[i,thispVec]
 				z1=ztempVec[i,thispVec]
 
-				p1=np.tile(pob.levels[::-1],statz.shape[0])[thispvec]*1e2 #Convert to Pa.
+				p1=np.tile(pob.levels[::-1],statz.shape[0])[thispVec]*1e2 #Convert to Pa.
 				Tbar=np.mean([T0, T1],axis=0)
 				""" Hypsometric equation."""
 				psc[i,:] = (p1*np.exp((z1-z0)*(g/(Tbar*R))))
@@ -545,16 +556,15 @@ def main(wdir, mode, start, end, dataset, member=None):
 			position.
 			"""
 			#sunv=sg.sunvector(jd=jd, latitude=stat.lat, longitude=stat.lon, timezone=stat.tz)
-			svx,svy,svz =	sg.sunvectorMD(jd=jd, latitude=stat.lat, longitude=stat.lon, timezone=stat.tz)
+			svx,svy,svz =	sg.sunvectorMD(jd, stat.lat, stat.lon, stat.tz,statsize,timesize)
 			"""
 			Computes azimuth , zenith  and sun elevation 
-			for each timestamp
-			"""
-			sp=sg.sunpos(sunv)
-			sp=sp
+			for each timestamp !!! NOW THIS NEEDS ACCEPT SEPARATE VECTORS!!
+			""",timesize
+			sp=sg.sunposMD(svx,svy,svz)
+
 
 			# Cosine of the zenith angle.
-			sp.zen=sp.zen
 			#sp.zen=sp.zen*(sp.zen>0) # Sun might be below the horizon.
 			muz=np.cos(sp.zen) 
 			muz = muz
@@ -566,8 +576,11 @@ def main(wdir, mode, start, end, dataset, member=None):
 			# Calculate the "broadband" absorption coefficient. Elevation correction
 			# from Kris
 			ka=(g*muz/(psc))*np.log(SWtoa/SWcdir)	
-			ka.set_fill_value(0)
-			ka = ka.filled()
+			#ka.set_fill_value(0)
+			#ka = ka.filled()
+			ka = np.nan_to_num(ka) 
+
+
 			# Note this equation is obtained by inverting Beer's law, i.e. use
 			#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
 			# Along with hydrostatic equation to convert to pressure coordinates then
@@ -581,9 +594,8 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 			"""compute mean horizon elevation - why negative hor.el possible??? """
 			horel=(((np.arccos(np.sqrt(stat.svf))*180)/np.pi)*2)-stat.slp
-			if horel < 0:
-				horel = 0 
-			meanhorel = horel
+			horel[horel<0]=0
+		
 
 			"""
 			normal vector - Calculates a unit vector normal to a surface defined by 
@@ -596,21 +608,38 @@ def main(wdir, mode, start, end, dataset, member=None):
 			dotproduct normal vector to slope.
 			From corripio r package
 			"""
-			dotprod=np.dot(sunv ,np.transpose(nv)) 
-			dprod = dotprod.squeeze()
+
+			""" need to reconstruct sunv matrix for multipoint case here"""
+			sunv=np.array((svx,svy,svz))
+
+			#dotprod=np.dot(sunv ,np.transpose(nv))\
+			dotprod=np.tensordot(sunv  ,nv , axes=([0],[1]))
+
+			dprod=dotprod[:,:,1]
 			dprod[dprod<0] = 0 #negative indicates selfshading
-			dprod = dprod
+			#dprod = dprod
 
 			"""Method 2: Illumination angles. Dozier"""
-			saz=sp.azi
-			cosis=muz*np.cos(stat.slp)+np.sin(sp.zen)*np.sin(stat.slp)*np.cos(sp.azi-stat.asp)# cosine of illumination angle at subgrid.
+			#saz=sp.azi
+
+			a=np.array(stat.asp)
+			b =np.tile(a,timesize)
+			asp=b.reshape(timesize,statsize)
+			a=np.array(stat.slp)
+			b =np.tile(a,timesize)
+			slp=b.reshape(timesize,statsize)
+			cosis=muz*np.cos(slp)+np.sin(sp.zen)*np.sin(slp)*np.cos(sp.azi-asp)# cosine of illumination angle at subgrid.
 			cosic=muz # cosine of illumination angle at grid (slope=0).
 
 			"""
 			SUN ELEVATION below hor.el set to 0 - binary mask
 			"""
+			a=np.array(horel)
+			b =np.tile(a,timesize)
+			horel2=b.reshape(timesize,statsize)
+
 			selMask = sp.sel
-			selMask[selMask<horel]=0
+			selMask[selMask<horel2]=0
 			selMask[selMask>0]=1
 			selMask = selMask
 
@@ -623,6 +652,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 			SWfdirCor=selMask*dprod*SWfdir
 		  
 			SWfglob =  SWfdiff+ SWfdirCor
+			print(" %f minutes for VECTORISED interpolation %s" % (round((time.time()/60 - start_time/60),2),"swin") )
 			return SWfglob
 			""" 
 			Missing components
@@ -774,8 +804,9 @@ def main(wdir, mode, start, end, dataset, member=None):
 				#ka.set_fill_value(0)
 				#ka = ka.filled()
 				# set inf (from SWtoa/SWcdir at nigh, zero division) to 0 (night)
-				ka[ka == -np.inf] = 0
-				ka[ka == np.inf] = 0
+				#ka[ka == -np.inf] = 0
+				#ka[ka == np.inf] = 0
+				ka = np.nan_to_num(ka) 
 
 				# Note this equation is obtained by inverting Beer's law, i.e. use
 				#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
@@ -832,34 +863,46 @@ def main(wdir, mode, start, end, dataset, member=None):
 				SWfdirCor=selMask*dprod*SWfdir
 			   
 				SWfglob =  SWfdiff+ SWfdirCor
+				print(" %f minutes for LOOPED interpolation %s" % (round((time.time()/60 - start_time/60),2),"swin") )
 				return SWfglob
 				""" 
 				Missing components
 				- terrain reflection
 				"""
 				# init grid stack
-		#init first row
-		ntimestamps=dtime.shape[0]
-		ts_swin = np.zeros((ntimestamps))
-		for stationi in range(0, mystations.shape[0]):
-			print stationi 
-			'''here we test for array full of NaNs due to points being 
-			outside of grid. The NaN arrays are created in the 
-			interpolation but only break the code here. If array is
- 			all NaN then we just fill that stations slot 
-			with NaN'''
-			testNans = np.count_nonzero(~np.isnan(pob.z[:,stationi,:]))
-			if testNans != 0:
-				ts= swin1D(pob=pob,sob=sob,tob=tob, stat=mystations, dates=dtime, index=stationi)
-				ts_swin=np.column_stack((ts_swin,ts))
-			if testNans == 0:
-				nan_vec = np.empty(ntimestamps) * np.nan
-				ts_swin=np.column_stack((ts_swin,nan_vec))
+		
+
+
+		# vector method
+		tob.swin = swin2D(pob=pob,sob=sob,tob=tob, stat=mystations, dates=dtime)
+
+
+		# loop method
+		## init first row
+		# ntimestamps=dtime.shape[0]
+		# ts_swin = np.zeros((ntimestamps))
+		# for stationi in range(0, mystations.shape[0]):
+		# 	print stationi 
+		# 	'''here we test for array full of NaNs due to points being 
+		# 	outside of grid. The NaN arrays are created in the 
+		# 	interpolation but only break the code here. If array is
+ 	# 		all NaN then we just fill that stations slot 
+		# 	with NaN'''
+		# 	testNans = np.count_nonzero(~np.isnan(pob.z[:,stationi,:]))
+		# 	if testNans != 0:
+		# 		ts= swin1D(pob=pob,sob=sob,tob=tob, stat=mystations, dates=dtime, index=stationi)
+		# 		ts_swin=np.column_stack((ts_swin,ts))
+		# 	if testNans == 0:
+		# 		nan_vec = np.empty(ntimestamps) * np.nan
+		# 		ts_swin=np.column_stack((ts_swin,nan_vec))
 			
 
-		# drop init row
-		tob.swin =ts_swin[:,1:]
+		# # drop init row
+		# tob.swin =ts_swin[:,1:]
 		logging.info("Made Swin")
+
+
+
 		#===============================================================================
 		# make dataframe (write individual files plus netcdf)
 		#==============================================================================
