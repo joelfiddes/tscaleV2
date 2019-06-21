@@ -204,10 +204,10 @@ class t3d(object):
             return siteLocation, lats, lons, shape, idstat        
         else:
             #out_xyz based on dem
-            lons = self.dem.variables['lon'][:]
-            lats = self.dem.variables['lat'][:]
+            lons = self.dem.variables['longitude'][:]
+            lats = self.dem.variables['latitude'][:]
             lat=lats[::-1]
-            geop = self.dem.variables['Band1'][:]*self.g
+            geop = self.dem.variables['ele'][:]*self.g # formally "Band1"
             shape = geop.shape
         
             lons, lats = np.meshgrid(lons, lats)
