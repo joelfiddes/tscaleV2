@@ -1,4 +1,4 @@
-#domain should be bigger than shape
+#domain should be bigger than shape - actually not
 require(raster)
 require(ncdf4)
 require(rgeos)
@@ -285,11 +285,11 @@ v = matrix(v_mat, nrow=length(basins), ncol=length(v_sub_mean), byrow=T)
 r = matrix(r_mat, nrow=length(basins), ncol=length(r_sub_mean), byrow=T)
 
 # reshape to 3D
-zp_array = array(zp, dim=c(length(basins), length(time_nc), length(nlev)))
-t_array = array(t, dim=c(length(basins), length(time_nc), length(nlev)))
-u_array = array(u, dim=c(length(basins), length(time_nc), length(nlev)))
-v_array = array(v, dim=c(length(basins), length(time_nc), length(nlev)))
-r_array = array(r, dim=c(length(basins), length(time_nc), length(nlev)))
+zp_array = array(zp, dim=c(length(basins), length(time_nc), length(lev)))
+t_array = array(t, dim=c(length(basins), length(time_nc), length(lev)))
+u_array = array(u, dim=c(length(basins), length(time_nc), length(lev)))
+v_array = array(v, dim=c(length(basins), length(time_nc), length(lev)))
+r_array = array(r, dim=c(length(basins), length(time_nc), length(lev)))
 
 # get centroids
 centroids = gCentroid(shp,byid=T)
@@ -302,7 +302,7 @@ mylat=centroids@coords[,2]
 #=============================================
 #	writeNCDF - plevel
 #=============================================
-writeNcdf =function(varname,units,ncfname,title,dlname,data,time_nc,wd){
+writeNcdf =function(varname,units,ncfname,title,dlname,data,time_nc,wd,lev){
 	fillvalue <- -9999
 	basindim<- ncdim_def("basin", "degrees_north", as.double(1:length(basins)))
 	plevdim<- ncdim_def("levels", "mb", as.double(lev))
@@ -314,7 +314,7 @@ writeNcdf =function(varname,units,ncfname,title,dlname,data,time_nc,wd){
 	# put the array
 	ncvar_put(ncout, tmp.def, data)
 	ncatt_put(ncout, "basin", "axis", "Y")
-	ncatt_put(ncout, "plev", "axis", "Z")
+	ncatt_put(ncout, "levels", "axis", "Z")
 	# add global attributes
 	ncatt_put(ncout, 0, "title", title)
 	# close the file, writing data to disk
@@ -328,7 +328,7 @@ ncfname <- "zp.nc"
 title <- "geopotential at basin centroids"
 dlname <- "geopotential"
 data=zp_array
-writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
+writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd,lev)
 
 varname="t"
 units="k"
@@ -336,7 +336,7 @@ ncfname <- "t.nc"
 title <- "t at basin centroids"
 dlname <- "temperature"
 data=t_array
-writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
+writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd,lev)
 
 varname="u"
 units=" m s**-1"
@@ -344,7 +344,7 @@ ncfname <- "u.nc"
 title <- "u"
 dlname <- "u"
 data=u_array
-writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
+writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd,lev)
 
 varname="v"
 units=" m s**-1"
@@ -352,7 +352,7 @@ ncfname <- "v.nc"
 title <- "v"
 dlname <- "v"
 data=v_array
-writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
+writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd,lev)
 
 varname="r"
 units="%"
@@ -360,7 +360,7 @@ ncfname <- "r.nc"
 title <- "Relative humidity"
 dlname <- "Relative humidity"
 data=r_array
-writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
+writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd,lev)
 
 
 
