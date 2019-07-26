@@ -17,20 +17,20 @@ require(raster)
 
 # pars 
 args = commandArgs(trailingOnly=TRUE)
-mmfile=args[1] # monthly mean tp file eg "/home/joel/sim/imis/forcing/tpmm.nc"
-t6hfile = args[2] # subdaily file likely 6 or 3 h step but can be anything eg 
+monthlyFile=args[1] # monthly mean tp file eg "/home/joel/sim/imis/forcing/tpmm.nc"
+hourlyFile = args[2] # subdaily file likely 6 or 3 h step but can be anything eg 
 
-#mmfile="/home/joel/sim/imis/forcing/tpmm.nc"
-#t6hfile ="/home/joel/sim/imis/forcing/SURF.nc"
+#monthlyFile="/home/joel/sim/imis/forcing/tpmm.nc"
+#hourlyFile ="/home/joel/sim/imis/forcing/SURF.nc"
 
 
 
 # make backup of file as replace values in place
-system(paste0("cp " , t6hfile," ", t6hfile, "_backup.nc"))
+system(paste0("cp " , hourlyFile," ", hourlyFile, "_backup.nc"))
 
 
 # get monthly dates
-nc=nc_open(mmfile)
+nc=nc_open(monthlyFile)
 time = ncvar_get( nc,'time')
 z <- time*60*60 #make seconds
 origin = unlist(strsplit(nc$dim$time$units, " "))[[3]]
@@ -49,7 +49,7 @@ tpmm2 =tpmm*monthLengthVec
 
 
 
-nc1=nc_open(t6hfile, write=T)
+nc1=nc_open(hourlyFile, write=T)
 time = ncvar_get( nc1,'time')
 z <- time*60*60 #make seconds
 origin = unlist(strsplit(nc1$dim$time$units, " "))[[3]]
@@ -128,7 +128,7 @@ corP_array = matrix(corP , dim(tphr)[1] *dim(tphr)[2], dim(tphr)[3] ,byrow=T)
 corP_array2 = array(corP_array , dim = c(dim(tphr)[1] ,dim(tphr)[2], dim(tphr)[3]))
 
 ncvar_put( nc=nc1, varid='tp', vals=corP_array2, start=NA, count=NA, verbose=FALSE )
-
+ncatt_put(nc1, 0, "title", "tpCorrect.R has been run")
 print(paste("timestep=", timestep))
 print(paste("Original domain wide totals multiplied by timestep (rough scaling)=", round(sum(tphr)*timestep,0), "m"))
 print(paste("Monthly totals=", round(sum(tpmm3),0), "m"))

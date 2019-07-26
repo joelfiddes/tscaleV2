@@ -167,7 +167,7 @@ for i in range(lp.id.size):
 
 	tob = t
 	# compute downscaled longwave (LWf) Wm**2
-	t.lwin(sob, tob)
+	t.lwin(sob, tob, stat)
 
 	# compute downscaled shortwave (SWf) Wm**2
 	t.swin(pob, sob,tob, stat,p.dtime)

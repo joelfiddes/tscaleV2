@@ -181,6 +181,7 @@ def main(wdir, mode, var, starti, endi,dataset, member=None):
 
 		#print(" %f minutes for run" % round((time.time()/60 - start_time/60),2) )
 		print(" %f minutes for 3D interpolation %s" % (round((time.time()/60 - start_time/60),2),var) )
+		print(" %f Estimated time for run completion " % (round((time.time()/60 - start_time/60)*5.76,2)) )
 		# for testing
 		plot='False'
 		if plot=="True":

@@ -79,12 +79,12 @@ import time
 # dataset="HRES"
 # member=None
 
-#wdir="/home/joel/sim/tscale3Dbig/"
-#mode="grid"
-#start="2013-09-01"
-#end="2013-09-02"
-#dataset="HRES"
-#member="None"
+# wdir="/home/joel/sim/adrian_GR/"
+# mode="grid"
+# start="2014-09-01"
+# end="2014-09-02"
+# dataset="HRES"
+# member="None"
 #member=None
 
 def main(wdir, mode, start, end, dataset, member=None):
@@ -126,7 +126,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 	if mode=="grid":
 		dem  = nc.Dataset(demfile)
-		dem_ele = dem.variables['ele'][:]
+		dem_ele = dem.variables['layer'][:]
 
 	
 	# this is main dtime used in code
@@ -951,6 +951,45 @@ def main(wdir, mode, start, end, dataset, member=None):
 	if mode=="grid":
 		logging.info("Running TopoSCALE3D grid")
 		writegrid='False'
+
+
+		# make a stat
+		dem  = nc.Dataset(demfile)
+		svf  = nc.Dataset(svffile)
+		asp  = nc.Dataset(aspfile)
+		slp  = nc.Dataset(slpfile)
+		
+		demv = dem.variables['layer'][:]
+		demlon1 = dem.variables['longitude'][:]
+		demlat1 = dem.variables['latitude'][:]
+		demlon = np.tile(demlon1,demlat1.size)
+		demlat = np.repeat(demlat1,demlon1.size)
+		slpv = slp.variables['layer'][:]
+		aspv = asp.variables['layer'][:]
+		svfv = svf.variables['layer'][:]
+
+		# ensure no NAs that cause uneven size vectors in code	
+		demv=np.reshape(demv,demv.size)
+		slpv=np.reshape(slpv,slpv.size)
+		aspv=np.reshape(aspv,slpv.size)
+		svfv=np.reshape(svfv,slpv.size)
+
+		# why are these masked values generated?
+		demv =np.ma.filled(demv, fill_value=1)
+		slpv =np.ma.filled(slpv, fill_value=1)
+		aspv = np.ma.filled(aspv, fill_value=1)
+		svfv = np.ma.filled(svfv, fill_value=1)
+
+		tz = np.repeat(0,demv.size)
+		df = pd.DataFrame({	"ele":demv, 
+						"asp":aspv,
+						"slp":slpv,
+						"svf":svfv,
+						"lon":demlon,
+						"lat":demlat,
+						"tz":tz					
+						})
+		print(df.shape)
 		#===============================================================================
 		# tscale3d
 		#===============================================================================
@@ -960,7 +999,12 @@ def main(wdir, mode, start, end, dataset, member=None):
 		r = t3d.main( wdir, 'grid', 'r', starti,endi,dataset)
 		u = t3d.main( wdir, 'grid', 'u', starti,endi,dataset)
 		v = t3d.main( wdir, 'grid', 'v', starti,endi,dataset)
-		gtob = hp.Bunch(t=t,r=r,u=u,v=v, dtime=dtime)
+
+		vw = np.sqrt(u**2+v**2)
+		dw =   (180 / np.pi) * np.arctan(u/v) + np.where(v>0,180,np.where(u>0,360,0))
+
+
+		gtob = hp.Bunch(t=t,r=r,vw=vw,dw=dw, dtime=dtime)
 
 		#===============================================================================
 		# tscale2d
@@ -1031,7 +1075,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 		#step = a.seconds
 		gsob.pmmhr = tp2rate(tp,step)
 		grid_prate = precipGrid(dem_ele,gsob)
-		
+		print "P grid done"
 		# dem  = nc.Dataset(demfile)
 		# lon = dem.variables['lon'][:]
 		# lat = dem.variables['lat'][:]
@@ -1103,7 +1147,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 			sob.ssrd = sob.ssrd/step
 			sob.tisr = sob.tisr/step 
 		
-		def lwin(sob,tob):
+		def lwin(sob,tob,stat):
 			"""Convert to RH (should be in a function). Following MG Lawrence 
 			DOI 10.1175/BAMS-86-2-225 """
 			A1=7.625 
@@ -1149,18 +1193,207 @@ def main(wdir, mode, start, end, dataset, member=None):
 			subgrid. """
 			aef=cef+deltae
 			LWf=aef*sbc*tob.t**4
+			print(tob.t.shape)
+			#stat.svf.values.reshape( tob.t.shape[0],tob.t.shape[1])
+			LWf=aef*sbc*tob.t**4
+			print(LWf.shape)
 			return(LWf)
 
 		instRad(gsob,3600)
-		ts_lwin = lwin(gsob,gtob)
+		ts_lwin = lwin(gsob,gtob, df)
 
 		dem  = nc.Dataset(demfile)
 		lon = dem.variables['longitude'][:]
 		lat = dem.variables['latitude'][:]
+		print "LWIN grid done"
 
 
+		#http://pyhogs.github.io/intro_netcdf4.html
 
+	
 
+		ntime = len(dtime)
+		a =(dtime[1]-dtime[0])
+		stephr =a.seconds/60/60
+		rtime=np.array(range(len(dtime)))*stephr
+
+		## Longwave
+
+		#open
+		f = nc.Dataset('lwin.nc','w', format='NETCDF4')
+
+		#make dimensions
+		f.createDimension('lon', len(lon))
+		f.createDimension('lat', len(lat))
+		f.createDimension('time', ntime)
+
+		#make dimension variables
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		mytime = f.createVariable('time', 'i', ('time',))
+		lwin = f.createVariable('lwin',    'f4',('lon','lat','time'))
+
+		#assign dimensions
+		longitude[:] = lon
+		latitude[:]  = lat
+		mytime[:] = rtime
+
+		varT = np.transpose(ts_lwin ,(1, 0, 2))
+		lwin[:] = np.flip(varT, 1)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
+
+## ta
+		
+		#open
+		f = nc.Dataset('ta.nc','w', format='NETCDF4')
+
+		#make dimensions
+		f.createDimension('lon', len(lon))
+		f.createDimension('lat', len(lat))
+		f.createDimension('time', ntime)
+
+		#make dimension variables
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		mytime = f.createVariable('time', 'i', ('time',))
+		lwin = f.createVariable('ta',    'f4',('lon','lat','time'))
+
+		#assign dimensions
+		longitude[:] = lon
+		latitude[:]  = lat
+		mytime[:] = rtime
+
+		varT = np.transpose(gtob.t ,(1, 0, 2))
+		lwin[:] = np.flip(varT, 1)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
+
+		# rh
+		
+		#open
+		f = nc.Dataset('rh.nc','w', format='NETCDF4')
+
+		#make dimensions
+		f.createDimension('lon', len(lon))
+		f.createDimension('lat', len(lat))
+		f.createDimension('time', ntime)
+
+		#make dimension variables
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		mytime = f.createVariable('time', 'i', ('time',))
+		lwin = f.createVariable('rh',    'f4',('lon','lat','time'))
+
+		#assign dimensions
+		longitude[:] = lon
+		latitude[:]  = lat
+		mytime[:] = rtime
+
+		varT = np.transpose(gtob.r ,(1, 0, 2))
+		lwin[:] = np.flip(varT, 1)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
+
+		# vw
+		
+		#open
+		f = nc.Dataset('vw.nc','w', format='NETCDF4')
+
+		#make dimensions
+		f.createDimension('lon', len(lon))
+		f.createDimension('lat', len(lat))
+		f.createDimension('time', ntime)
+
+		#make dimension variables
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		mytime = f.createVariable('time', 'i', ('time',))
+		lwin = f.createVariable('vw',    'f4',('lon','lat','time'))
+
+		#assign dimensions
+		longitude[:] = lon
+		latitude[:]  = lat
+		mytime[:] = rtime
+
+		varT = np.transpose(gtob.vw ,(1, 0, 2))
+		lwin[:] = np.flip(varT, 1)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
+
+		# dw
+		
+		#open
+		f = nc.Dataset('dw.nc','w', format='NETCDF4')
+
+		#make dimensions
+		f.createDimension('lon', len(lon))
+		f.createDimension('lat', len(lat))
+		f.createDimension('time', ntime)
+
+		#make dimension variables
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		mytime = f.createVariable('time', 'i', ('time',))
+		lwin = f.createVariable('dw',    'f4',('lon','lat','time'))
+
+		#assign dimensions
+		longitude[:] = lon
+		latitude[:]  = lat
+		mytime[:] = rtime
+
+		varT = np.transpose(gtob.dw ,(1, 0, 2))
+		lwin[:] = np.flip(varT, 1)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
+
+		#open
+		f = nc.Dataset('pint.nc','w', format='NETCDF4')
+
+		#make dimensions
+		f.createDimension('lon', len(lon))
+		f.createDimension('lat', len(lat))
+		f.createDimension('time', ntime)
+
+		#make dimension variables
+		longitude = f.createVariable('lon',    'f4',('lon',))
+		latitude  = f.createVariable('lat',    'f4',('lat',))
+		mytime = f.createVariable('time', 'i', ('time',))
+		lwin = f.createVariable('pint',    'f4',('lon','lat','time'))
+
+		#assign dimensions
+		longitude[:] = lon
+		latitude[:]  = lat
+		mytime[:] = rtime
+
+		varT = np.transpose(grid_prate ,(1, 0, 2))
+		lwin[:] = np.flip(varT, 1)
+		
+		#metadata
+		f.history = 'Created by toposcale on '+time.ctime()
+		mytime.units = 'hours since '+str(dtime[0])
+
+		f.close()
 
 
 	#===============================================================================
@@ -1209,41 +1442,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 		logging.info("made a pob!")
 
-		dem  = nc.Dataset(demfile)
-		svf  = nc.Dataset(svffile)
-		asp  = nc.Dataset(aspfile)
-		slp  = nc.Dataset(slpfile)
-		
-		demv = dem.variables['ele'][:]
-		demlon1 = dem.variables['longitude'][:]
-		demlat1 = dem.variables['latitude'][:]
-		demlon = np.tile(demlon1,demlat1.size)
-		demlat = np.repeat(demlat1,demlon1.size)
-		slpv = slp.variables['layer'][:]
-		aspv = asp.variables['layer'][:]
-		svfv = svf.variables['layer'][:]
 
-		# ensure no NAs that cause uneven size vectors in code	
-		demv=np.reshape(demv,demv.size)
-		slpv=np.reshape(slpv,slpv.size)
-		aspv=np.reshape(slpv,slpv.size)
-		svfv=np.reshape(slpv,slpv.size)
-
-		# why are these masked values generated?
-		demv =np.ma.filled(demv, fill_value=1)
-		slpv =np.ma.filled(slpv, fill_value=1)
-		aspv = np.ma.filled(aspv, fill_value=1)
-		svfv = np.ma.filled(svfv, fill_value=1)
-
-		tz = np.repeat(0,demv.size)
-		df = pd.DataFrame({	"ele":demv, 
-						"asp":aspv,
-						"slp":slpv,
-						"svf":svfv,
-						"lon":demlon,
-						"lat":demlat,
-						"tz":tz					
-						})
 			
 
 
@@ -1493,8 +1692,8 @@ def main(wdir, mode, start, end, dataset, member=None):
 			shadow and solar geometry
 			BOTH formulations seem to be broken
 			"""
-			#SWfdirCor=selMask*(cosis/cosic)*SWfdir
-			SWfdirCor=selMask*SWfdir #*dprod
+			SWfdirCor=selMask*(cosis/cosic)*SWfdir
+			#SWfdirCor=selMask*SWfdir #*dprod
 		  
 			SWfglob =  SWfdiff+ SWfdirCor
 			print(" %f minutes for VECTORISED interpolation %s" % (round((time.time()/60 - start_time/60),2),"swin") )
@@ -1505,10 +1704,197 @@ def main(wdir, mode, start, end, dataset, member=None):
 			"""
 
 
-		gtob.swin = swin2D(gpob,gsob,gtob, df, dtime)
+
+
+		def swin2D_memsafe(pob,sob,tob, stat, dates): 
+			'''
+			main edit over standard function for points:
+			- 3d tob,sob reduce to 2D (reshape)
+			'''
+			
+			timesize=len(dates)
+			statsize=len(stat.ele)
+			""" toposcale surface pressure using hypsometric equation - move to own 
+			class """
+			g=9.81
+			R=287.05  # Gas constant for dry air.
+			#ztemp = pob.z # geopotential height b = np.transpose(a, (2, 0, 1))
+
+
+
+
+			""" Maybe follow Dubayah's approach (as in Rittger and Girotto) instead
+			for the shortwave downscaling, other than terrain effects. """
+
+			""" Height of the "grid" (coarse scale)"""
+			Zc=sob.z.reshape(sob.z.shape[0]*sob.z.shape[1], sob.z.shape[2]).T # reshape and transpose to remove dimension and make broadcastable
+
+			""" toa """
+			SWtoa = sob.tisr.reshape(sob.tisr.shape[0]*sob.tisr.shape[1], sob.tisr.shape[2]).T  
+
+			""" Downwelling shortwave flux of the "grid" using nearest neighbor."""
+			SWc=sob.ssrd.reshape(sob.ssrd.shape[0]*sob.ssrd.shape[1], sob.ssrd.shape[2]).T 
+
+			"""Calculate the clearness index."""
+			kt=SWc/SWtoa
+
+			#kt[is.na(kt)==T]<-0 # make sure 0/0 =0
+			#kt[is.infinite(kt)==T]<-0 # make sure 0/0 =0
+			kt[kt<0]=0
+			kt[kt>1]=0.8 #upper limit of kt
+			kt=kt
+
+
+			"""
+			Calculate the diffuse fraction following the regression of Ruiz-Arias 2010 
+			
+			"""
+			kd=0.952-1.041*np.exp(-1*np.exp(2.3-4.702*kt))
+			kd = kd
+
+			""" Use this to calculate the downwelling diffuse and direct shortwave radiation at grid. """
+			SWcdiff=kd*SWc
+			SWcdir=(1-kd)*SWc
+			SWcdiff=SWcdiff
+			SWcdir=SWcdir
+
+			""" Use the above with the sky-view fraction to calculate the 
+			downwelling diffuse shortwave radiation at subgrid. """
+			SWfdiff=np.array(stat.svf)*SWcdiff
+			SWfdiff = np.nan_to_num(SWfdiff) # convert nans (night) to 0
+
+			""" Direct shortwave routine, modified from Joel. 
+			Get surface pressure at "grid" (coarse scale). Can remove this
+			part once surface pressure field is downloaded, or just check
+			for existance. """
+
+			"""compute julian dates"""
+			jd= sg.to_jd(dates)
+
+			"""
+			Calculates a unit vector in the direction of the sun from the observer 
+			position.
+			"""
+			#sunv=sg.sunvector(jd=jd, latitude=stat.lat, longitude=stat.lon, timezone=stat.tz)
+			svx,svy,svz =	sg.sunvectorMD(jd, stat.lat, stat.lon, stat.tz,statsize,timesize)
+
+			sp=sg.sunposMD(svx,svy,svz)
+
+			"""ele diff in km"""
+			coarseZ=Zc/9.9
+
+			dz=(np.array(stat.ele)-coarseZ)/1000# fine - coase in knm
+
+			s=SWtoa
+			b=SWcdir
+			zen=sp.zen
+
+			thetaz=(np.pi/180)*zen #radians
+			m=1/np.cos(thetaz)
+			k= -np.log(b/s)/m
+			#k.set_fill_value(0) 
+			#k=k.filled()
+			#k[is.na(k)==T]<-0 #correct b=0/s=0 problem
+			k[~np.isfinite(k)] = 0
+
+
+			t=np.exp(1)**(-k*dz*np.cos(thetaz))
+			t[t>1]<-1.1 #to constrain to reasonable values
+			t[t<0.8]<-0.9 #to constrain to reasonable values
+			db=(1-t)*SWcdir
+
+			SWfdir=SWcdir+db #additative correction
+
+			
+
+			"""
+			Computes azimuth , zenith  and sun elevation 
+			for each timestamp !!! NOW THIS NEEDS ACCEPT SEPARATE VECTORS!!
+			"""
+			
+
+
+			# Cosine of the zenith angle.
+			#sp.zen=sp.zen*(sp.zen>0) # Sun might be below the horizon.
+			muz=np.cos(sp.zen) 
+			muz = muz
+			# NB! psc must be in Pa (NOT hPA!).
+			#if np.max(psc<1.5e3): # Obviously not in Pa
+				#psc=psc*1e2
+		  
+
+			""" Then perform the terrain correction. [Corripio 2003 / rpackage insol port]."""
+
+			"""compute mean horizon elevation - why negative hor.el possible??? """
+			horel=(((np.arccos(np.sqrt(stat.svf))*180)/np.pi)*2)-stat.slp
+			horel[horel<0]=0
+		
+
+			"""
+			normal vector - Calculates a unit vector normal to a surface defined by 
+			slope inclination and slope orientation.
+			"""
+			nv = sg.normalvector(slope=stat.slp, aspect=stat.asp)
+
+			"""
+			Method 1: Computes the intensity according to the position of the sun (sunv) and 
+			dotproduct normal vector to slope.
+			From corripio r package
+			"""
+
+			""" need to reconstruct sunv matrix for multipoint case here"""
+			sunv=np.array((svx,svy,svz))
+
+			# self shading dotprod memory error on grids NEED ANOTHER WAY
+			#dotprod=np.tensordot(sunv  ,nv , axes=([0],[1]))
+			#dprod=dotprod[:,:,1]
+			#dprod[dprod<0] = 0 #negative indicates selfshading
+
+
+			"""Method 2: Illumination angles. Dozier"""
+			#saz=sp.azi
+
+			a=np.array(stat.asp)
+			b =np.tile(a,timesize)
+			asp=b.reshape(timesize,statsize)
+			a=np.array(stat.slp)
+			b =np.tile(a,timesize)
+			slp=b.reshape(timesize,statsize)
+			cosis=muz*np.cos(slp)+np.sin(sp.zen)*np.sin(slp)*np.cos(sp.azi-asp)# cosine of illumination angle at subgrid.
+			cosic=muz # cosine of illumination angle at grid (slope=0).
+
+			"""
+			SUN ELEVATION below hor.el set to 0 - binary mask
+			"""
+			a=np.array(horel)
+			b =np.tile(a,timesize)
+			horel2=b.reshape(timesize,statsize)
+
+			selMask = sp.sel
+			selMask[selMask<horel2]=0
+			selMask[selMask>0]=1
+			selMask = selMask
+
+			"""
+			derive incident radiation on slope accounting for self shading and cast 
+			shadow and solar geometry
+			BOTH formulations seem to be broken
+			"""
+			SWfdirCor=selMask*SWfdir
+			#SWfdirCor=(cosis/cosic)*SWfdir #*dprod
+		  
+			SWfglob =  SWfdiff+ SWfdirCor
+			SWfglob =  SWfdiff+ SWfdir
+			SWfglob[SWfglob<0] = 0
+			print(" %f minutes for VECTORISED interpolation %s" % (round((time.time()/60 - start_time/60),2),"swin") )
+			return SWfglob
+			""" 
+			Missing components
+			- terrain reflection
+			"""
+		gtob.swin = swin2D_memsafe(gpob,gsob,gtob, df, dtime)
 		gtob.swin =gtob.swin.reshape(gtob.swin.shape[0], gsob.ssrd.shape[0], gsob.ssrd.shape[1])
-
-
+		print "SWIN grid done"
 
 		# IF WANT TIFFS GENERATE FROM NETCDF in R
 		# if writegrid=="True":
@@ -1541,47 +1927,12 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 
 
-	#http://pyhogs.github.io/intro_netcdf4.html
 
-	
-
-		ntime = len(dtime)
-		#a =(dtime[1]-dtime[0])
-		stephr =a.seconds/60/60
-		rtime=np.array(range(len(dtime)))*stephr
 
 
 
 		
-		## Longwave
 
-		#open
-		f = nc.Dataset('lwin.nc','w', format='NETCDF4')
-
-		#make dimensions
-		f.createDimension('lon', len(lon))
-		f.createDimension('lat', len(lat))
-		f.createDimension('time', ntime)
-
-		#make dimension variables
-		longitude = f.createVariable('lon',    'f4',('lon',))
-		latitude  = f.createVariable('lat',    'f4',('lat',))
-		mytime = f.createVariable('time', 'i', ('time',))
-		lwin = f.createVariable('lwin',    'f4',('lon','lat','time'))
-
-		#assign dimensions
-		longitude[:] = lon
-		latitude[:]  = lat
-		mytime[:] = rtime
-
-		varT = np.transpose(ts_lwin ,(1, 0, 2))
-		lwin[:] = np.flip(varT, 1)
-		
-		#metadata
-		f.history = 'Created by toposcale on '+time.ctime()
-		mytime.units = 'hours since '+str(dtime[0])
-
-		f.close()
 
 		## Shortwave
 
@@ -1615,153 +1966,7 @@ def main(wdir, mode, start, end, dataset, member=None):
 
 
 
-		## ta
 		
-		#open
-		f = nc.Dataset('ta.nc','w', format='NETCDF4')
-
-		#make dimensions
-		f.createDimension('lon', len(lon))
-		f.createDimension('lat', len(lat))
-		f.createDimension('time', ntime)
-
-		#make dimension variables
-		longitude = f.createVariable('lon',    'f4',('lon',))
-		latitude  = f.createVariable('lat',    'f4',('lat',))
-		mytime = f.createVariable('time', 'i', ('time',))
-		lwin = f.createVariable('ta',    'f4',('lon','lat','time'))
-
-		#assign dimensions
-		longitude[:] = lon
-		latitude[:]  = lat
-		mytime[:] = rtime
-
-		varT = np.transpose(gtob.t ,(1, 0, 2))
-		lwin[:] = np.flip(varT, 1)
-		
-		#metadata
-		f.history = 'Created by toposcale on '+time.ctime()
-		mytime.units = 'hours since '+str(dtime[0])
-
-		f.close()
-
-		# rh
-		
-		#open
-		f = nc.Dataset('rh.nc','w', format='NETCDF4')
-
-		#make dimensions
-		f.createDimension('lon', len(lon))
-		f.createDimension('lat', len(lat))
-		f.createDimension('time', ntime)
-
-		#make dimension variables
-		longitude = f.createVariable('lon',    'f4',('lon',))
-		latitude  = f.createVariable('lat',    'f4',('lat',))
-		mytime = f.createVariable('time', 'i', ('time',))
-		lwin = f.createVariable('rh',    'f4',('lon','lat','time'))
-
-		#assign dimensions
-		longitude[:] = lon
-		latitude[:]  = lat
-		mytime[:] = rtime
-
-		varT = np.transpose(gtob.r ,(1, 0, 2))
-		lwin[:] = np.flip(varT, 1)
-		
-		#metadata
-		f.history = 'Created by toposcale on '+time.ctime()
-		mytime.units = 'hours since '+str(dtime[0])
-
-		f.close()
-
-		# u
-		
-		#open
-		f = nc.Dataset('u.nc','w', format='NETCDF4')
-
-		#make dimensions
-		f.createDimension('lon', len(lon))
-		f.createDimension('lat', len(lat))
-		f.createDimension('time', ntime)
-
-		#make dimension variables
-		longitude = f.createVariable('lon',    'f4',('lon',))
-		latitude  = f.createVariable('lat',    'f4',('lat',))
-		mytime = f.createVariable('time', 'i', ('time',))
-		lwin = f.createVariable('u',    'f4',('lon','lat','time'))
-
-		#assign dimensions
-		longitude[:] = lon
-		latitude[:]  = lat
-		mytime[:] = rtime
-
-		varT = np.transpose(gtob.u ,(1, 0, 2))
-		lwin[:] = np.flip(varT, 1)
-		
-		#metadata
-		f.history = 'Created by toposcale on '+time.ctime()
-		mytime.units = 'hours since '+str(dtime[0])
-
-		f.close()
-
-		# v
-		
-		#open
-		f = nc.Dataset('v.nc','w', format='NETCDF4')
-
-		#make dimensions
-		f.createDimension('lon', len(lon))
-		f.createDimension('lat', len(lat))
-		f.createDimension('time', ntime)
-
-		#make dimension variables
-		longitude = f.createVariable('lon',    'f4',('lon',))
-		latitude  = f.createVariable('lat',    'f4',('lat',))
-		mytime = f.createVariable('time', 'i', ('time',))
-		lwin = f.createVariable('v',    'f4',('lon','lat','time'))
-
-		#assign dimensions
-		longitude[:] = lon
-		latitude[:]  = lat
-		mytime[:] = rtime
-
-		varT = np.transpose(gtob.v ,(1, 0, 2))
-		lwin[:] = np.flip(varT, 1)
-		
-		#metadata
-		f.history = 'Created by toposcale on '+time.ctime()
-		mytime.units = 'hours since '+str(dtime[0])
-
-		f.close()
-
-		#open
-		f = nc.Dataset('pint.nc','w', format='NETCDF4')
-
-		#make dimensions
-		f.createDimension('lon', len(lon))
-		f.createDimension('lat', len(lat))
-		f.createDimension('time', ntime)
-
-		#make dimension variables
-		longitude = f.createVariable('lon',    'f4',('lon',))
-		latitude  = f.createVariable('lat',    'f4',('lat',))
-		mytime = f.createVariable('time', 'i', ('time',))
-		lwin = f.createVariable('pint',    'f4',('lon','lat','time'))
-
-		#assign dimensions
-		longitude[:] = lon
-		latitude[:]  = lat
-		mytime[:] = rtime
-
-		varT = np.transpose(grid_prate ,(1, 0, 2))
-		lwin[:] = np.flip(varT, 1)
-		
-		#metadata
-		f.history = 'Created by toposcale on '+time.ctime()
-		mytime.units = 'hours since '+str(dtime[0])
-
-		f.close()
 	
 
 	logging.info("Toposcale complete!")

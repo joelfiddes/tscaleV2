@@ -23,7 +23,7 @@ Todo:
 
 import numpy as np
 import netCDF4 as nc
-import solarGeom as sg
+import solarGeom as sg # validated against original corripio code
 reload(sg)
 class tscale(object):
 	"""
@@ -223,7 +223,7 @@ class tscale(object):
 
 
 
-	def lwin(self, sob,tob):
+	def lwin(self, sob,tob, stat):
 		"""Convert to RH (should be in a function). Following MG Lawrence 
 		DOI 10.1175/BAMS-86-2-225 """
 		A1=7.625 
@@ -269,7 +269,8 @@ class tscale(object):
 		""" Use the former cloud emissivity to compute the all sky emissivity at 
 		subgrid. """
 		aef=cef+deltae
-		self.LWf=aef*sbc*tob.t**4
+		self.LWf=stat.svf* aef*sbc*tob.t**4
+		#self.LWf= aef*sbc*tob.t**4
 		#fout.LW(:,:,n)=LWf
 
 
@@ -315,7 +316,7 @@ class tscale(object):
 		return(RH)
 
 
-	def lwin_joel(self, sob,tob):
+	def lwin_joel(self, sob,tob, stat):
 		#All T in kelvin
 
 		T_sub=tob.t # K
@@ -360,13 +361,24 @@ class tscale(object):
 		#calculate lwin subgrid
 		lwsub=Eas_sub*sb*T_sub**4
 
+		lwsub=lwsub*stat.svf
 		return(lwsub)
 		
 
 	def swin(self,pob,sob,tob, stat, dates):
 		
 		""" toposcale surface pressure using hypsometric equation - move to own 
-		class """
+		class 
+		EDITS Jul 11 2019:
+		- removed elevation scaling as this degrade results - at least in WFJ test- Kris?
+		- reimplemnt original additative ele method - better than beers, or at least less damaging
+		- removed mask, why is this causing problems?
+		- dotprod method (corripio) does not seem to work - I dont think it ever did as we used SWTopo ==FALSE
+		- use Dozier cos corrction method (as in paper right)
+		- So ... we have ele, illumination angle, self shading and svf correction. We do not have horizon correction (partly in self shading of course)
+
+
+		"""
 
 		ztemp = pob.z
 		Ttemp = pob.t
@@ -507,10 +519,36 @@ class tscale(object):
 		# Along with hydrostatic equation to convert to pressure coordinates then
 		# solve for ka using p(z=inf)=0.
 		
-		
+		# Method 1 Beers law
 		# Now you can (finally) find the direct component at subgrid. 
 		self.SWfdir=SWtoa*np.exp(-ka*self.psf/(self.g*muz))
+		#self.SWfdir=SWcdir
+		
+		# Method 2 ORIGINAL ELEVATION Correction
+		"""ele diff in km"""
+		coarseZ=Zc[0]/9.9
 
+		dz=(stat.ele-coarseZ)/1000# fine - coase in knm
+
+		s=SWtoa
+		b=SWcdir
+		zen=sp.zen
+
+		thetaz=(np.pi/180)*zen #radians
+		m=1/np.cos(thetaz)
+		k= -np.log(b/s)/m
+		k.set_fill_value(0) 
+		k=k.filled()
+		#k[is.na(k)==T]<-0 #correct b=0/s=0 problem
+
+		t=np.exp(1)**(-k*dz*np.cos(thetaz))
+		t[t>1]<-1.1 #to constrain to reasonable values
+		t[t<0.8]<-0.9 #to constrain to reasonable values
+		db=(1-t)*SWcdir
+
+		#self.SWfdir=SWcdir+db #additative correction
+
+		#======================================
 		""" Then perform the terrain correction. [Corripio 2003 / rpackage insol port]."""
 
 		"""compute mean horizon elevation - why negative hor.el possible??? """
@@ -528,20 +566,23 @@ class tscale(object):
 		"""
 		Method 1: Computes the intensity according to the position of the sun (sunv) and 
 		dotproduct normal vector to slope.
-		From corripio r package
+		From corripio r package REMOVE THIS
 		"""
 		dotprod=np.dot(sunv ,np.transpose(nv)) 
 		dprod = dotprod.squeeze()
 		dprod[dprod<0] = 0 #negative indicates selfshading
 		self.dprod = dprod
 
-		"""Method 2: Illumination angles. Dozier"""
+		"""Method 2: Illumination angles. Dozier and self shading"""
 		saz=sp.azi
 		cosis=muz*np.cos(stat.slp)+np.sin(sp.zen)*np.sin(stat.slp)*np.cos(sp.azi-stat.asp)# cosine of illumination angle at subgrid.
 		cosic=muz # cosine of illumination angle at grid (slope=0).
+		cosi = (cosis/cosic)
 
+		#If ratio of illumination angle subgrid/ illum angle grid is negative the point is selfshaded
+		cosi[cosi<0]=0
 		"""
-		SUN ELEVATION below hor.el set to 0 - binary mask
+		CAST SHADOWS: SUN ELEVATION below hor.el set to 0 - binary mask
 		"""
 		selMask = sp.sel
 		selMask[selMask<horel]=0
@@ -553,15 +594,110 @@ class tscale(object):
 		shadow and solar geometry
 		BOTH formulations seem to be broken
 		"""
-		#self.SWfdirCor=selMask*(cosis/cosic)*self.SWfdir
-		self.SWfdirCor=selMask*dprod*self.SWfdir
-	   
-		self.SWfglob = self. SWfdiff+ self.SWfdirCor
+		#self.SWfdirCor=selMask*(cosis/cosic)*self.SWfdir # this is really wrong!
+		self.SWfdirCor=(cosis/cosic)*self.SWfdir 
+		self.SWfdirCor=selMask*dprod*self.SWfdir # this is bad
+		#self.SWfdirCor=dprod*self.SWfdir 
+		self.SWfglob = self.SWfdiff+ self.SWfdirCor
+		#self.SWfglob = self.SWfdiff+ self.SWfdir
 
+		
 		""" 
 		Missing components
 		- terrain reflection
 		"""
+
+	def swin_joel(sob):
+		# vertical profiles https://hal.archives-ouvertes.fr/hal-00470155/document
+
+
+		"""PARTITION"""
+
+		""" Height of the "grid" (coarse scale)"""
+		Zc=sob.z
+
+		""" Height of the "station" (fine scale)"""
+		statz = stat.ele*self.g
+
+		""" toa """
+		SWtoa = sob.tisr 
+
+		""" Downwelling shortwave flux of the "grid" using nearest neighbor."""
+		SWc=sob.ssrd
+
+		"""Calculate the clearness index."""
+		kt=SWc/SWtoa
+
+		#kt[is.na(kt)==T]<-0 # make sure 0/0 =0
+		#kt[is.infinite(kt)==T]<-0 # make sure 0/0 =0
+		kt[kt<0]=0
+		kt[kt>1]=0.8 #upper limit of kt
+		self.kt=kt
+
+
+		"""
+		Calculate the diffuse fraction following the regression of Ruiz-Arias 2010 
+		
+		"""
+		kd=0.952-1.041*np.exp(-1*np.exp(2.3-4.702*kt))
+		self.kd = kd
+
+		""" Use this to calculate the downwelling diffuse and direct shortwave radiation at grid. """
+		SWcdiff=kd*SWc
+		SWcdir=(1-kd)*SWc
+		self.SWcdiff=SWcdiff
+		self.SWcdir=SWcdir
+
+		""" Use the above with the sky-view fraction to calculate the 
+		downwelling diffuse shortwave radiation at subgrid. """
+		self.SWfdiff=stat.svf*SWcdiff
+		self.SWfdiff.set_fill_value(0)
+		self.SWfdiff = self.SWfdiff.filled()
+
+
+		"""ELEVATION SCALING"""
+
+		"""
+		Computes azimuth , zenith  and sun elevation 
+		for each timestamp
+		"""
+		sp=sg.sunpos(sunv)
+		self.sp=sp
+
+		"""ele diff in km"""
+		dz=(stat.z-Zc)/1000# fine - coase
+
+		s=SWtoa
+		b=SWcdir
+		zen=sp.zen
+
+		#thetaz=(pi/180)*zen #radians
+		#m=1/np.cos(thetaz)
+		#k= -np.log(b/s)/m
+		#k[is.na(k)==T]<-0 #correct b=0/s=0 problem
+
+		#t=exp(1)^(-k*dz*cos(thetaz))
+		#t[t>1]<-1.1 #to constrain to reasonable values
+		#t[t<0.8]<-0.9 #to constrain to reasonable values
+		#db=(1-t)*SWcdir
+
+		SWcdir=SWcdir+db #additative correction
+
+		"""REDUCE DIFFUSE BY SVF"""
+		""" Use the above with the sky-view fraction to calculate the 
+		downwelling diffuse shortwave radiation at subgrid. """
+		self.SWfdiff=stat.svf*SWcdiff
+		self.SWfdiff.set_fill_value(0)
+		self.SWfdiff = self.SWfdiff.filled()
+
+		#corrects direct beam component for solar geometry, cast shadows and self shading
+		# sdirTopo=solarGeom(mf=mf,dates=dd, sdirm=sdirScale, tz=TZ)
+
+
+
+
+
+		
 
 	def precip(self, sob, stat):
 

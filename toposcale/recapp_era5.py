@@ -207,7 +207,7 @@ class t3d(object):
             lons = self.dem.variables['longitude'][:]
             lats = self.dem.variables['latitude'][:]
             lat=lats[::-1]
-            geop = self.dem.variables['ele'][:]*self.g # formally "Band1"
+            geop = self.dem.variables['layer'][:]*self.g # formally "Band1"
             shape = geop.shape
         
             lons, lats = np.meshgrid(lons, lats)
@@ -434,8 +434,8 @@ class t3d(object):
             # IndexError: index 16 is out of bounds for axis 0 with size 16
 
         # if not np.all(np.diff(z_interp)>0):
-        #     t_interp=t_interp[::-1]
-        #     z_interp=z_interp[::-1]
+        #      t_interp=t_interp[::-1]
+        #      z_interp=z_interp[::-1]
 
 
 

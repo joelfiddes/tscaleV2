@@ -5,6 +5,7 @@ implementation of Javier Corripio's R-package 'insol'. Documented here:
 
 https://doi.org/10.1080/713811744
 
+validated against original R-package code from Corripio
 
 Example:
 

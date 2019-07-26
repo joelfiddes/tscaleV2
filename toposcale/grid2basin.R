@@ -69,6 +69,8 @@ ssrd_sub=ssrd_nc[mycol,myrow,]
 tp_sub=tp_nc[mycol,myrow,]
 tisr_sub=tisr_nc[mycol,myrow,]
 
+
+
 if ( length(dim(t2m_sub))){
 	# the mean timeseries for basin
 	t2m_sub_mean = apply(t2m_sub, MARGIN=c(3), FUN='mean')
@@ -94,6 +96,7 @@ tp_sub_mean <- tp_sub
 tisr_sub_mean <- tisr_sub
 }
 
+
 t2m_mat=c(t2m_mat, t2m_sub_mean)
 z_mat=c(z_mat, z_sub_mean)
 d2m_mat=c(d2m_mat, d2m_sub_mean)
@@ -104,6 +107,34 @@ tisr_mat=c(tisr_mat, tisr_sub_mean)
 
 
 }
+rm(t2m_nc)
+gc()
+rm(z_nc)
+gc()
+rm(d2m_nc)
+gc()
+rm(strd_nc)
+gc()
+rm(ssrd_nc)
+gc()
+rm(tp_nc)
+gc()
+rm(tisr_nc)
+gc()
+rm(t2m_sub)
+gc()
+rm(z_sub)
+gc()
+rm(d2m_sub)
+gc()
+rm(strd_sub)
+gc()
+rm(ssrd_sub)
+gc()
+rm(tp_sub)
+gc()
+rm(tisr_sub)
+gc()
 
 t2m = matrix(t2m_mat, nrow=length(basins), ncol=length(t2m_sub_mean), byrow=T)
 zs = matrix(z_mat, nrow=length(basins), ncol=length(z_sub_mean), byrow=T)
@@ -113,6 +144,20 @@ ssrd = matrix(ssrd_mat, nrow=length(basins), ncol=length(ssrd_sub_mean), byrow=T
 tp = matrix(tp_mat, nrow=length(basins), ncol=length(tp_sub_mean), byrow=T)
 tisr = matrix(tisr_mat, nrow=length(basins), ncol=length(tisr_sub_mean), byrow=T)
 
+rm(t2m_mat)
+gc()
+rm(z_mat)
+gc()
+rm(d2m_mat)
+gc()
+rm(strd_mat)
+gc()
+rm(ssrd_mat)
+gc()
+rm(tp_mat)
+gc()
+rm(tisr_mat)
+gc()
 # get centroids
 centroids = gCentroid(shp,byid=T)
 mylon=centroids@coords[,1]
@@ -150,7 +195,8 @@ title <- "t2m at basin centroids"
 dlname <- "2m Surface temperature"
 data=t2m
 writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
-
+rm(t2m)
+gc()
 varname="z"
 units="m**2 s**-2"
 ncfname <- "zs.nc"
@@ -158,7 +204,8 @@ title <- "geopotential at basin centroids"
 dlname <- "Surface geopotential"
 data=zs
 writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
-
+rm(z)
+gc()
 varname="d2m"
 units="K"
 ncfname <- "d2m.nc"
@@ -166,7 +213,8 @@ title <- "2 metre dewpoint temperature at basin centroids"
 dlname <- "2 metre dewpoint temperature"
 data=d2m
 writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
-
+rm(d2m)
+gc()
 varname="strd"
 units="J m**-2"
 ncfname <- "strd.nc"
@@ -174,7 +222,8 @@ title <- "Surface thermal radiation downwards at basin centroids"
 dlname <- "Surface thermal radiation downwards"
 data=strd
 writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
-
+rm(strd)
+gc()
 varname="ssrd"
 units="J m**-2"
 ncfname <- "ssrd.nc"
@@ -182,6 +231,8 @@ title <- "Surface solar radiation downwards at basin centroids"
 dlname <- "Surface solar radiation downwards"
 data=ssrd
 writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
+rm(ssrd)
+gc()
 
 tp[tp<0]<-0
 tp[which(is.infinite(as.vector(tp)))]<-0 # finds and remove Inf's why these exist?! must be TP correct method
@@ -193,7 +244,8 @@ title <- "total precipitation at basin centroids"
 dlname <- "total precipitation"
 data=tp
 writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
-
+rm(tp)
+gc()
 varname="tisr"
 units="J m**-2"
 ncfname <- "tisr.nc"
@@ -201,7 +253,8 @@ title <- "TOA incident solar radiation at basin centroids"
 dlname <- "TOA incident solar radiation"
 data=tisr
 writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd)
-
+rm(tisr)
+gc()
 
 
 
@@ -248,6 +301,7 @@ v_sub=v_nc[mycol,myrow,,]
 r_sub=r_nc[mycol,myrow,,]
 
 
+
 if ( length(dim(z_sub))>2){
 	# the mean timeseries for basin
 	z_sub_mean = as.vector(t(apply(z_sub, MARGIN=c(3,4), FUN='mean')))
@@ -270,6 +324,9 @@ v_sub_mean <- as.vector(v_sub)
 r_sub_mean <- as.vector(r_sub)
 
 }
+
+
+
 z_mat=c(z_mat, z_sub_mean)
 t_mat=c(t_mat, t_sub_mean)
 u_mat=c(u_mat, u_sub_mean)
@@ -277,6 +334,28 @@ v_mat=c(v_mat, v_sub_mean)
 r_mat=c(r_mat, r_sub_mean)
 
 }
+
+rm(z_nc)
+gc()
+rm(t_nc)
+gc()
+rm(u_nc)
+gc()
+rm(v_nc)
+gc()
+rm(r_nc)
+gc()
+rm(z_sub)
+gc()
+rm(t_sub)
+gc()
+rm(u_sub)
+gc()
+rm(v_sub)
+gc()
+rm(r_sub)
+gc()
+
 
 zp = matrix(z_mat, nrow=length(basins), ncol=length(z_sub_mean), byrow=T)
 t = matrix(t_mat, nrow=length(basins), ncol=length(t_sub_mean), byrow=T)
@@ -286,10 +365,21 @@ r = matrix(r_mat, nrow=length(basins), ncol=length(r_sub_mean), byrow=T)
 
 # reshape to 3D
 zp_array = array(zp, dim=c(length(basins), length(time_nc), length(lev)))
+rm(zp)
+gc()
+
 t_array = array(t, dim=c(length(basins), length(time_nc), length(lev)))
+rm(t)
+gc()
 u_array = array(u, dim=c(length(basins), length(time_nc), length(lev)))
+rm(u)
+gc()
 v_array = array(v, dim=c(length(basins), length(time_nc), length(lev)))
+rm(v)
+gc()
 r_array = array(r, dim=c(length(basins), length(time_nc), length(lev)))
+rm(r)
+gc()
 
 # get centroids
 centroids = gCentroid(shp,byid=T)
