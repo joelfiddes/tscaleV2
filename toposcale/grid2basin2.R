@@ -4,7 +4,10 @@ require(raster)
 require(ncdf4)
 require(rgeos)
 
-wd="/home/joel/sim/tsub_bilin/"
+args = commandArgs(trailingOnly=TRUE)
+wd=args[1]
+
+
 setwd(paste0(wd,"/forcing/"))
 surfnc = paste0(wd,"/forcing/SURF.nc")
 plevnc = paste0(wd,"/forcing/PLEV.nc")
