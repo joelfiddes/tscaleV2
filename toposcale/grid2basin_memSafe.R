@@ -236,6 +236,6 @@ for ( var in vars){
 	writeNcdfPlev(varname,units,ncfname,title,dlname,data,time_nc,wd,lev)
 }
 
-
+}
 
 
