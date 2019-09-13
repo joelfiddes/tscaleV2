@@ -105,7 +105,7 @@ for i in range(lp.id.size):
 	dtime=dtime[startIndex:endIndex]
 
 	# extract data
-	zpdat = zp.variables['z'][:, startIndex:endIndex,basin ] 
+	zpdat = zp.variables['z'][:, startIndex:endIndex,basin ] # dims = levels * time 
 	tdat = t.variables['t'][ :, startIndex:endIndex,basin ]
 	udat = u.variables['u'][ :, startIndex:endIndex,basin ]
 	vdat = v.variables['v'][ :,startIndex:endIndex,basin ]
@@ -175,7 +175,7 @@ for i in range(lp.id.size):
 	# compute step in seconds for accumulated surface fields
 	a=dtime[2]-dtime[1]
 	step = a.seconds
-	tp1 = tpdat/step*60*60 # convert metres per timestep -> m/hour 
+	tp1 = tpdat/(step/(60*60)) # convert metres per timestep -> m/hour 
 	pmmhr = tp1	*1000 # m/hour-> mm/hour = PRATE
 	
 	""" compute surface elevation of coarse grid"""

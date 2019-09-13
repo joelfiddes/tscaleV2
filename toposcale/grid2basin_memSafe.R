@@ -171,11 +171,12 @@ for ( var in vars){
 	t_mat=c()
 
 		#loop through basins
+		ncounter=0
 		for ( b in basins){
-
+ncounter=ncounter+1
 		# get grids that exist in basin
 		print(b)
-		cellIndex=b
+		cellIndex=as.numeric(unlist(b))
 
 		# get row/col of each grid
 		myrow = ceiling(cellIndex/ncol(s))
@@ -193,7 +194,8 @@ for ( var in vars){
 				#compute p lapse rate here
 				
 					}else{
-				t_sub_mean <- as.vector(t_sub)
+						print(paste0("one",ncounter))
+				t_sub_mean <- as.vector(t(t_sub))
 
 			}
 			rm(t_sub)
@@ -205,9 +207,8 @@ for ( var in vars){
 	rm(t_sub_mean)
 
 	# reshape to 3D
-	t_array = array(t, dim=c(length(basins), length(time_nc), length(lev)))
+	t_array = array(t, dim=c(length(basins), length(time_nc),length(lev)))
 	rm(t)
-
 
 	# get centroids
 	centroids = gCentroid(shp,byid=T)
