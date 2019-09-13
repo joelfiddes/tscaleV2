@@ -310,7 +310,7 @@ class Surf(Plev):
 			and therefore treated here the same.
 			https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation
 		"""
-		self.tp1 = self.tp/step*60*60 # convert metres per timestep -> m/hour 
+		self.tp1 = self.tp/(step/(60*60)) # convert metres per timestep -> m/hour 
 		self.pmmhr = self.tp1	*1000 # m/hour-> mm/hour = PRATE
 	
 	def gridEle(self):

@@ -56,8 +56,8 @@ basin=sys.argv[7]
 # endTime = '2001-09-01'
 # windCor='FALSE'
 
-surfile=indir+"/g"+basin+"_surf.nc"
-plevfile= indir+"/g"+basin+"_plev.nc"
+surfile=inDir+"/g"+basin+"_surf.nc"
+plevfile= inDir+"/g"+basin+"_plev.nc"
 
 lpfile=home + "/listpoints.txt"
 # read in lispoints
@@ -154,7 +154,7 @@ for i in range(lp.id.size):
 	# compute step in seconds for accumulated surface fields
 	a=dtime[2]-dtime[1]
 	step = a.seconds
-	tp1 = tpdat/step*60*60 # convert metres per timestep -> m/hour 
+	tp1 = tpdat/(step/(60*60)) # convert metres per timestep -> m/hour 
 	pmmhr = tp1	*1000 # m/hour-> mm/hour = PRATE
 	
 	""" compute surface elevation of coarse grid"""
