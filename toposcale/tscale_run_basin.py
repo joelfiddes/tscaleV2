@@ -47,7 +47,9 @@ outDir = sys.argv[3] # /home/joel/sim/imis/sim/g1/forcing
 startTime = sys.argv[4]
 endTime = sys.argv[5]
 windCor=sys.argv[6]
-basin=sys.argv[7]
+basin=sys.argv[7] 
+basin = basin -1  #python index
+
 # DEBUG
 # inDir= '/home/joel/sim/imis/forcing/'
 # home='/home/joel/sim/imis/'
