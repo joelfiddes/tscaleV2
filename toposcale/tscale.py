@@ -721,5 +721,15 @@ class tscale(object):
 		dz=(stat.ele-sob.gridEle)/1e3     # Elevation difference in kilometers between the fine and coarse surface.
 		lp=(1+pfis*dz)/(1-pfis*dz)# Precipitation correction factor.
 		
-		self.prate=sob.pmmhr*lp # mm/hour
-		self.psum=sob.tp*1000*lp # mm/timestep
+		# get timestep
+		a=sob.dtime[2]-sob.dtime[1]
+		step = a.seconds
+		stepinhr=step/(60*60)
+
+		# scale by timestep to complete budget as era5 is a single hour accumulation - this is a simplification and adds some 
+		# uncertainty but when comparing full budgets at monthly scale difference is insignificant
+		# routine to make scale by monthly budget needs fixing
+		# 6hr step means scaling factor *6
+
+		self.prate=sob.pmmhr*lp *stepinhr # mm/hour
+		self.psum=sob.tp*1000*lp *stepinhr# mm/timestep

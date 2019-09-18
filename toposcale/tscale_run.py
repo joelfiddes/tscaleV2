@@ -131,7 +131,7 @@ for i in range(lp.id.size):
 
 		s.addVar(v,s.var) # adds data again with correct name - redundancy
 
-	""" rad conversions """
+	""" rad conversions era5 always accumulated over 1h or 3600s """
 	s.instRad(3600)
 
 	""" precip conversions m/timestep to mm/h"""

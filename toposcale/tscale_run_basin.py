@@ -177,8 +177,16 @@ for i in range(lp.id.size):
 	# compute step in seconds for accumulated surface fields
 	a=dtime[2]-dtime[1]
 	step = a.seconds
-	tp1 = tpdat/(step/(60*60)) # convert metres per timestep -> m/hour 
-	pmmhr = tp1	*1000 # m/hour-> mm/hour = PRATE
+	stepinhr=step/(60*60)
+	tp1 = tpdat/(stepinhr) # convert metres per timestep -> m/hour 
+	# m/hour-> mm/hour = PRATE
+	pmmhr = tp1	*1000 
+	
+
+
+	
+
+
 	
 	""" compute surface elevation of coarse grid"""
 	gridEle = zsdat/9.80665
