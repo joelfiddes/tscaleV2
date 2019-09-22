@@ -84,6 +84,11 @@ logging.basicConfig(level=logging.DEBUG, filename=home+"/tscale_logfile", filemo
 
 for i in range(lp.id.size):
 
+	fileout=outDir+"/meteo"+"c"+str(i+1)+".csv"
+	if os.path.exists(fileout):
+		logging.info(fileout + " exists!")
+		continue
+
 	# station attribute structure , tz always =0 for case of ERA5
 	stat = hp.Bunch(ele = lp.ele[i], slp = lp.slp[i],asp = lp.asp[i],svf = lp.svf[i],lon = lp.lon[i], lat =lp.lat[i],sro = lp.surfRough[i],tz = lp.tz[i]  )
 
@@ -181,7 +186,7 @@ for i in range(lp.id.size):
 	tp1 = tpdat/(stepinhr) # convert metres per timestep -> m/hour 
 	# m/hour-> mm/hour = PRATE
 	pmmhr = tp1	*1000 
-	
+
 
 
 	
