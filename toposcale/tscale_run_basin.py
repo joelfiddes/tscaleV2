@@ -37,6 +37,7 @@ import tscale as ts
 import helper as hp
 import numpy as np
 import sys
+import os
 import logging
 import netCDF4 as nc
 
