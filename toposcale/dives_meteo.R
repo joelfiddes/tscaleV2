@@ -23,13 +23,13 @@ for (basinID in basins){
 	#=============== Aggregations ========================================================
 	watts2joules = 0.0036
 
-	DWMEAN=aggregate(dat$DW, list(day_agg), mean)[,2] # m/s
 	TAMEAN=aggregate(dat$TA, list(day_agg), mean)[,2] # K
 	TAMIN=aggregate(dat$TA, list(day_agg), min)[,2] # K
 	TAMAX=aggregate(dat$TA, list(day_agg), max)[,2] # K
 	ISWRSUM=aggregate(dat$ISWR*watts2joules, list(day_agg), sum)[,2] # joules/m2
-	VWMEAN=aggregate(dat$ISWR, list(day_agg), mean)[,2] # m/s
-	VWMAX=aggregate(dat$ISWR, list(day_agg), max)[,2] # m/s
+	VWMEAN=aggregate(dat$VW, list(day_agg), mean)[,2] # m/s
+	VWMAX=aggregate(dat$VW, list(day_agg), max)[,2] # m/s
+	DWMEAN=aggregate(dat$DW, list(day_agg), mean)[,2] # m/s
 	PSUM=aggregate(dat$PSUM, list(day_agg), sum)[,2] # mm
 	RHMEAN=aggregate(dat$RH, list(day_agg), mean)[,2] # 0-1
 
