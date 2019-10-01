@@ -445,7 +445,7 @@ class tscale(object):
 
 		""" Use the above with the sky-view fraction to calculate the 
 		downwelling diffuse shortwave radiation at subgrid. """
-		self.SWfdiff=stat.svf*SWcdiff
+		self.SWfdiff=SWcdiff * stat.svf
 		self.SWfdiff.set_fill_value(0)
 		self.SWfdiff = self.SWfdiff.filled()
 
@@ -597,7 +597,7 @@ class tscale(object):
 		#self.SWfdirCor=selMask*(cosis/cosic)*self.SWfdir # this is really wrong!
 		self.SWfdirCor=(cosis/cosic)*self.SWfdir 
 		self.SWfdirCor=selMask*dprod*self.SWfdir # this is bad
-		#self.SWfdirCor=dprod*self.SWfdir 
+		self.SWfdirCor=dprod*self.SWfdir
 		self.SWfglob = self.SWfdiff+ self.SWfdirCor
 		#self.SWfglob = self.SWfdiff+ self.SWfdir
 
@@ -731,5 +731,5 @@ class tscale(object):
 		# routine to make scale by monthly budget needs fixing
 		# 6hr step means scaling factor *6
 
-		self.prate=sob.pmmhr*lp *stepinhr # mm/hour
-		self.psum=sob.tp*1000*lp *stepinhr# mm/timestep
+		self.prate=sob.pmmhr *stepinhr # mm/hour
+		self.psum=sob.tp*1000 *stepinhr# mm/timestep
