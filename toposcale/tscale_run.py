@@ -32,12 +32,13 @@ Todo:
 """
 
 import pandas as pd # only required to import listpoints nicely, should be able to remove
-import era5 as e5
+
 import tscale as ts
 import helper as hp
 import numpy as np
 import sys
 import logging
+import netCDF4 as nc
 #=== ARGS==============================================
 inDir=sys.argv[1] # /home/joel/sim/imis/forcing/
 home=sys.argv[2] # /home/joel/sim/imis/
@@ -45,7 +46,7 @@ outDir = sys.argv[3] #
 startTime = sys.argv[4]
 endTime = sys.argv[5]
 windCor=sys.argv[6]
-
+dataset=sys.argv[7]
 # DEBUG
 # inDir= '/home/joel/sim/imis/forcing/'
 # home='/home/joel/sim/imis/'
@@ -60,6 +61,12 @@ lpfile=home + "/listpoints.txt"
 # read in lispoints
 lp=pd.read_csv(lpfile)
 
+
+if dataset=='interim':
+	import erai as era
+
+if dataset=='era5':
+	import era5 as era
 #===============================================================================
 #	Logging
 #===============================================================================
@@ -71,50 +78,95 @@ for i in range(lp.id.size):
 	# station attribute structure , tz always =0 for case of ERA5
 	stat = hp.Bunch(ele = lp.ele[i], slp = lp.slp[i],asp = lp.asp[i],svf = lp.svf[i],lon = lp.lon[i], lat =lp.lat[i],sro = lp.surfRough[i],tz = lp.tz[i]  )
 
-	#=== Pressure level object =============================================
+	#=== Init Pressure level object =============================================
 
 	""" preprocess pressure level fields and add to structure """
-	p=e5.Plev(fp, stat.lat, stat.lon)
-	p.getVarNames()
+	pob=era.Plev(fp, stat.lat, stat.lon)
+	pob.getVarNames()
 
 	""" Datetime structure """
-	p.addTime()
-	startIndex = int(np.where(p.dtime==startTime)[0])#"2016-08-01 18:00:00"
-	endIndex = int(np.where(p.dtime==endTime)[0])#"2016-08-01 18:00:00"
+	pob.addTime()
+	startIndexP = int(np.where(pob.dtime==startTime)[0])#"2016-08-01 18:00:00"
+	endIndexP = int(np.where(pob.dtime==endTime)[0])#"2016-08-01 18:00:00"
+	pob.dtime=pob.dtime[startIndexP:endIndexP]	
 
-	"""cut p.dtime to start and end"""
-	p.dtime=p.dtime[startIndex:endIndex]
-
-	for v in p.varnames:
-
-		#v=p.varnames[1]
-		#p.getVar(v)
-		#name = p.myvar.name
-
-		p.extractCgc(v, startIndex, endIndex) # adds data to self
-
-		p.addVar(v,p.var) # adds data again with correct name - redundancy
-		#can now remove p.var it is redundant
-
-	""" dimensions of data """
-	p.addShape()
+	""" Add plevels """
+	pob.plevels()
+	nlev=pob.levels.shape[0]
 
 
-
-	""" Pressure level values """
-	p.plevels()
-
-	pob = p
-	#=== Surface object ====================================================
-
+	#=== Init Surface level object =============================================
 	""" preprocess surface level fields and add to structure """
-	s=e5.Surf(fs, stat.lat, stat.lon)
+	s=era.Surf(fs, stat.lat, stat.lon)
 	s.getVarNames()
 
 	""" Datetime structure """
 	s.addTime()
-	"""cut p.dtime to start and end"""
-	s.dtime=s.dtime[startIndex:endIndex]
+	startIndexS = int(np.where(s.dtime==startTime)[0])#"2016-08-01 18:00:00"
+	endIndexS = int(np.where(s.dtime==endTime)[0])#"2016-08-01 18:00:00"
+	s.dtime=s.dtime[startIndexS:endIndexS]
+
+	# check for unequal dtime ie as case for interim
+	# extract time vectors to use in interpolation and convert from 
+	# hour since to sec since by *3600
+	if pob.dtime.shape!=s.dtime.shape:
+
+		f = nc.Dataset(fs)   
+		time_out = f.variables['time'][:].astype(np.int64) *3600
+		# cut to correct dates
+		time_out=time_out[startIndexS:endIndexS]
+
+		f = nc.Dataset(fp)   
+		time_in = f.variables['time'][:].astype(np.int64)  *3600
+		# cut to correct dates
+		time_in=time_in[startIndexP:endIndexP]
+
+
+
+
+
+	# only required for erai, must have buffered datasets (ie a day before required startDate in raw data) as download will start at 03:00 on given day. 
+	# we assume day starts at 00:00 so s.dtime==startTime will not match in this case
+	#if p.dtime.shape!=s.dtime.shape:
+
+#	"""cut p.dtime to start and end"""
+#	s.dtime=s.dtime[startIndexS:endIndexS]
+
+#	# we always trim p.dtime here
+#	startIndexP = int(np.where(p.dtime==startTime)[0])#"2016-08-01 18:00:00"
+#	endIndexP = int(np.where(p.dtime==endTime)[0])#"2016-08-01 18:00:00"
+
+#	"""cut p.dtime to start and end"""
+#	p.dtime=p.dtime[startIndexP:endIndexP]	
+
+	for v in pob.varnames:
+
+		#v=pob.varnames[1]
+		#pob.getVar(v)
+		#name = pob.myvar.name
+
+		pob.extractCgc(v, startIndexP, endIndexP) # adds data to self
+		
+		# do time interpolation of PLEV in case of ERAI
+		if pob.dtime.shape!=s.dtime.shape:
+
+			# init dummy container
+			pob.var2 = np.zeros((s.dtime.shape[0],pob.var.shape[1]))
+			for lev in range(0,nlev):
+				pob.var2[:,lev]= era.series_interpolate(time_out, time_in, pob.var[:,lev])
+
+			pob.var = pob.var2
+
+		pob.addVar(v,pob.var) # adds data again with correct name - redundancy
+		#can now remove pob.var it is redundant
+
+	
+	""" dimensions of data """
+	pob.addShape()
+
+
+	#=== Surface object ====================================================
+
 
 	# compute step in seconds for accumulated surface fields
 	a=s.dtime[2]-s.dtime[1]
@@ -127,7 +179,7 @@ for i in range(lp.id.size):
 		s.getVar(v)
 		#name = p.myvar.name
 
-		s.extractCgc(v ,startIndex, endIndex) # adds data to self
+		s.extractCgc(v ,startIndexS, endIndexS) # adds data to self
 
 		s.addVar(v,s.var) # adds data again with correct name - redundancy
 
@@ -148,14 +200,14 @@ for i in range(lp.id.size):
 	#=== toposcale object ====================================================
 
 	"""init object"""
-	t = ts.tscale(p.z)
+	t = ts.tscale(pob.z)
 
 	""" Downscale pl fields """
-	for v in p.varnames:
+	for v in pob.varnames:
 		if (v=='z'):
 			continue
 		#print v
-		dat = getattr(p, v) # allows dynamic call to instance variable
+		dat = getattr(pob, v) # allows dynamic call to instance variable
 
 		t.tscale1D(dat,stat)
 		t.addVar(v,t.interpVar)
@@ -170,7 +222,7 @@ for i in range(lp.id.size):
 	t.lwin(sob, tob, stat)
 
 	# compute downscaled shortwave (SWf) Wm**2
-	t.swin(pob, sob,tob, stat,p.dtime)
+	t.swin(pob, sob,tob, stat,s.dtime)
 
 	# compute downscaled precipitation in mm/h (PRATE) and m/step (PSUM)
 	t.precip(sob,stat)
@@ -210,7 +262,7 @@ for i in range(lp.id.size):
 				"ISWR":t.SWfglob, 
 				"PINT":t.prate,
 				"PSUM":t.psum
-				},index=p.dtime)
+				},index=s.dtime)
 	df.index.name="datetime"
 
 	# fill outstanding nan in SW routine with 0 (night)
