@@ -270,8 +270,8 @@ class tscale(object):
 		subgrid. """
 		aef=cef+deltae
 		self.LWf=stat.svf* aef*sbc*tob.t**4
-		#self.LWf= aef*sbc*tob.t**4
-		#fout.LW(:,:,n)=LWf
+		# self.LWf= aef*sbc*tob.t**4
+		#  fout.LW(:,:,n)=LWf
 
 
 	def Rh2Wvp(tair,RH):
