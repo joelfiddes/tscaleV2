@@ -17,6 +17,8 @@ This plugin contains methods to:
 	* extract coarse grid cell (CGC) based on longitude latitude of station 
 		or CGC centre
 	* convert values to toposcale standard
+	* reinteropolate plev data to surface timestep
+	* handle accumulated pars
 	* writes single parameter files
 	* TopoSCALE standard input:
 
@@ -79,38 +81,7 @@ def series_interpolate(time_out, time_in, value_in, cum=False):
             
     return vi
 
-# credit GlobSim: https://github.com/geocryology/globsim/blob/master/generic.py
-def convert_cummulative(data):
-    """
-    Convert values that are serially cummulative, such as precipitation or 
-    radiation, into a cummulative series from start to finish that can be 
-    interpolated on for sacling. 
-    data: 1-dimensional time series 
-    """                       
-    # get increment per time step
-    diff = np.diff(data)
-    diff = np.concatenate(([data[0]], diff))
-    
-    # where new forecast starts, the increment will be smaller than 0
-    # and the actual value is used
-    mask = diff < 0
-    diff[mask] = data[mask]
-    
-    #get full cummulative sum
-    return np.cumsum(diff, dtype=np.float64)
 
-## interpolate pressure level data to same timestep as surface
-#f = nc.Dataset(fs)   
-#time_out = f.variables['time'][:].astype(np.int64) 
-
-#f = nc.Dataset(fp)   
-#time_in = f.variables['time'][:].astype(np.int64)  
-#values  = f.variables['t'][:]                   
-##for n, s in enumerate(self.rg.variables['station'][:].tolist()): 
-#    #scale from hPa to Pa 
-##self.rg.variables[vn][:, n] 
-
-#out= e5.series_interpolate(time_out*3600, time_in*3600, values[:,1,1,1])
 
 class Plev(object):
 	"""
@@ -342,6 +313,60 @@ class Surf(Plev):
 		self.var = f.variables[var][ startIndex:endIndex ,member-1, latli , lonli] 
 		#return mysub
 
+	def gridEle(self):
+		""" compute surface elevation of coarse grid"""
+		self.gridEle = self.z/9.80665
+
+
+	# accum values in interim are accumulated from start of forcast. To get instant values (eg mean over step) we need to select only the values at T=0 and T=12 then divide by the forecast step (T=12). this gives us total per timestep
+	def accum2step(self, sob, time_out):
+
+
+		# index of forecasts starts
+		fcstart =np.where((sob.dtime.hour==0) | (sob.dtime.hour==12))
+
+		# extract only 00/12h timesteps from 'time_out' (surface timesteps)
+		time_in=time_out[fcstart]
+		time_out=time_out # interpolate accumulations at
+
+		# get data
+		strd = self.strd[fcstart]
+		ssrd = self.ssrd[fcstart]
+		tp = self.tp[fcstart]
+		totalperstep_strd= era.series_interpolate(time_out, time_in, data)
+		self
+
+
+
+	# credit GlobSim: https://github.com/geocryology/globsim/blob/master/generic.py
+	def cummulative2total(self,data, time):
+		"""
+		Convert values that are serially cummulative, such as precipitation or 
+		radiation, into totals of each timestep that can be 
+		interpolated on for scaling. 
+		data: 1-dimensional time series 
+		data = sob.strd
+		time=sob.dtime
+		"""                       
+		# get increment per time step
+		diff = np.diff(data)
+		# cat as first timestep dropped
+		diff = np.concatenate(([data[0]], diff))
+
+		# where new forecast starts, the increment will be smaller than 0
+		# and the actual value is used
+
+		fcstart =np.where((time.hour==3) | (time.hour==15))
+		#fcstart = [timei.hour in [3,15] for timei in time] #	this is the same
+		diff[fcstart] = data[fcstart]
+
+		# shouldnt be needed
+		mask = diff < 0
+		diff[mask] = 0
+
+		return diff
+
+
 	def instRad(self, step):
 		""" Convert SWin from accumulated quantities in J/m2 to 
 		instantaneous W/m2 see: 
@@ -358,6 +383,7 @@ class Surf(Plev):
 		self.ssrd = self.ssrd/step
 		self.tisr = self.tisr/step 
 
+
 	def tp2rate(self, step):
 		""" convert tp from m/timestep (total accumulation over timestep) to rate in mm/h 
 
@@ -368,20 +394,9 @@ class Surf(Plev):
 			and therefore treated here the same.
 			https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation
 		"""
-		self.tp1 = self.tp/(step/(60*60)) # convert metres per timestep -> m/hour 
-		self.pmmhr = self.tp1	*1000 # m/hour-> mm/hour = PRATE
-	
-	def gridEle(self):
-		""" compute surface elevation of coarse grid"""
-		self.gridEle = self.z/9.80665
-
-
-
-
-
-
-
-
+		stepinhr=step/(60*60)
+		self.prate = (self.tp/stepinhr)*1000  # convert m per timestep -> mm/hour [PRATE] use approx scaling method until monthly correction fixed. Although this is actually pretty accurate.
+		self.psum = self.tp	*1000 # mm/ timestep  [PSUM]
 
 
 

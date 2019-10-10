@@ -310,8 +310,9 @@ class Surf(Plev):
 			and therefore treated here the same.
 			https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation
 		"""
-		self.tp1 = self.tp/(step/(60*60)) # convert metres per timestep -> m/hour 
-		self.pmmhr = self.tp1	*1000 # m/hour-> mm/hour = PRATE
+		stepinhr=step/(60*60)
+		self.prate = (self.tp/stepinhr)*1000 *stepinhr # convert m per timestep -> mm/hour [PRATE] use approx scaling method until monthly correction fixed. Although this is actually pretty accurate.
+		self.psum = self.tp	*1000 # mm/ timestep  [PSUM]
 	
 	def gridEle(self):
 		""" compute surface elevation of coarse grid"""

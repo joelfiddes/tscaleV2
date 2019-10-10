@@ -32,7 +32,6 @@ Todo:
 """
 
 import pandas as pd # only required to import listpoints nicely, should be able to remove
-
 import tscale as ts
 import helper as hp
 import numpy as np
@@ -183,11 +182,27 @@ for i in range(lp.id.size):
 
 		s.addVar(v,s.var) # adds data again with correct name - redundancy
 
-	""" rad conversions era5 always accumulated over 1h or 3600s """
-	s.instRad(3600)
+	''' convert accumulated field swin,lwin and P '''
 
-	""" precip conversions m/timestep to mm/h"""
-	s.tp2rate(step)
+	if dataset=='interim':
+		s.ssrd = s.cummulative2total(s.ssrd, s.dtime)
+		s.strd = s.cummulative2total(s.strd, s.dtime)
+		""" rad interim always accumulated over step """
+		s.instRad(step)
+
+	if dataset=='era5':
+		""" rad era5 always accumulated over 1h or 3600s """
+		s.instRad(3600)
+
+
+	if dataset=='interim':
+		s.tp = s.cummulative2total(s.tp, s.dtime)
+		""" precip conversions m/timestep to mm/h (PRATE) and mm/step (PSUM)"""
+		s.tp2rate(step)
+
+	if dataset=='era5':
+		""" p  era5 always accumulated over 1h or 3600s """
+		s.tp2rate(3600)
 
 	""" dimensions of data """
 	s.addShape()
@@ -224,7 +239,7 @@ for i in range(lp.id.size):
 	# compute downscaled shortwave (SWf) Wm**2
 	t.swin(pob, sob,tob, stat,s.dtime)
 
-	# compute downscaled precipitation in mm/h (PRATE) and m/step (PSUM)
+	# compute downscaled precipitation in mm/h (PRATE) and m/step (PSUM) - we dont apply scaling now
 	t.precip(sob,stat)
 
 	t.wind(tob)
