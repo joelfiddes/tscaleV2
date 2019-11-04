@@ -38,6 +38,8 @@ import numpy as np
 import sys
 import logging
 import netCDF4 as nc
+#import ipdb
+#ipdb.set_trace()
 #=== ARGS==============================================
 inDir=sys.argv[1] # /home/joel/sim/imis/forcing/
 home=sys.argv[2] # /home/joel/sim/imis/
@@ -268,15 +270,41 @@ for i in range(lp.id.size):
 	 # plt.plot(t.SWfdirCor)
 	# plt.show()
 	
+	# partition rain snow
+	lowthresh=272.15
+	highthresh = 276.15
+	d = {'prate': t.prate, 'ta': t.t }
+	df = pd.DataFrame(data=d)
+	snow = df.prate.where(df.ta<lowthresh) 
+	rain=df.prate.where(df.ta>highthresh) 
+
+	mix1S = df.prate.where((df.ta >= lowthresh) & (df.ta<=highthresh), inplace = False)
+	mix1T = df.ta.where((df.ta >= lowthresh) & (df.ta<=highthresh), inplace = False)
+	mixSno=(highthresh - mix1T) / (highthresh-lowthresh)
+	mixRain=1-mixSno
+	addSnow=mix1S*mixSno
+	addRain=mix1S*mixRain
+	
+	# nas to 0
+	snow[np.isnan(snow)] = 0 	
+	rain[np.isnan(rain)] = 0 
+	addRain[np.isnan(addRain)] = 0 
+	addSnow[np.isnan(addSnow)] = 0 
+
+	t.snowTot=snow+addSnow
+	t.rainTot=rain + addRain
 
 	df = pd.DataFrame({	"TA":t.t, 
 				"RH":t.r*0.01, #meteoio 0-1
-				"VW":t.ws,
+				"VW":t.ws, 
 				"DW":t.wd, 
 				"ILWR":t.LWf, 
 				"ISWR":t.SWfglob, 
 				"PINT":t.prate,
-				"PSUM":t.psum
+				"PSUM":t.psum,
+				"P":t.psf,
+				"Rf":np.array(t.rainTot),
+				"Sf":np.array(t.snowTot)
 				},index=s.dtime)
 	df.index.name="datetime"
 
