@@ -270,13 +270,13 @@ for i in range(lp.id.size):
 	 # plt.plot(t.SWfdirCor)
 	# plt.show()
 	
-	# partition rain snow
+	# partition prate to rain snow (mm/hr)
 	lowthresh=272.15
-	highthresh = 276.15
+	highthresh = 274.15
 	d = {'prate': t.prate, 'ta': t.t }
 	df = pd.DataFrame(data=d)
 	snow = df.prate.where(df.ta<lowthresh) 
-	rain=df.prate.where(df.ta>highthresh) 
+	rain=df.prate.where(df.ta>=highthresh) 
 
 	mix1S = df.prate.where((df.ta >= lowthresh) & (df.ta<=highthresh), inplace = False)
 	mix1T = df.ta.where((df.ta >= lowthresh) & (df.ta<=highthresh), inplace = False)
