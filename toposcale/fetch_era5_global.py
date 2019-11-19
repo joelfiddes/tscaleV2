@@ -121,7 +121,7 @@ def retrieve_era5_surf(startYear,endYear,eraDir, step):
 
 		# https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
 		Parallel(n_jobs=int(num_cores))(delayed( era5_request_surf)(var , int(yearVecNew[i]), targetVecNew[i],time) for i in range(0,len(yearVecNew)))
-		logging.info(var + " ", startYear + " to "+endYear +" complete!")
+		logging.info(var + " ", str(startYear) + " to "+str(endYear) +" complete!")
 
 
 
@@ -252,7 +252,7 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 
 	# https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
 	Parallel(n_jobs=int(num_cores))(delayed( era5_request_plev)(var, int(yearVecNew[i]), targetVecNew[i], time,plevels) for i in range(0,len(yearVecNew)))
-	logging.info(var + " ", startYear + " to "+endYear +" complete!")
+	logging.info(var + " ", str(startYear) + " to "+str(endYear) +" complete!")
 
 #@retry(wait_random_min=10000, wait_random_max=20000)
 
