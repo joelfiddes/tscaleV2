@@ -22,6 +22,7 @@ import logging
 import glob	
 from joblib import Parallel, delayed 
 import subprocess
+import os
 #import multiprocessing 
 step = 6
 plevels =["1000", "700", "500", "200"]
@@ -112,7 +113,7 @@ def retrieve_era5_surf(startYear,endYear,eraDir, step):
 		logging.info("ECWMF SURF data found:" )
 		logging.info(dataExists)
 		logging.info("Downloading SURF from ECWMF:")
-		logging.info("targetVecNew:" + targetVecNew)
+		logging.info(targetVecNew)
 
 		# Amend requestDatesVec
 		index = [targetVec.index(x) for x in targetVecNew]
@@ -243,7 +244,7 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 		logging.info("ECWMF SURF data found:" )
 		logging.info(dataExists)
 		logging.info("Downloading SURF from ECWMF:")
-		logging.info("targetVecNew:" + targetVecNew)
+		logging.info(targetVecNew)
 
 		# Amend requestDatesVec
 		index = [targetVec.index(x) for x in targetVecNew]
