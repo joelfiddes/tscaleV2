@@ -67,7 +67,7 @@ def retrieve_era5_surf(startYear,endYear,eraDir, step):
 	for var in myvars:
 
 	
-		if (step == "1"):
+		if (step == 1):
 			time = [		'00:00','01:00','02:00',\
 					'03:00','04:00','05:00',\
 					'06:00','07:00','08:00',\
@@ -77,10 +77,10 @@ def retrieve_era5_surf(startYear,endYear,eraDir, step):
 					'18:00','19:00','20:00',\
 					'21:00','22:00','23:00']
 
-		if (step == "3"):
+		if (step == 3):
 			time = ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00']
 
-		if (step == "6"):
+		if (step == 6):
 			time = ['00:00','06:00','12:00','18:00']
 
 		# download buffer of +/- 1 month to ensure all necessary timestamps are there for interpolations and consistency between plevel and surf
@@ -201,7 +201,7 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 	for var in myvars:
 
 	
-		if (step == "1"):
+		if (step == 1):
 			time = [		'00:00','01:00','02:00',\
 					'03:00','04:00','05:00',\
 					'06:00','07:00','08:00',\
@@ -211,10 +211,10 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 					'18:00','19:00','20:00',\
 					'21:00','22:00','23:00']
 
-		if (step == "3"):
+		if (step == 3):
 			time = ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00']
 
-		if (step == "6"):
+		if (step == 6):
 			time = ['00:00','06:00','12:00','18:00']
 
 		# download buffer of +/- 1 month to ensure all necessary timestamps are there for interpolations and consistency between plevel and surf
@@ -241,9 +241,9 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 
 		# list only files that dont exist
 		targetVecNew = [x for x in targetVec if x not in dataExists]
-		logging.info("ECWMF SURF data found:" )
+		logging.info("ECWMF PLEV data found:" )
 		logging.info(dataExists)
-		logging.info("Downloading SURF from ECWMF:")
+		logging.info("Downloading PLEV from ECWMF:")
 		logging.info(targetVecNew)
 
 		# Amend requestDatesVec
