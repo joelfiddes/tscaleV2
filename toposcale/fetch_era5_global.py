@@ -250,9 +250,9 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 		index = [targetVec.index(x) for x in targetVecNew]
 		yearVecNew  = [yearVec[i] for i in index]
 
-	# https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
-	Parallel(n_jobs=int(num_cores))(delayed( era5_request_plev)(var, int(yearVecNew[i]), targetVecNew[i], time,plevels) for i in range(0,len(yearVecNew)))
-	logging.info(var + " "+str(startYear) + " to "+str(endYear) +" complete!")
+		# https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
+		Parallel(n_jobs=int(num_cores))(delayed( era5_request_plev)(var, int(yearVecNew[i]), targetVecNew[i], time,plevels) for i in range(0,len(yearVecNew)))
+		logging.info(var + " "+str(startYear) + " to "+str(endYear) +" complete!")
 
 #@retry(wait_random_min=10000, wait_random_max=20000)
 
