@@ -1,40 +1,67 @@
 #gsod_fetch.R
 # request gsod data
-
-year=2014
-country="TJ"
+require(GSODR) #https://docs.ropensci.org/GSODR/reference/get_GSOD.html
+YEARS=1979:2018
+country="tj"
 eleFilter=2000
 out="~/"
 
-require(GSODR) #https://docs.ropensci.org/GSODR/reference/get_GSOD.html
-
 # latest inventory
 inventory <- get_inventory()
-
+gsod <- get_GSOD(years = 2014, country=country) # only works for single years
+stat=unique(gsod$NAME[which(gsod$ELEVATION>eleFilter)])
+STNID = unique(gsod$STNID[which(gsod$ELEVATION>eleFilter)])
 # a nearest station request
 # nearest_stations(39,70,200)
 
-# get stations of TJ
-gsod <- get_GSOD(years = year, country=country)
+snow_list = list()
+date_list = list()
+plotdim = ceiling(sqrt(length(stat)))
+par(mfrow=c(plotdim, plotdim))
 
+for ( i in 1:length(STNID) ){
+
+print(STNID[i])
+# get stations of TJ
+
+gsod <- get_GSOD(years = YEARS, station=STNID[i])
+#GSOD_SF <- st_as_sf(x = gsod, coords = c("LONGITUDE", "LATITUDE"),  crs = "+proj=longlat +datum=WGS84")
 # stations filter here
 # stat = unique(gsod$NAME)
-stat=unique(gsod$NAME[which(gsod$ELEVATION>eleFilter)])
-
-plotdim = ceiling(sqrt(length(stat)))
-
-par(mfrow=c(plotdim, plotdim))
-for (i in (1:length(stat))){
+#plotdim = ceiling(sqrt(length(stat)))
+#par(mfrow=c(plotdim, plotdim))
+#for (i in (1:length(stat))){
 	print(i)
-	ele=unique(gsod$ELEVATION[gsod$NAME==stat[i]])
-	T=gsod$TEMP[gsod$NAME==stat[i]]
+	ele=unique(gsod$ELEVATION)#[gsod$NAME==stat[i]])
+statname=unique(gsod$NAME)
+	snow=gsod$SNDP#[gsod$NAME==stat[i]]
 	#if(length(is.na(T)[is.na(T)==TRUE])==length(T)){print("skip");next}
-	date=gsod$YEARMODA [gsod$NAME==stat[i]]
-	years=unique(substr(date,1,4))
+	date=gsod$YEARMODA #[gsod$NAME==stat[i]]
+	myyears=unique(substr(date,1,4))
+# date=gsod$YEARMODA
+# snow = gsod$SNDP
+# plot(date, snow)
 
-	plot(date,T, main=paste(stat[i], '/',ele,"/", years), type='l')
+if( sum(snow,na.rm=T)==0  ) {
+plot(date,rep(0,length(date)), main=paste(statname, '/',ele,"/"), type='l')
+}else{
+	plot(date,snow, main=paste(statname, '/',ele,"/"), type='l')
 	abline(h=0)
 }
+snow_list[[i]] <- snow
+date_list[[i]] <- date
+
+}
+#}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -89,7 +116,7 @@ proj="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 makePointShapeGeneriRc=function(lon,lat,data,proj=proj){
 library(raster)
 library(rgdal)
-loc<-data.frame(lon, lat)
+loc<-data.frame(data[,lon], data[,lat])
 spoints<-SpatialPointsDataFrame(loc,as.data.frame(data), proj4string= CRS(proj))
 return(spoints)
 }
@@ -134,8 +161,10 @@ df$lon[df$name=='IHRT']<-72.61638
 # write out again
 write.csv(df, paste0(outname,".csv"),row.names=FALSE)
 
-shp=makePointShapeGeneriRc(lon=dat[,longcol],lat=dat[,latcol],data=dat,proj=proj)
+shp=makePointShapeGeneriRc(lon=3,lat=4,data=df,proj=proj)
 
 
 #WRITE
 shapefile(x=shp,filename=outfile,overwrite=TRUE)
+
+

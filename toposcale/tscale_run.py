@@ -74,6 +74,12 @@ if dataset=='era5':
 logging.basicConfig(level=logging.DEBUG, filename=home+"/tscale_logfile", filemode="a+",
                         format="%(asctime)-15s %(levelname)-8s %(message)s")
 
+# add if statement to accomodate single line listpoints with eg id=5
+#if lp.id.size  == 1:
+#	stat = hp.Bunch(ele = lp.ele[0], slp = lp.slp[0],asp = lp.asp[0],svf = lp.svf[0],lon = lp.lon[0], lat =lp.lat[0],sro = lp.surfRough[0],tz = lp.tz[0]  )
+
+# case of multipoint lispoints
+
 for i in range(lp.id.size):
 
 	# station attribute structure , tz always =0 for case of ERA5

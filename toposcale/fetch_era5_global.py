@@ -16,7 +16,7 @@ import calendar
 import sys
 #from ecmwfapi import ECMWFDataServer
 import cdsapi
-from dateutil.relativedelta import *
+#from dateutil.relativedelta import *
 #from retrying import retry
 import logging
 import glob	
@@ -25,6 +25,10 @@ import subprocess
 #import multiprocessing 
 step = 6
 plevels =["1000", "700", "500", "200"]
+    # ===============================================================================
+    # Log
+    # ===============================================================================
+    # logfile=wd+"/sim/"+ simdir+"/logfile"
 
 def retrieve_era5_surf(startYear,endYear,eraDir, step):
 	""" Sets up era5 surface retrieval.
@@ -50,7 +54,11 @@ def retrieve_era5_surf(startYear,endYear,eraDir, step):
 	#grd =   config["era-interim"]["grid"]
 	#dataset = config["forcing"]["dataset"]
 	#grid=str(grd) + "/" + str(grd)
-	
+	logfile = home + "/surf_logfile"
+	if os.path.isfile(logfile):
+		os.remove(logfile)
+	logging.basicConfig(level=logging.DEBUG, filename=logfile, filemode="a+",format="%(asctime)-15s %(levelname)-8s %(message)s")
+
 	num_cores = 4 #config['main']['num_cores']
 	myvars=['geopotential', '2m_dewpoint_temperature', 'surface_thermal_radiation_downwards', 'surface_solar_radiation_downwards',
 		'Total precipitation','2m_temperature', 'TOA incident solar radiation',
@@ -80,34 +88,39 @@ def retrieve_era5_surf(startYear,endYear,eraDir, step):
 		end = datetime.strptime(dates[1], "%Y")
 		dateList = OrderedDict(((start + timedelta(_)).strftime(r"%Y"), None) for _ in xrange((end - start).days)).keys()
 
+
 		requestDatesVec = []
 		targetVec=[]
 		yearVec=[]
 		for date in dateList:	
 			strsplit = date.split('-' )
 			year =  int(date)
-			target = eraDir + "/SURF_"+var+"_%04d.nc" % (year)
+			
+			if eraDir.endswith('/'):
+				s = eraDir[:-1]
+
+			target = s + "/SURF_"+var+"_%04d.nc" % (year)
 			targetVec.append(target) 
 			yearVec.append(year)
 
 		# find files that already downloaded if any with exact matches (in case of restarts)
-		dataExists = glob.glob(eraDir +"/SURF_??????.nc")
+		# NEW pattern matching for global parameter/year files eg. SURF_2m_dewpoint_temperature_2008.nc
+		dataExists = glob.glob(eraDir +"/SURF_"+var+"_????.nc")
 
 		# list only files that dont exist
 		targetVecNew = [x for x in targetVec if x not in dataExists]
-		logging.info("ECWMF SURF data found:" )
-		logging.info(dataExists)
-		logging.info("Downloading SURF from ECWMF:")
-		logging.info(targetVecNew)
+		# logging.info("ECWMF SURF data found:" )
+		# logging.info(dataExists)
+		# logging.info("Downloading SURF from ECWMF:")
+		logging.info("targetVecNew:" + targetVecNew)
 
 		# Amend requestDatesVec
 		index = [targetVec.index(x) for x in targetVecNew]
 		yearVecNew  = [yearVec[i] for i in index]
 
-
 		# https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
 		Parallel(n_jobs=int(num_cores))(delayed( era5_request_surf)(var , int(yearVecNew[i]), targetVecNew[i],time) for i in range(0,len(yearVecNew)))
-
+		logging.info(var + " ", startYear + " to "+endYear +" complete!")
 
 
 
@@ -176,7 +189,11 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 	#grd =   config["era-interim"]["grid"]
 	#dataset = config["forcing"]["dataset"]
 	#grid=str(grd) + "/" + str(grd)
-	
+	logfile = home + "/plev_logfile"
+	if os.path.isfile(logfile):
+		os.remove(logfile)
+	logging.basicConfig(level=logging.DEBUG, filename=logfile, filemode="a+",format="%(asctime)-15s %(levelname)-8s %(message)s")
+
 	num_cores = 4 #config['main']['num_cores']
 	myvars=['geopotential','temperature','u_component_of_wind',
 			'v_component_of_wind', 'relative_humidity']
@@ -211,19 +228,22 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 		for date in dateList:	
 			strsplit = date.split('-' )
 			year =  int(date)
-			target = eraDir + "/PLEV_"+var+"_%04d.nc" % (year)
+			if eraDir.endswith('/'):
+				s = eraDir[:-1]
+			target = s + "/PLEV_"+var+"_%04d.nc" % (year)
 			targetVec.append(target) 
 			yearVec.append(year)
 
 		# find files that already downloaded if any with exact matches (in case of restarts)
-		dataExists = glob.glob(eraDir +"/PLEV_??????.nc")
+		# NEW pattern matching for global parameter/year files eg. SURF_2m_dewpoint_temperature_2008.nc
+		dataExists = glob.glob(eraDir +"/PLEV_"+var+"_????.nc")
 
 		# list only files that dont exist
 		targetVecNew = [x for x in targetVec if x not in dataExists]
-		logging.info("ECWMF SURF data found:" )
-		logging.info(dataExists)
-		logging.info("Downloading SURF from ECWMF:")
-		logging.info(targetVecNew)
+		# logging.info("ECWMF SURF data found:" )
+		# logging.info(dataExists)
+		# logging.info("Downloading SURF from ECWMF:")
+		 logging.info("targetVecNew:" + targetVecNew)
 
 		# Amend requestDatesVec
 		index = [targetVec.index(x) for x in targetVecNew]
@@ -231,7 +251,7 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 
 	# https://zacharyst.com/2016/03/31/parallelize-a-multifunction-argument-in-python/	
 	Parallel(n_jobs=int(num_cores))(delayed( era5_request_plev)(var, int(yearVecNew[i]), targetVecNew[i], time,plevels) for i in range(0,len(yearVecNew)))
-
+	logging.info(var + " ", startYear + " to "+endYear +" complete!")
 
 #@retry(wait_random_min=10000, wait_random_max=20000)
 
