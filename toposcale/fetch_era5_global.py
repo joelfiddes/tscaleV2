@@ -54,7 +54,7 @@ def retrieve_era5_surf(startYear,endYear,eraDir, step):
 	#grd =   config["era-interim"]["grid"]
 	#dataset = config["forcing"]["dataset"]
 	#grid=str(grd) + "/" + str(grd)
-	logfile = home + "/surf_logfile"
+	logfile = eraDir + "/surf_logfile"
 	if os.path.isfile(logfile):
 		os.remove(logfile)
 	logging.basicConfig(level=logging.DEBUG, filename=logfile, filemode="a+",format="%(asctime)-15s %(levelname)-8s %(message)s")
@@ -109,9 +109,9 @@ def retrieve_era5_surf(startYear,endYear,eraDir, step):
 
 		# list only files that dont exist
 		targetVecNew = [x for x in targetVec if x not in dataExists]
-		# logging.info("ECWMF SURF data found:" )
-		# logging.info(dataExists)
-		# logging.info("Downloading SURF from ECWMF:")
+		logging.info("ECWMF SURF data found:" )
+		logging.info(dataExists)
+		logging.info("Downloading SURF from ECWMF:")
 		logging.info("targetVecNew:" + targetVecNew)
 
 		# Amend requestDatesVec
@@ -189,7 +189,7 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 	#grd =   config["era-interim"]["grid"]
 	#dataset = config["forcing"]["dataset"]
 	#grid=str(grd) + "/" + str(grd)
-	logfile = home + "/plev_logfile"
+	logfile = eraDir + "/plev_logfile"
 	if os.path.isfile(logfile):
 		os.remove(logfile)
 	logging.basicConfig(level=logging.DEBUG, filename=logfile, filemode="a+",format="%(asctime)-15s %(levelname)-8s %(message)s")
@@ -240,10 +240,10 @@ def retrieve_era5_plev(startYear,endYear,eraDir, step, plevels):
 
 		# list only files that dont exist
 		targetVecNew = [x for x in targetVec if x not in dataExists]
-		# logging.info("ECWMF SURF data found:" )
-		# logging.info(dataExists)
-		# logging.info("Downloading SURF from ECWMF:")
-		 logging.info("targetVecNew:" + targetVecNew)
+		logging.info("ECWMF SURF data found:" )
+		logging.info(dataExists)
+		logging.info("Downloading SURF from ECWMF:")
+		logging.info("targetVecNew:" + targetVecNew)
 
 		# Amend requestDatesVec
 		index = [targetVec.index(x) for x in targetVecNew]
