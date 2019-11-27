@@ -49,6 +49,8 @@ startTime = sys.argv[4]
 endTime = sys.argv[5]
 windCor=sys.argv[6]
 basin=sys.argv[7] 
+plapse=sys.argv[8]
+
 basin = int(basin) -1  #python index
 
 # DEBUG
@@ -230,7 +232,7 @@ for i in range(lp.id.size):
 	t.swin(pob, sob,tob, stat,pob.dtime)
 
 	# compute downscaled precipitation in mm/h (PRATE) and m/step (PSUM)
-	t.precip(sob,stat)
+	t.precip(sob,stat, plapse)
 
 	t.wind(tob)
 	t.ws[t.ws<0]=0

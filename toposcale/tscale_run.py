@@ -48,6 +48,7 @@ startTime = sys.argv[4]
 endTime = sys.argv[5]
 windCor=sys.argv[6]
 dataset=sys.argv[7]
+plapse=sys.argv[8]
 # DEBUG
 # inDir= '/home/joel/sim/imis/forcing/'
 # home='/home/joel/sim/imis/'
@@ -248,7 +249,7 @@ for i in range(lp.id.size):
 	t.swin(pob, sob,tob, stat,s.dtime)
 
 	# compute downscaled precipitation in mm/h (PRATE) and m/step (PSUM) - we dont apply scaling now
-	t.precip(sob,stat)
+	t.precip(sob,stat,plapse)
 
 	t.wind(tob)
 	t.ws[t.ws<0]=0

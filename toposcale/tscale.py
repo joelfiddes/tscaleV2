@@ -699,7 +699,7 @@ class tscale(object):
 
 		
 
-	def precip(self, sob, stat):
+	def precip(self, sob, stat,plapse):
 
 		lookups = {
 		   1:0.35,
@@ -727,5 +727,10 @@ class tscale(object):
 		# routine to make scale by monthly budget needs fixing
 		# 6hr step means scaling factor *6
 
-		self.prate=sob.prate # mm/hour
-		self.psum=sob.psum # mm/timestep
+		if plapse='TRUE':
+			self.prate=sob.prate*lp # mm/hour
+			self.psum=sob.psum*lp # mm/timestep
+
+		if plapse='FALSE':
+			self.prate=sob.prate # mm/hour
+			self.psum=sob.psum # mm/timestep
