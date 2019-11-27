@@ -186,21 +186,19 @@ for i in range(lp.id.size):
 	a=dtime[2]-dtime[1]
 	step = a.seconds
 	stepinhr=step/(60*60)
-	tp1 = tpdat/(stepinhr) # convert metres per timestep -> m/hour 
-	# m/hour-> mm/hour = PRATE
-	pmmhr = tp1	*1000 
-
-
-
 	
+	prate = tpdat*1000 # convert m per timestep -> mm/hour [PRATE] use approx scaling method until monthly correction fixed. 
+	# Although this is actually pretty accurate. tp is accumulated over hour so prate IS tp at coarser timstep (eg 6h) we introduce uncertainty
+	psum = prate* stepinhr # mm/ timestep  [PSUM] scale by stepinhr
 
-
-	
 	""" compute surface elevation of coarse grid"""
 	gridEle = zsdat/9.80665
 
+
 	# create pob instance/Bunch
-	sob = hp.Bunch(t2m=t2mdat,d2m=d2mdat,z=zsdat,ssrd=ssrddatI,strd=strddatI,pmmhr=pmmhr,tp=tpdat, tisr=tisrdatI,gridEle=gridEle, dtime=dtime)
+	sob = hp.Bunch(t2m=t2mdat,d2m=d2mdat,z=zsdat,ssrd=ssrddatI,strd=strddatI,prate=prate,psum=psum, tisr=tisrdatI,gridEle=gridEle, dtime=dtime)
+
+
 
 
 
