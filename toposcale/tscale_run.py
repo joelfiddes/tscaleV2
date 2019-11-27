@@ -171,7 +171,7 @@ for i in range(lp.id.size):
 	""" dimensions of data """
 	pob.addShape()
 
-
+	logging.info("made a POB!")
 	#=== Surface object ====================================================
 
 
@@ -219,7 +219,7 @@ for i in range(lp.id.size):
 	""" surface elevation of coarse grid"""
 	s.gridEle()
 	sob = s
-
+	logging.info("made a SOB!")
 	#=== toposcale object ====================================================
 
 	"""init object"""
@@ -299,6 +299,7 @@ for i in range(lp.id.size):
 
 	t.snowTot=snow+addSnow
 	t.rainTot=rain + addRain
+	logging.info("made a TOB!")
 
 	df = pd.DataFrame({	"TA":t.t, 
 				"RH":t.r*0.01, #meteoio 0-1

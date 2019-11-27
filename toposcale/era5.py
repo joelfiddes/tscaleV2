@@ -311,8 +311,9 @@ class Surf(Plev):
 			https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation
 		"""
 		stepinhr=step/(60*60)
-		self.prate = (self.tp/stepinhr)*1000 *stepinhr # convert m per timestep -> mm/hour [PRATE] use approx scaling method until monthly correction fixed. Although this is actually pretty accurate.
-		self.psum = self.tp	*1000 # mm/ timestep  [PSUM]
+		self.prate = self.tp*1000 # convert m per timestep -> mm/hour [PRATE] use approx scaling method until monthly correction fixed. 
+		# Although this is actually pretty accurate. tp is accumulated over hour so prate IS tp at coarser timstep (eg 6h) we introduce uncertainty
+		self.psum = self.tp* stepinhr	*1000 # mm/ timestep  [PSUM] scale by stepinhr
 	
 	def gridEle(self):
 		""" compute surface elevation of coarse grid"""

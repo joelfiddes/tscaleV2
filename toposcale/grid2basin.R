@@ -23,6 +23,7 @@ basins =extract(fp,shp)
 
 
 
+
 #=============================================
 #	SURFACE VARIABLES
 #=============================================
@@ -451,7 +452,6 @@ title <- "Relative humidity"
 dlname <- "Relative humidity"
 data=r_array
 writeNcdf(varname,units,ncfname,title,dlname,data,time_nc,wd,lev)
-
 
 
 
