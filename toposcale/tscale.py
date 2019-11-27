@@ -727,10 +727,10 @@ class tscale(object):
 		# routine to make scale by monthly budget needs fixing
 		# 6hr step means scaling factor *6
 
-		if plapse='TRUE':
+		if plapse=='TRUE':
 			self.prate=sob.prate*lp # mm/hour
 			self.psum=sob.psum*lp # mm/timestep
 
-		if plapse='FALSE':
+		if plapse=='FALSE':
 			self.prate=sob.prate # mm/hour
 			self.psum=sob.psum # mm/timestep
