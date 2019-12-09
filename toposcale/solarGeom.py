@@ -39,7 +39,7 @@ def to_jd(dt):
 	fmt
 	dt: datetime
 		Datetime object to convert to MJD
-	Returnsstokkang
+	Returns
 	
 	-------
 	jd: float

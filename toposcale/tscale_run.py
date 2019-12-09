@@ -38,6 +38,7 @@ import numpy as np
 import sys
 import logging
 import netCDF4 as nc
+from tqdm import tqdm
 #import ipdb
 #ipdb.set_trace()
 #=== ARGS==============================================
@@ -81,7 +82,7 @@ logging.basicConfig(level=logging.DEBUG, filename=home+"/tscale_logfile", filemo
 
 # case of multipoint lispoints
 
-for i in range(lp.id.size):
+for i in tqdm(range(lp.id.size)):
 
 	# station attribute structure , tz always =0 for case of ERA5
 	stat = hp.Bunch(ele = lp.ele[i], slp = lp.slp[i],asp = lp.asp[i],svf = lp.svf[i],lon = lp.lon[i], lat =lp.lat[i],sro = lp.surfRough[i],tz = lp.tz[i]  )
@@ -298,8 +299,23 @@ for i in range(lp.id.size):
 	addRain[np.isnan(addRain)] = 0 
 	addSnow[np.isnan(addSnow)] = 0 
 
-	t.snowTot=snow+addSnow
+	# linearly reduce snow to zero in steep slopes
+	#if steepSnowReduce=="TRUE": # make this an option if need that in future
+	snowSMIN=30.
+	snowSMAX=80.
+	slope=stat.slp
+
+	k= (snowSMAX-slope)/(snowSMAX - snowSMIN)
+
+	if slope<snowSMIN:
+		k=1
+	if slope>snowSMAX:
+		k=0
+
+	t.snowTot=(snow+addSnow) * k
 	t.rainTot=rain + addRain
+
+
 	logging.info("made a TOB!")
 
 	df = pd.DataFrame({	"TA":t.t, 

@@ -40,6 +40,7 @@ import sys
 import os
 import logging
 import netCDF4 as nc
+from tqdm import tqdm
 
 #=== ARGS==============================================
 inDir=sys.argv[1] # /home/joel/sim/imis/forcing/
@@ -85,7 +86,7 @@ lp=pd.read_csv(lpfile)
 logging.basicConfig(level=logging.DEBUG, filename=home+"/tscale_logfile", filemode="a+",
                         format="%(asctime)-15s %(levelname)-8s %(message)s")
 
-for i in range(lp.id.size):
+for i in tqdm(range(lp.id.size)):
 
 	fileout=outDir+"/meteo"+"c"+str(i+1)+".csv"
 	if os.path.exists(fileout):
@@ -95,9 +96,9 @@ for i in range(lp.id.size):
 	# station attribute structure , tz always =0 for case of ERA5
 	stat = hp.Bunch(ele = lp.ele[i], slp = lp.slp[i],asp = lp.asp[i],svf = lp.svf[i],lon = lp.lon[i], lat =lp.lat[i],sro = lp.surfRough[i],tz = lp.tz[i]  )
 
-#===============================================================================
-#	PLEVEL - mak a POB
-#===============================================================================
+	#===============================================================================
+	#	PLEVEL - mak a POB
+	#===============================================================================
 	# Pressure level object 
 	zp = nc.Dataset(zp_file)
 	t = nc.Dataset(t_file)
@@ -126,9 +127,9 @@ for i in range(lp.id.size):
 	# create pob instance/Bunch
 	pob = hp.Bunch(z=zpdat.T,t=tdat.T,u=udat.T,v=vdat.T,r=rdat.T, dtime=dtime, levels=lev)
 
-#===============================================================================
-#	Surface - Make a SOB
-#===============================================================================
+	#===============================================================================
+	#	Surface - Make a SOB
+	#===============================================================================
 	# Pressure level object 
 	t2m = nc.Dataset(t2m_file)
 	d2m = nc.Dataset(d2m_file)
@@ -166,8 +167,7 @@ for i in range(lp.id.size):
 
 	Note: both EDA (ensemble 3h) and HRES (1h) are accumulated over the timestep
 	and therefore treated here the same ie step = 3600s
-	https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation
-				"""
+	https://confluence.ecmwf.int/display/CKB/ERA5+data+documentation"""
 	strddatI = strddat/3600  
 	ssrddatI = ssrddat/3600
 	tisrdatI = tisrdat/3600 
@@ -197,13 +197,6 @@ for i in range(lp.id.size):
 
 	# create pob instance/Bunch
 	sob = hp.Bunch(t2m=t2mdat,d2m=d2mdat,z=zsdat,ssrd=ssrddatI,strd=strddatI,prate=prate,psum=psum, tisr=tisrdatI,gridEle=gridEle, dtime=dtime)
-
-
-
-
-
-
-
 
 
 	#=== toposcale object ====================================================
@@ -257,7 +250,43 @@ for i in range(lp.id.size):
 
 	 # plt.plot(t.SWfdirCor)
 	# plt.show()
+		# partition prate to rain snow (mm/hr)
+	lowthresh=272.15
+	highthresh = 274.15
+	d = {'prate': t.prate, 'ta': t.t }
+	df = pd.DataFrame(data=d)
+	snow = df.prate.where(df.ta<lowthresh) 
+	rain=df.prate.where(df.ta>=highthresh) 
+
+	mix1S = df.prate.where((df.ta >= lowthresh) & (df.ta<=highthresh), inplace = False)
+	mix1T = df.ta.where((df.ta >= lowthresh) & (df.ta<=highthresh), inplace = False)
+	mixSno=(highthresh - mix1T) / (highthresh-lowthresh)
+	mixRain=1-mixSno
+	addSnow=mix1S*mixSno
+	addRain=mix1S*mixRain
 	
+	# nas to 0
+	snow[np.isnan(snow)] = 0 	
+	rain[np.isnan(rain)] = 0 
+	addRain[np.isnan(addRain)] = 0 
+	addSnow[np.isnan(addSnow)] = 0 
+
+	# linearly reduce snow to zero in steep slopes
+	#if steepSnowReduce=="TRUE": # make this an option if need that in future
+	snowSMIN=30.
+	snowSMAX=80.
+	slope=stat.slp
+
+	k= (snowSMAX-slope)/(snowSMAX - snowSMIN)
+
+	if slope<snowSMIN:
+		k=1
+	if slope>snowSMAX:
+		k=0
+
+	t.snowTot=(snow+addSnow) * k
+	t.rainTot=rain + addRain
+
 
 	df = pd.DataFrame({	"TA":t.t, 
 				"RH":t.r*0.01, #meteoio 0-1
@@ -266,7 +295,10 @@ for i in range(lp.id.size):
 				"ILWR":t.LWf, 
 				"ISWR":t.SWfglob, 
 				"PINT":t.prate,
-				"PSUM":t.psum
+				"PSUM":t.psum,
+				"P":t.psf,
+				"Rf":np.array(t.rainTot),
+				"Sf":np.array(t.snowTot)
 				},index=pob.dtime)
 	df.index.name="datetime"
 

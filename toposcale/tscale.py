@@ -499,6 +499,7 @@ class tscale(object):
 		sp.zen=sp.zen
 		#sp.zen=sp.zen*(sp.zen>0) # Sun might be below the horizon.
 		muz=np.cos(sp.zen) 
+
 		self.muz = muz
 		# NB! psc must be in Pa (NOT hPA!).
 		#if np.max(psc<1.5e3): # Obviously not in Pa
@@ -551,8 +552,25 @@ class tscale(object):
 		#======================================
 		""" Then perform the terrain correction. [Corripio 2003 / rpackage insol port]."""
 
-		"""compute mean horizon elevation - why negative hor.el possible??? """
+		"""compute mean horizon elevation - why negative hor.el possible??? Have tested seesm OK """
+
+		# In [485]: (((np.arccos(np.sqrt(0.9))*180.)/np.pi)*2)-20                                                                                                             
+		# Out[485]: 16.869897645844034                                                                                                                                        
+
+		# In [486]: (((np.arccos(np.sqrt(1))*180.)/np.pi)*2)-0                                                                                                                
+		# Out[486]: 0.0                                                                                                                                                       
+
+		# In [487]: (((np.arccos(np.sqrt(0.9))*180.)/np.pi)*2)-0                                                                                                              
+		# Out[487]: 36.869897645844034                                                                                                                                        
+
+		# In [488]: (((np.arccos(np.sqrt(0.9))*180.)/np.pi)*2)-10                                                                                                             
+		# Out[488]: 26.869897645844034                                                                                                                                        
+
+		# In [489]: (((np.arccos(np.sqrt(0.95))*180.)/np.pi)*2)-10                                                                                                            
+		# Out[489]: 15.841932763167158  
+		
 		horel=(((np.arccos(np.sqrt(stat.svf))*180)/np.pi)*2)-stat.slp
+
 		if horel < 0:
 			horel = 0 
 		self.meanhorel = horel
@@ -563,24 +581,88 @@ class tscale(object):
 		"""
 		nv = sg.normalvector(slope=stat.slp, aspect=stat.asp)
 
+
 		"""
 		Method 1: Computes the intensity according to the position of the sun (sunv) and 
 		dotproduct normal vector to slope.
-		From corripio r package REMOVE THIS
-		"""
+		From corripio r package THIS IS GOOD
+
+		# consider october 31 29018 at 46/9 UTC=0
+
+		dt= datetime.datetime(2018, 10, 31, 12, 0) 
+		In [471]: sg.to_jd(dt)                                                                                                                                              
+		Out[471]: 2458423.0  
+
+		sunv=sg.sunvector(jd=2458423 , latitude=46, longitude=9, timezone=0)
+		sp=sg.sunpos(sunv)
+
+		- sun is in the south:
+		In [456]: sp.azi                                                                                                                                                    
+		Out[456]: array([192.82694139])  
+
+		- at quite low ele
+		In [455]: sp.sel                                                                                                                                                    
+		Out[455]: array([19.94907576])  
+		
+
+		# FLAT CASE
+		In [449]: nv = sg.normalvector(slope=0, aspect=0)                                                                                                                                                                                                                                                                            
+		In [450]: np.dot(sunv ,np.transpose(nv))                                                                                                                            
+		Out[450]: array([[0.34118481]])      
+
+		# SOOUTH SLOPE CASE = enhanced rad wrt. flat case
+				nv = sg.normalvector(slope=30, aspect=180)  
+		In [446]: np.dot(sunv ,np.transpose(nv))                                                                                                                            
+		Out[446]: array([[0.75374406]])  
+
+		# NORTH SLOPE CASE = self shaded
+		In [447]: nv = sg.normalvector(slope=30, aspect=0)                                                                                                                  
+		                                                                                                                                                                    
+		In [448]: np.dot(sunv ,np.transpose(nv))                                                                                                                            
+		Out[448]: array([[-0.16279463]])    
+				"""
 		dotprod=np.dot(sunv ,np.transpose(nv)) 
 		dprod = dotprod.squeeze()
 		dprod[dprod<0] = 0 #negative indicates selfshading
 		self.dprod = dprod
 
-		"""Method 2: Illumination angles. Dozier and self shading"""
-		saz=sp.azi
-		cosis=muz*np.cos(stat.slp)+np.sin(sp.zen)*np.sin(stat.slp)*np.cos(sp.azi-stat.asp)# cosine of illumination angle at subgrid.
-		cosic=muz # cosine of illumination angle at grid (slope=0).
-		cosi = (cosis/cosic)
+		"""Method 2: Illumination angles. Dozier and self shading"""  # THIS IS WRONG
+		# 		eg consider south facting 30 degree slope on 31 oct 2018 at midday at 46,9 utc=0
 
-		#If ratio of illumination angle subgrid/ illum angle grid is negative the point is selfshaded
-		cosi[cosi<0]=0
+		# In [420]: sp.azi                                                                                                                                                    
+		# Out[420]: array([192.82694139])                                                                                                                                     
+
+		# In [421]: stat.slp                                                                                                                                                  
+		# Out[421]: 30                                                                                                                                                        
+
+		# In [422]: stat.asp                                                                                                                                                  
+		# Out[422]: 180                                                                                                                                                       
+
+		# In [423]: sp.azi                                                                                                                                                    
+		# Out[423]: array([192.82694139])                                                                                                                                     
+
+		# In [424]: sp.sel                                                                                                                                                    
+		# Out[424]: array([19.94907576])                                                                                                                                      
+
+		# In [425]: ^I^I saz=sp.azi                                                                                                                                           
+		#      ...: ^I^I cosis=muz*np.cos(stat.slp)+np.sin(sp.zen)*np.sin(stat.slp)*np.cos(sp.azi-stat.asp)# cosine of illumination angle at subgrid.
+		#      ...: ^I^I cosic=muz # cosine of illumination angle at grid (slope=0).
+		#      ...: ^I^I cosi = (cosis/cosic)
+		#      ...: 
+
+
+		# In [427]: cosi                                                                                                                                                      
+		# Out[427]: array([-1.14169945])     
+
+		# negative cosi shows sun below horizon!
+
+		# saz=sp.azi
+		# cosis=muz*np.cos(stat.slp)+np.sin(sp.zen)*np.sin(stat.slp)*np.cos(sp.azi-stat.asp)# cosine of illumination angle at subgrid.
+		# cosic=muz # cosine of illumination angle at grid (slope=0).
+		# cosi = (cosis/cosic)
+
+		# #If ratio of illumination angle subgrid/ illum angle grid is negative the point is selfshaded
+		# cosi[cosi<0]=0 #WRONG!!!
 		"""
 		CAST SHADOWS: SUN ELEVATION below hor.el set to 0 - binary mask
 		"""
@@ -595,9 +677,9 @@ class tscale(object):
 		BOTH formulations seem to be broken
 		"""
 		#self.SWfdirCor=selMask*(cosis/cosic)*self.SWfdir # this is really wrong!
-		self.SWfdirCor=(cosis/cosic)*self.SWfdir 
-		self.SWfdirCor=selMask*dprod*self.SWfdir # this is bad
-		self.SWfdirCor=dprod*self.SWfdir
+		#self.SWfdirCor=(cosis/cosic)*self.SWfdir 
+		self.SWfdirCor=selMask*dprod*self.SWfdir # this is bad WHYYY?
+		#self.SWfdirCor=dprod*self.SWfdir
 		self.SWfglob = self.SWfdiff+ self.SWfdirCor
 		#self.SWfglob = self.SWfdiff+ self.SWfdir
 
