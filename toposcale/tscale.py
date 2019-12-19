@@ -269,7 +269,7 @@ class tscale(object):
 		""" Use the former cloud emissivity to compute the all sky emissivity at 
 		subgrid. """
 		aef=cef+deltae
-		self.LWf=stat.svf* aef*sbc*tob.t**4
+		self.LWf= aef*sbc*tob.t**4 #*stat.svf
 		# self.LWf= aef*sbc*tob.t**4
 		#  fout.LW(:,:,n)=LWf
 
@@ -445,7 +445,7 @@ class tscale(object):
 
 		""" Use the above with the sky-view fraction to calculate the 
 		downwelling diffuse shortwave radiation at subgrid. """
-		self.SWfdiff=SWcdiff * stat.svf
+		self.SWfdiff=SWcdiff #* stat.svf
 		self.SWfdiff.set_fill_value(0)
 		self.SWfdiff = self.SWfdiff.filled()
 
@@ -620,7 +620,10 @@ class tscale(object):
 		                                                                                                                                                                    
 		In [448]: np.dot(sunv ,np.transpose(nv))                                                                                                                            
 		Out[448]: array([[-0.16279463]])    
-				"""
+
+
+		"""
+		
 		dotprod=np.dot(sunv ,np.transpose(nv)) 
 		dprod = dotprod.squeeze()
 		dprod[dprod<0] = 0 #negative indicates selfshading
@@ -663,6 +666,8 @@ class tscale(object):
 
 		# #If ratio of illumination angle subgrid/ illum angle grid is negative the point is selfshaded
 		# cosi[cosi<0]=0 #WRONG!!!
+		
+
 		"""
 		CAST SHADOWS: SUN ELEVATION below hor.el set to 0 - binary mask
 		"""
@@ -678,7 +683,7 @@ class tscale(object):
 		"""
 		#self.SWfdirCor=selMask*(cosis/cosic)*self.SWfdir # this is really wrong!
 		#self.SWfdirCor=(cosis/cosic)*self.SWfdir 
-		self.SWfdirCor=selMask*dprod*self.SWfdir # this is bad WHYYY?
+		self.SWfdirCor=dprod*self.SWfdir#*selMask # this is bad WHYYY?
 		#self.SWfdirCor=dprod*self.SWfdir
 		self.SWfglob = self.SWfdiff+ self.SWfdirCor
 		#self.SWfglob = self.SWfdiff+ self.SWfdir
