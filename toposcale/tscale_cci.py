@@ -35,7 +35,7 @@ import helper as hp
 import solarGeom as sg
 
 
-def main(coords,eraDir, outDir,start, end):
+def main(coords,eraDir, outDir,start, end, startIndex):
 	print(start)
 	print(end)
 	g=9.81 # geopotential constant
@@ -710,7 +710,7 @@ def main(coords,eraDir, outDir,start, end):
 
 	for var in varDict:
 		#open
-		f = nc.Dataset(outDir+"/"+var+"_"+str(starti+1)+"_"+str(year)+".nc",'w', format='NETCDF4')
+		f = nc.Dataset(outDir+"/"+var+"_"+str(startIndex+1)+"_"+str(year)+".nc",'w', format='NETCDF4')
 
 		#make dimensions
 		f.createDimension('lon', len(lp.lon))

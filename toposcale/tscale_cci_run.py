@@ -31,4 +31,4 @@ for year in tqdm(years):
 
 		tscale_cci.main( "/home/joel/sim/cci_perm_final/coordinatesHalf.dat", 
 			"/home/joel/sim/cci_perm_final/era5/" , "/home/joel/sim/cci_perm_final/era5/out/",
-			str(start),  str(end) )
+			str(start),  str(end), startIndex )
