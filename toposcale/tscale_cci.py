@@ -56,8 +56,8 @@ def main(coords,eraDir, outDir,start, end, startIndex):
 	eraDir+"/SURF_geopotential_1980.nc": "z",
 	eraDir+"/SURF_surface_solar_radiation_downwards_1980.nc" : "ssrd",
 	eraDir+"/SURF_surface_thermal_radiation_downwards_1980.nc" :"strd",
-	eraDir+"/SURF_Total_precipitation_1980.nc" : "tp",
-	eraDir+"/SURF_TOA_incident_solar_radiation_1980.nc": "tisr"
+	eraDir+"/SURF_Total precipitation_1980.nc" : "tp",
+	eraDir+"/SURF_TOA incident solar radiation_1980.nc": "tisr"
 	}
 
 	# read in lispoints
