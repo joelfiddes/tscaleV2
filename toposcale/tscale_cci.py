@@ -41,23 +41,23 @@ def main(coords,eraDir, outDir,start, end, startIndex):
 	g=9.81 # geopotential constant
 	tz=0 # timezone always utc0 for era5 data
 
-	zp_file=eraDir+"/PLEV_geopotential_1980_test.nc"
+	zp_file=eraDir+"/PLEV_geopotential_1980.nc"
 
 	plevDict={
-	eraDir+"/PLEV_temperature_1980_test.nc" : "t",
-	eraDir+"/PLEV_u_component_of_wind_1980_test.nc": "u",
-	eraDir+"/PLEV_v_component_of_wind_1980_test.nc": "v",
-	eraDir+"/PLEV_relative_humidity_1980_test.nc" : "r"
+	eraDir+"/PLEV_temperature_1980.nc" : "t",
+	eraDir+"/PLEV_u_component_of_wind_1980.nc": "u",
+	eraDir+"/PLEV_v_component_of_wind_1980.nc": "v",
+	eraDir+"/PLEV_relative_humidity_1980.nc" : "r"
 	}
 
 	surfDict={
-	eraDir+"/SURF_2m_temperature_1980_test.nc" : "t2m",
-	eraDir+"/SURF_2m_dewpoint_temperature_1980_test.nc": "d2m",
-	eraDir+"/SURF_geopotential_1980_test.nc": "z",
-	eraDir+"/SURF_surface_solar_radiation_downwards_1980_test.nc" : "ssrd",
-	eraDir+"/SURF_surface_thermal_radiation_downwards_1980_test.nc" :"strd",
-	eraDir+"/SURF_Total_precipitation_1980_test.nc" : "tp",
-	eraDir+"/SURF_TOA_incident_solar_radiation_1980_test.nc": "tisr"
+	eraDir+"/SURF_2m_temperature_1980.nc" : "t2m",
+	eraDir+"/SURF_2m_dewpoint_temperature_1980.nc": "d2m",
+	eraDir+"/SURF_geopotential_1980.nc": "z",
+	eraDir+"/SURF_surface_solar_radiation_downwards_1980.nc" : "ssrd",
+	eraDir+"/SURF_surface_thermal_radiation_downwards_1980.nc" :"strd",
+	eraDir+"/SURF_Total_precipitation_1980.nc" : "tp",
+	eraDir+"/SURF_TOA_incident_solar_radiation_1980.nc": "tisr"
 	}
 
 	# read in lispoints

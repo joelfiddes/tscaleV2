@@ -29,6 +29,5 @@ for year in tqdm(years):
 
 
 
-		tscale_cci.main( "/home/joel/sim/cci_perm_final/coordinatesHalf.dat", 
-			"/home/joel/sim/cci_perm_final/era5/" , "/home/joel/sim/cci_perm_final/era5/out/",
-			str(start),  str(end), startIndex )
+		tscale_cci.main( "/cluster/home/fiddes/nn9606k/tscale/coordinates.dat","/cluster/home/fiddes/nn9606k/era5" , "/cluster/home/fiddes/nn9606k/tscale",	str(start),  str(end), startIndex )
+
