@@ -3,6 +3,10 @@ wd='/home/caduff/sim/dives/'
 samples = 150
 basins=list.files(paste0(wd,'/sim/'))
 
+# be careful!
+# psum currently divided by 3 as precip has already been multiplied by 3 in raw - this is a hack that only applies to current DIVES data
+timestep =3
+
 for (basinID in basins){
 
 	for ( i in 1:samples){
@@ -21,16 +25,17 @@ for (basinID in basins){
 
 
 	#=============== Aggregations ========================================================
-	watts2joules = 0.0036
+	watts2Mjoules = (60*60)/1000000 # (sec*min) / 1000000 (j in a megajoule) watts = j/s
+
 
 	TAMEAN=aggregate(dat$TA, list(day_agg), mean)[,2] # K
 	TAMIN=aggregate(dat$TA, list(day_agg), min)[,2] # K
 	TAMAX=aggregate(dat$TA, list(day_agg), max)[,2] # K
-	ISWRSUM=aggregate(dat$ISWR*watts2joules, list(day_agg), sum)[,2] # joules/m2
+	ISWRSUM=aggregate(dat$ISWR*watts2Mjoules, list(day_agg), sum)[,2] *timestep  # mj in a day
 	VWMEAN=aggregate(dat$VW, list(day_agg), mean)[,2] # m/s
 	VWMAX=aggregate(dat$VW, list(day_agg), max)[,2] # m/s
 	DWMEAN=aggregate(dat$DW, list(day_agg), mean)[,2] # m/s
-	PSUM=aggregate(dat$PSUM, list(day_agg), sum)[,2] # mm
+	PSUM=aggregate(dat$PSUM, list(day_agg), sum)[,2] /timestep# mm
 	RHMEAN=aggregate(dat$RH, list(day_agg), mean)[,2] # 0-1
 
 	# calc saturated vapour pressure (pascals)

@@ -207,7 +207,7 @@ class t3d(object):
             lons = self.dem.variables['longitude'][:]
             lats = self.dem.variables['latitude'][:]
             lat=lats[::-1]
-            geop = self.dem.variables['layer'][:]*self.g # formally "Band1"
+            geop = self.dem.variables['ele'][:]*self.g # formally "layer" "Band1"
             shape = geop.shape
         
             lons, lats = np.meshgrid(lons, lats)

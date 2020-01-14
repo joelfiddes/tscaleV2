@@ -63,7 +63,7 @@ def main(wdir, start, tz):
 		os.makedirs(out)
 
 	# open DEM
-	dem  = nck.Dataset(demfile)
+	dem  = nc.Dataset(demfile)
 	dem_ele = dem.variables['ele'][:]
 
 	# time stuff
