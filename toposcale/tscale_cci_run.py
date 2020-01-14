@@ -19,7 +19,7 @@ for year in tqdm(years):
 		# always start last period at 23rd Dec to ensure 8 day period till 31 Dec
 		# python indexing (starts 0) so startIndex 45 == period 46
 		if startIndex==45:
-			start = year+'-12-23'
+			start = str(year)+'-12-23'
 			t= pd.to_datetime(start)   
 			end = t+datetime.timedelta(days=8)
 
