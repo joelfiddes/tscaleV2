@@ -53,6 +53,31 @@ import pandas as pd
 #2. conversions
 #2. write out single var files
 
+# credit GlobSim: https://github.com/geocryology/globsim/blob/master/generic.py
+def series_interpolate(time_out, time_in, value_in, cum=False):
+    '''
+    Interpolate single time series. Convenience function for usage in scaling 
+    kernels.
+    time_out: Array of times [s] for which output is desired. Integer. 
+    time_in:  Array of times [s] for which value_in is given. Integer. 
+    value_in: Value time series. Must have same length as time_in.
+    cum:      Is valiable serially cummulative like LWin? Default: False.
+    '''
+    time_step_sec = time_out[1]-time_out[0]
+    
+    # convert to continuous cummulative, if values are serially cummulative
+    if cum:
+        value_in = convert_cummulative(value_in)
+
+    # interpolate            
+    vi = np.interp(time_out, time_in, value_in)
+ 
+    # convert from cummulative to normal time series if needed
+    if cum:
+        vi = np.diff(vi) / time_step_sec
+        vi = np.float32(np.concatenate(([vi[0]], vi)))
+            
+    return vi
 
 class Plev(object):
 	"""

@@ -158,7 +158,7 @@ for i in tqdm(range(lp.id.size)):
 		
 		# do time interpolation of PLEV in case of ERAI
 		if pob.dtime.shape!=s.dtime.shape:
-
+			logging.info("PLEV timestep != SURF timestep")
 			# init dummy container
 			pob.var2 = np.zeros((s.dtime.shape[0],pob.var.shape[1]))
 			for lev in range(0,nlev):

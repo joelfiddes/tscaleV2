@@ -20,11 +20,13 @@ Todo:
 
 """
 
+BEERS='FALSE' # switch to use BEERS method (worse performance negative bias)
 
 import numpy as np
 import netCDF4 as nc
 import solarGeom as sg # validated against original corripio code
 reload(sg)
+
 class tscale(object):
 	"""
 	Interpolate pressure level vector from single cgc in the TopoSUB use case
@@ -369,7 +371,14 @@ class tscale(object):
 		
 		""" toposcale surface pressure using hypsometric equation - move to own 
 		class 
+
+		EDITS Feb 20 2020:
+		
+		-See https://www.evernote.com/Home.action?login=true#n=78e92684-4d64-4802-ab6c-2cb90b277e44&s=s500&ses=1&sh=5&sds=5&x=&
+		- 
+
 		EDITS Jul 11 2019:
+		
 		- removed elevation scaling as this degrade results - at least in WFJ test- Kris?
 		- reimplemnt original additative ele method - better than beers, or at least less damaging
 		- removed mask, why is this causing problems?
@@ -380,27 +389,7 @@ class tscale(object):
 
 		"""
 
-		ztemp = pob.z
-		Ttemp = pob.t
-		statz = stat.ele*self.g
-		dz=ztemp.transpose()-statz # transpose not needed but now consistent with CGC surface pressure equations
 
-		self.psf=[]
-		# loop through timesteps
-		for i in range(0,dates.size):
-			
-			# 	# find overlying layer
-			thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
-
-			# booleen indexing
-			T1=Ttemp[i,thisp]
-			z1=ztemp[i,thisp]
-			p1=pob.levels[thisp]*1e2 #Convert to Pa.
-			Tbar=np.mean([T1, tob.t[i]],axis=0)
-			""" Hypsometric equation."""
-			self.psf.append(p1*np.exp((z1-statz)*(self.g/(Tbar*self.R))))
-
-		self.psf=np.array(self.psf).squeeze()
 
 		## Specific humidity routine.
 		# mrvf=0.622.*vpf./(psf-vpf); #Mixing ratio for water vapor at subgrid.
@@ -454,25 +443,6 @@ class tscale(object):
 		part once surface pressure field is downloaded, or just check
 		for existance. """
 
-		ztemp = pob.z
-		Ttemp = pob.t
-		dz=ztemp.transpose()-sob.z
-
-		self.psc=[]
-		for i in range(0,dz.shape[1]):
-		
-			#thisp.append(np.argmin(dz[:,i][dz[:,i]>0]))
-			thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
-			z0 = sob.z[i]
-			T0 = sob.t2m[i]
-			T1=Ttemp[i,thisp]
-			z1=ztemp[i,thisp]
-			p1=pob.levels[thisp]*1e2 #Convert to Pa.
-			Tbar=np.mean([T0, T1],axis=0)
-			""" Hypsometric equation."""
-			self.psc.append(p1*np.exp((z1-z0)*(self.g/(Tbar*self.R))))
-
-		self.psc=np.array(self.psc).squeeze()
 
 		#T1=Ttemp(thisp)
 		#z1=ztemp(thisp)
@@ -504,28 +474,76 @@ class tscale(object):
 		# NB! psc must be in Pa (NOT hPA!).
 		#if np.max(psc<1.5e3): # Obviously not in Pa
 			#psc=psc*1e2
-	   
-		
-		# Calculate the "broadband" absorption coefficient. Elevation correction
-		# from Kris
-		ka=(self.g*muz/(self.psc))*np.log(SWtoa/SWcdir)	
-		#ka.set_fill_value(0)
-		#ka = ka.filled()
+	   		
+	   	# Compute air pressure at fine grid	
+		ztemp = pob.z
+		Ttemp = pob.t
+		statz = stat.ele*self.g
+		dz=ztemp.transpose()-statz # transpose not needed but now consistent with CGC surface pressure equations
 
-		# set inf (from SWtoa/SWcdir at nigh, zero division) to 0 (night)
-		ka[ka == -np.inf] = 0
-		ka[ka == np.inf] = 0
-		# Note this equation is obtained by inverting Beer's law, i.e. use
-		#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
-		# Along with hydrostatic equation to convert to pressure coordinates then
-		# solve for ka using p(z=inf)=0.
+
+
+		# compute air pressure at fine grid (could remove if download air pressure variable)
+		self.psf=[]
+		# loop through timesteps
+		for i in range(0,dates.size):
+			
+			# 	# find overlying layer
+			thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
+
+			# booleen indexing
+			T1=Ttemp[i,thisp]
+			z1=ztemp[i,thisp]
+			p1=pob.levels[thisp]*1e2 #Convert to Pa.
+			Tbar=np.mean([T1, tob.t[i]],axis=0)
+			""" Hypsometric equation."""
+			self.psf.append(p1*np.exp((z1-statz)*(self.g/(Tbar*self.R))))
+
+		self.psf=np.array(self.psf).squeeze()
 		
-		# Method 1 Beers law
-		# Now you can (finally) find the direct component at subgrid. 
-		self.SWfdir=SWtoa*np.exp(-ka*self.psf/(self.g*muz))
-		#self.SWfdir=SWcdir
+		# Method 1 BEERS LAW
+		if (BEERS=='TRUE'):
+
+			# compute air pressure at coarse grid
+			dz=ztemp.transpose()-sob.z
+
+			self.psc=[]
+			for i in range(0,dz.shape[1]):
+			
+				#thisp.append(np.argmin(dz[:,i][dz[:,i]>0]))
+				thisp = dz[:,i]==np.min(dz[:,i][dz[:,i]>0])
+				z0 = sob.z[i]
+				T0 = sob.t2m[i]
+				T1=Ttemp[i,thisp]
+				z1=ztemp[i,thisp]
+				p1=pob.levels[thisp]*1e2 #Convert to Pa.
+				Tbar=np.mean([T0, T1],axis=0)
+				""" Hypsometric equation."""
+				self.psc.append(p1*np.exp((z1-z0)*(self.g/(Tbar*self.R))))
+
+			self.psc=np.array(self.psc).squeeze()
+
+			# Calculate the "broadband" absorption coefficient. Elevation correction
+			# from Kris
+			ka=(self.g*muz/(self.psc))*np.log(SWtoa/SWcdir)	
+			#ka.set_fill_value(0)
+			#ka = ka.filled()
+
+			# set inf (from SWtoa/SWcdir at nigh, zero division) to 0 (night)
+			ka[ka == -np.inf] = 0
+			ka[ka == np.inf] = 0
+			# Note this equation is obtained by inverting Beer's law, i.e. use
+			#I_0=I_inf x exp[(-ka/mu) int_z0**inf rho dz]
+			# Along with hydrostatic equation to convert to pressure coordinates then
+			# solve for ka using p(z=inf)=0.
+			
+			# Method 1 Beers law
+			# Now you can (finally) find the direct component at subgrid. 
+			self.SWfdir=SWtoa*np.exp(-ka*self.psf/(self.g*muz))
+			#self.SWfdir=SWcdir
 		
 		# Method 2 ORIGINAL ELEVATION Correction
+		# https://hal.archives-ouvertes.fr/hal-00470155/document
 		"""ele diff in km"""
 		coarseZ=Zc[0]/9.9
 
@@ -547,7 +565,7 @@ class tscale(object):
 		t[t<0.8]<-0.9 #to constrain to reasonable values
 		db=(1-t)*SWcdir
 
-		#self.SWfdir=SWcdir+db #additative correction
+		self.SWfdir=SWcdir+db #additative correction
 
 		#======================================
 		""" Then perform the terrain correction. [Corripio 2003 / rpackage insol port]."""
@@ -683,7 +701,7 @@ class tscale(object):
 		"""
 		#self.SWfdirCor=selMask*(cosis/cosic)*self.SWfdir # this is really wrong!
 		#self.SWfdirCor=(cosis/cosic)*self.SWfdir 
-		self.SWfdirCor=dprod*self.SWfdir#*selMask # this is bad WHYYY?
+		self.SWfdirCor=dprod*self.SWfdir*selMask # this is bad WHYYY?
 		#self.SWfdirCor=dprod*self.SWfdir
 		self.SWfglob = self.SWfdiff+ self.SWfdirCor
 		#self.SWfglob = self.SWfdiff+ self.SWfdir

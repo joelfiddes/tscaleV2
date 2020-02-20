@@ -22,11 +22,11 @@ for year in tqdm(years):
 			start = str(year)+'-12-23'
 			t= pd.to_datetime(start)   
 			end = t+datetime.timedelta(days=8)
-
+			print(start)
 		if startIndex<45:
 			t= pd.to_datetime(start)   
 			end = t+datetime.timedelta(days=9) 
-
+			print(start)
 
 
 		tscale_cci.main( "/cluster/home/fiddes/nn9606k/tscale/coordinates.dat","/cluster/home/fiddes/nn9606k/era5" , "/cluster/home/fiddes/nn9606k/tscale",	str(start),  str(end), startIndex )
