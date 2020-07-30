@@ -4,7 +4,14 @@ Modified version of tscale3D.py specifically for CCI permafrost.
 - Removes dependency on slp,asp,svf that are not avvailable in CCI. This effects LW (svf) and SWin (Horizon, selfshading).
 
 update Dec 2019:
-- accepts assci list
+- accepts assci list "coords" lon,lat,ele (no header) eg:
+
+78.55413,16.062615,208.4555
+78.545797,16.051085,270.42717
+78.537463,16.039572,345.13469
+78.52913,16.028075,75.857465
+78.520797,16.016595,0.036243933
+
 - 9 day chunks
 - writes netcdf
 - includes sublimation
@@ -62,7 +69,7 @@ def main(coords,eraDir, outDir,start, end, startIndex):
 	}
 
 	# read in lispoints
-	lp=pd.read_csv(coords)
+	lp=pd.read_csv(coords, header=None)
 
 	# make out path for results
 	out = outDir
