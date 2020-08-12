@@ -15,7 +15,8 @@ Object description:
 	* stat - station object (points, cluster centroids or grid centroids)
 
 Example:
-	python /home/joel/src/tscaleV2/toposcale/tscale_run.py /home/joel/sim/imis/forcing/ /home/joel/sim/imis/ /home/joel/sim/imis/forcing/ 2000-09-01 2001-09-01 FALSE
+	python /home/caduff/src/tscaleV2/toposcale/tscale_run.py /home/caduff/sim/paiku/forcing/ /home/joel/sim/paiku/sim/g2 /home/caduff/sim/paiku/sim/g2/forcing/ 1979-09-01 2019-09-01 FALSE era5 FALSE
+
 	
 Args:
 	inDir: directory containing input meteo PLEV.nc and SURF.nc 
@@ -278,7 +279,7 @@ for i in tqdm(range(lp.id.size)):
 	 # plt.plot(t.SWfdirCor)
 	# plt.show()
 	
-	# partition prate to rain snow (mm/hr)
+	# partition prate to rain snow (mm/hr) for FSM
 	lowthresh=272.15
 	highthresh = 274.15
 	d = {'prate': t.prate, 'ta': t.t }
@@ -299,7 +300,8 @@ for i in tqdm(range(lp.id.size)):
 	addRain[np.isnan(addRain)] = 0 
 	addSnow[np.isnan(addSnow)] = 0 
 
-	# linearly reduce snow to zero in steep slopes
+	# linearly reduce snow to zero in steep slopes for FSM
+	
 	#if steepSnowReduce=="TRUE": # make this an option if need that in future
 	snowSMIN=30.
 	snowSMAX=80.
