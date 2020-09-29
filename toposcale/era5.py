@@ -192,7 +192,7 @@ class Plev(object):
 		a =timestep - startdtime   
 		hours = a.seconds/3600 
 		self.dtime  = pd.date_range(startdtime, enddtime, freq=str(hours)+"H")
-		if len(self.dtime )!= len(nctime):
+		if len(self.dtime )!= len(self.nctime):
 			print("error")
 
 		#ds = xr.open_dataset("/home/joel/sim/tamara/forcing/PLEV.nc",decode_times=True)
