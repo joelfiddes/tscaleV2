@@ -270,7 +270,7 @@ class tscale(object):
 
 		""" Use the former cloud emissivity to compute the all sky emissivity at 
 		subgrid. """
-		aef=cef+deltae
+		aef=cef+deltae # 1 dimension sme length as time 
 		self.LWf= aef*sbc*tob.t**4 #*stat.svf
 		# self.LWf= aef*sbc*tob.t**4
 		#  fout.LW(:,:,n)=LWf

@@ -183,7 +183,20 @@ class Plev(object):
 		"""
 		f = nc.Dataset(self.fp)
 		self.nctime = f.variables['time']
-		self.dtime = pd.to_datetime(nc.num2date(self.nctime[:],self.nctime.units, calendar="standard"))
+
+		# this fails/ hangs/ takes bloody ages on big datsets
+		#self.dtime = pd.to_datetime(nc.num2date(self.nctime[:],self.nctime.units, calendar="standard"))
+		startdtime = pd.to_datetime(nc.num2date(self.nctime[0],self.nctime.units, calendar="standard"))
+		enddtime = pd.to_datetime(nc.num2date(self.nctime[-1],self.nctime.units, calendar="standard"))
+		timestep = pd.to_datetime(nc.num2date(self.nctime[1],self.nctime.units, calendar="standard"))
+		a =timestep - startdtime   
+		hours = a.seconds/3600 
+		self.dtime  = pd.date_range(startdtime, enddtime, freq=str(hours)+"H")
+		if len(self.dtime )!= len(nctime):
+			print("error")
+
+		#ds = xr.open_dataset("/home/joel/sim/tamara/forcing/PLEV.nc",decode_times=True)
+		#datetimeindex = ds.indexes["time"]
 
 	def addShape(self):
 		""" adds two dimensions of time and levels """

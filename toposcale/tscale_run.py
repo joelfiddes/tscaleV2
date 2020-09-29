@@ -85,6 +85,9 @@ logging.basicConfig(level=logging.DEBUG, filename=home+"/tscale_logfile", filemo
 
 for i in tqdm(range(lp.id.size)):
 
+	# as short fix to pddatetime problem extract grid cell here first - make sure we only operate on that!
+	
+
 	# station attribute structure , tz always =0 for case of ERA5
 	stat = hp.Bunch(ele = lp.ele[i], slp = lp.slp[i],asp = lp.asp[i],svf = lp.svf[i],lon = lp.lon[i], lat =lp.lat[i],sro = lp.surfRough[i],tz = lp.tz[i]  )
 
