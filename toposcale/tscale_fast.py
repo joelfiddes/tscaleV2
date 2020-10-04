@@ -481,7 +481,7 @@ def swin2D(pob,sob,tob, lp, dtime): # does not work yet (booleen indexing of 2d 
 
 	SWfglob =  SWfdiff+ SWfdirCor
 
-	return SWfglob
+	return SWfglob, psf
 	""" 
 	Missing components
 	- terrain reflection
@@ -689,12 +689,41 @@ def swin1D(pob,sob,tob, stat, dates, index):
 		SWfdirCor=selMask*dprod*SWfdir
 	   
 		SWfglob =  SWfdiff+ SWfdirCor
-		return SWfglob
+		return SWfglob, psf
 		""" 
 		Missing components
 		- terrain reflection
 		"""
 		# init grid stack
+
+def snowPartition(TA,PINT): 
+
+	# partition prate to rain snow (mm/hr)	
+	lowthresh=272.15
+	highthresh = 274.15
+	d = {'prate': PINT, 'ta': TA}
+	df = pd.DataFrame(data=d)
+	snow = df.prate.where(df.ta<lowthresh) 
+	rain=df.prate.where(df.ta>=highthresh) 
+
+	mix1S = df.prate.where((df.ta >= lowthresh) & (df.ta<=highthresh), inplace = False)
+	mix1T = df.ta.where((df.ta >= lowthresh) & (df.ta<=highthresh), inplace = False)
+	mixSno=(highthresh - mix1T) / (highthresh-lowthresh)
+	mixRain=1-mixSno
+	addSnow=mix1S*mixSno
+	addRain=mix1S*mixRain
+
+	# nas to 0
+	snow[np.isnan(snow)] = 0 	
+	rain[np.isnan(rain)] = 0 
+	addRain[np.isnan(addRain)] = 0 
+	addSnow[np.isnan(addSnow)] = 0 
+
+	snowTot=(snow+addSnow)
+	rainTot=rain + addRain
+
+	return snowTot,rainTot
+
 def tscale3dmain(mymonth):
 	'''
 	main function that runs tscale3D for a single month of era5 input. This
@@ -807,7 +836,7 @@ def tscale3dmain(mymonth):
 	print("made lwin")
 
 	# vector method
-	tob.swin = swin2D(pob,sob,tob, lp, dtime=t3d.dtime)
+	tob.swin, tob.psf = swin2D(pob,sob,tob, lp, dtime=t3d.dtime)
 
 	# loop method
 	# init first row
@@ -834,20 +863,29 @@ def tscale3dmain(mymonth):
 	print("Made Swin")
 
 
+
+
 	#===========================================================================
 	# make dataframe (write individual files plus netcdf)
 	#===========================================================================
 	start=1
 	print("Writing toposcale files...")
 	for i in range(0,tob.t.shape[1]):
+
+		# partition
+		Sf,Rf = snowPartition(tob.t[:,i], tob.prate[i,:])
+
 		df = pd.DataFrame({	"TA":tob.t[:,i], 
-					"RH":tob.r[:,i]*0.01, #meteoio 0-1
+					"RH":tob.r[:,i],
+					"P":tob.psf[:,i],
 					"VW":tob.ws[:,i],
 					"DW":tob.wd[:,i],
 					"ILWR":tob.lwin[:,i], 
 					"ISWR":tob.swin[:,i], 
 					"PINT":tob.prate[i,:],
-					"PSUM":tob.psum[i,:]
+					"PSUM":tob.psum[i,:],
+					"Snowf":Sf,
+					"Rainf":Rf
 					},index=tob.dtime)
 		df.index.name="datetime"
 
@@ -862,13 +900,10 @@ def tscale3dmain(mymonth):
 		df[column_order].to_csv(path_or_buf=fileout ,na_rep=-999,float_format='%.3f')
 		print("written "+fileout)
 
-def plot(obs, sim):
-	plt.figure()
-	ax = plt.gca()
-	obs.loc[plot_period].plot(ax=ax, color='black', label='obs', lw=2)
-	sim.loc[plot_period].plot(ax=ax)
-	plt.legend()
-	plt.show()
+
+
+
+
 #===============================================================================
 # KODE
 #===============================================================================
@@ -896,7 +931,7 @@ filenames = sorted(glob.glob(wdir + "/*/*/listpoints.txt"))
 
 dfs = []
 for filename in filenames:
-    dfs.append(pd.read_csv(filename))
+	dfs.append(pd.read_csv(filename))
 
 # Concatenate all lp data into one DataFrame
 lp = pd.concat(dfs, ignore_index=True)
@@ -916,7 +951,7 @@ for id in tqdm(lp.id):
 
 	dfs = []
 	for filename in filenames:
-	    dfs.append(pd.read_csv(filename))
+		dfs.append(pd.read_csv(filename))
 	# Concatenate all data into one DataFrame
 	met_agg = pd.concat(dfs, ignore_index=True)
 	fileout=wdir+"/out/allmeteo"+"c"+str(id)+".csv" # convert member index back to 1-10
@@ -927,15 +962,73 @@ for id in tqdm(lp.id):
 	#for file in filenames:
 		#os.remove(file)
 
-print("tscale3D complete!")
-print("Total runtime=")
+
 
 # validate /plot
 
+
+# generate listpoint files
+print("Generating report")
+filenames = sorted(glob.glob(wdir + "/*/*/listpoints.txt"))
+
+dfs = []
+for filename in filenames:
+	dfs.append(pd.read_csv(filename))
+
+# Concatenate all lp data into one DataFrame
+lp = pd.concat(dfs, ignore_index=True)
+
+# round values for pretty printing
+lp=lp.iloc[:,0:9]
+decimals = pd.Series([0, 0,0,0,2,4,4,2,0], index=lp.columns )
+lp =lp.round(decimals)
+mydtype = pd.Series(['int32', 'int32','int32','int32','float','float','float','float','int32'], index=lp.columns )
+lp.astype(mydtype).dtypes
+decimals = pd.Series([0, 0,0,0,2,4,4,2,0], index=lp.columns )
+lp =lp.round(decimals)
+
 from matplotlib.backends.backend_pdf import PdfPages
-with PdfPages('multipage_pdf.pdf') as pdf:
+import numpy as np
+with PdfPages(wdir+'/tscale_report.pdf') as pdf:
+
+	table = lp
+	header = table.columns
+	table = np.asarray(table)
+	fig = plt.figure(figsize=(8, 6))
+	ax = plt.Axes(fig, [0., 0., 1., 1.])
+	ax.set_axis_off()
+	fig.add_axes(ax)
+	tab = plt.table(cellText=table, colLabels=header, cellLoc='center', loc='center')
+	tab.auto_set_font_size(True)
+	#tab.set_fontsize(8)
+	#tab.scale(0.7, 2.5)
+	pdf.savefig(fig)
+	plt.close()
+
+
+
 
 	filenames =	sorted(glob.glob(wdir+"/out/allmeteoc*"))
+
+
+	meanTa=[]
+	for file in filenames:
+		df = pd.read_csv(file) 
+		meanTa.append(df.TA.mean() )
+
+
+	plt.scatter(lp.ele , meanTa)
+
+	for i, txt in enumerate(lp.id):
+		plt.annotate(txt, (lp.ele[i], meanTa[i]))
+	plt.title("station ID plot")
+	plt.xlabel('Elevation (m asl)')
+	plt.ylabel('MAAT (K)')
+	plt.hlines(273.15,lp.ele.min() ,lp.ele.max() )
+	#plt.show() 
+	pdf.savefig()  # saves the current figure into a pdf page
+	plt.close()
+
 
 	for file in filenames:
 
@@ -951,20 +1044,6 @@ with PdfPages('multipage_pdf.pdf') as pdf:
 		plt.close()
 
 
-	meanTa=[]
-	for file in filenames:
-		df = pd.read_csv(file) 
-		meanTa.append(df.TA.mean() )
 
-
-	plt.scatter(lp.ele , meanTa,title="station ID plot")
-
-	for i, txt in enumerate(lp.id):
-	    plt.annotate(txt, (lp.ele[i], meanTa[i]))
-
-	plt.xlabel('Elevation (m asl)')
-	plt.ylabel('MAAT (K)')
-	plt.hlines(273.15,lp.ele.min() ,lp.ele.max() )
-	#plt.show() 
-	pdf.savefig()  # saves the current figure into a pdf page
-	plt.close()
+print("tscale3D complete!")
+print("Total runtime=")
