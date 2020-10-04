@@ -19,14 +19,14 @@ Example:
 
 	
 Args:
-	inDir: directory containing input meteo PLEV.nc and SURF.nc 
+	wd: directory containing input meteo PLEV.nc and SURF.nc 
 		"/home/joel/sim/topomapptest/forcing/"
 	home: location of listpoints.txt
 		"/home/joel/sim/topomapptest/sim/g1m1/"
 	outDir: location where output meteo files are written
 		"/home/joel/sim/topomapptest/sim/g1m1/forcing/"
-	startTime: ISO format #"2016-08-01 18:00:00"
-	endTime: ISO format #"2016-08-01 18:00:00"
+	startDate: ISO format #"2016-08-01 18:00:00"
+	endDate: ISO format #"2016-08-01 18:00:00"
 	windCor: use sebs wind correction str: "TRUE" or "FALSE"
 Todo:
 
@@ -43,28 +43,27 @@ from tqdm import tqdm
 #import ipdb
 #ipdb.set_trace()
 #=== ARGS==============================================
-inDir=sys.argv[1] # /home/joel/sim/imis/forcing/
+wd=sys.argv[1] # /home/joel/sim/imis/forcing/
 home=sys.argv[2] # /home/joel/sim/imis/
-outDir = sys.argv[3] # 
-startTime = sys.argv[4]
-endTime = sys.argv[5]
+startDate = sys.argv[3]
+endDate = sys.argv[4]
+dataset=sys.argv[5]
 windCor=sys.argv[6]
-dataset=sys.argv[7]
-plapse=sys.argv[8]
+plapse=sys.argv[7]
 # DEBUG
-# inDir= '/home/joel/sim/imis/forcing/'
+# wd= '/home/joel/sim/imis/forcing/'
 # home='/home/joel/sim/imis/'
-# outDir = inDir 
-# startTime = '2000-09-01'
-# endTime = '2001-09-01'
+# outDir = wd 
+# startDate = '2000-09-01'
+# endDate = '2001-09-01'
 # windCor='FALSE'
 
-fp=inDir+"/PLEV.nc"
-fs=inDir+"/SURF.nc"
+fp=wd+"/forcing/PLEV.nc"
+fs=wd+"/forcing/SURF.nc"
+outDir = home+"/forcing"
 lpfile=home + "/listpoints.txt"
 # read in lispoints
 lp=pd.read_csv(lpfile)
-
 
 if dataset=='interim':
 	import erai as era
@@ -99,8 +98,8 @@ for i in tqdm(range(lp.id.size)):
 
 	""" Datetime structure """
 	pob.addTime()
-	startIndexP = int(np.where(pob.dtime==startTime)[0])#"2016-08-01 18:00:00"
-	endIndexP = int(np.where(pob.dtime==endTime)[0])#"2016-08-01 18:00:00"
+	startIndexP = int(np.where(pob.dtime==startDate)[0])#"2016-08-01 18:00:00"
+	endIndexP = int(np.where(pob.dtime==endDate)[0])#"2016-08-01 18:00:00"
 	pob.dtime=pob.dtime[startIndexP:endIndexP]	
 
 	""" Add plevels """
@@ -115,8 +114,8 @@ for i in tqdm(range(lp.id.size)):
 
 	""" Datetime structure """
 	s.addTime()
-	startIndexS = int(np.where(s.dtime==startTime)[0])#"2016-08-01 18:00:00"
-	endIndexS = int(np.where(s.dtime==endTime)[0])#"2016-08-01 18:00:00"
+	startIndexS = int(np.where(s.dtime==startDate)[0])#"2016-08-01 18:00:00"
+	endIndexS = int(np.where(s.dtime==endDate)[0])#"2016-08-01 18:00:00"
 	s.dtime=s.dtime[startIndexS:endIndexS]
 
 	# check for unequal dtime ie as case for interim
@@ -139,15 +138,15 @@ for i in tqdm(range(lp.id.size)):
 
 
 	# only required for erai, must have buffered datasets (ie a day before required startDate in raw data) as download will start at 03:00 on given day. 
-	# we assume day starts at 00:00 so s.dtime==startTime will not match in this case
+	# we assume day starts at 00:00 so s.dtime==startDate will not match in this case
 	#if p.dtime.shape!=s.dtime.shape:
 
 #	"""cut p.dtime to start and end"""
 #	s.dtime=s.dtime[startIndexS:endIndexS]
 
 #	# we always trim p.dtime here
-#	startIndexP = int(np.where(p.dtime==startTime)[0])#"2016-08-01 18:00:00"
-#	endIndexP = int(np.where(p.dtime==endTime)[0])#"2016-08-01 18:00:00"
+#	startIndexP = int(np.where(p.dtime==startDate)[0])#"2016-08-01 18:00:00"
+#	endIndexP = int(np.where(p.dtime==endDate)[0])#"2016-08-01 18:00:00"
 
 #	"""cut p.dtime to start and end"""
 #	p.dtime=p.dtime[startIndexP:endIndexP]	

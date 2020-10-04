@@ -27,7 +27,7 @@ Methods adapted from REDCAPP available at: https://github.com/geocryology/REDCAP
 
 
 import numpy as np
-
+import pandas as pd
 import netCDF4 as nc
 #import pygrib  as pg
 import csv
@@ -175,7 +175,32 @@ class t3d(object):
         if not (dem is None):
             self.dem  = nc.Dataset(dem)
         
-        
+    def addTime(self):
+        """ add time vector and convert to ISO 
+            Return datetime objects given numeric time values. 
+            The units of the numeric time values are described by the units 
+            argument and the calendar keyword. The returned datetime objects 
+            represent UTC with no time-zone offset, even if the specified 
+            units contain a time-zone offset.
+
+            calender options defined here:
+            http://unidata.github.io/netcdf4-python/#netCDF4.num2date
+            
+        """
+        self.nctime = self.pl.variables['time']
+
+        # this fails/ hangs/ takes bloody ages on big datsets
+        #self.dtime = pd.to_datetime(nc.num2date(self.nctime[:],self.nctime.units, calendar="standard"))
+        startdtime = pd.to_datetime(nc.num2date(self.nctime[0],self.nctime.units, calendar="standard"))
+        enddtime = pd.to_datetime(nc.num2date(self.nctime[-1],self.nctime.units, calendar="standard"))
+        timestep = pd.to_datetime(nc.num2date(self.nctime[1],self.nctime.units, calendar="standard"))
+        a =timestep - startdtime   
+        hours = a.seconds/3600 
+        self.dtime  = pd.date_range(startdtime, enddtime, freq=str(hours)+"H")
+        if len(self.dtime )!= len(self.nctime):
+            print("dtime error")
+
+
     def demGrid(self, stations = None):     
         """Return metadata of given stations or dem. 
      
@@ -455,7 +480,35 @@ class t3d(object):
              
         return dG
     
+    def tscale3d(self, var, starti, endi):
+        xdim=self.shape[0]
+        sa_vec = np.zeros(xdim)
 
+        for timestep in range(starti, endi):
+
+            gridT,gridZ,gridLat,gridLon=self.gridValue(var,timestep)
+            t_interp, z_interp = self.inLevelInterp(gridT,gridZ, gridLat,gridLon,self.out_xyz_dem)
+
+            pl_obs = self.fast1d(t_interp, z_interp, self.out_xyz_dem)
+            sa_vec=np.column_stack((sa_vec,pl_obs))
+
+        sa_vec =sa_vec[:,1:]
+        return sa_vec.T
+
+    def tscale2d(self, var, starti, endi):
+        xdim=self.shape[0]
+        sa_vec = np.zeros(xdim)
+
+
+        for timestep in range(starti, endi):
+
+            sa_t = self.surVarPoint(timestep, self.lp, var)
+            sa_vec=np.column_stack((sa_vec,sa_t))
+                
+        # drop init row
+        sa_vec =sa_vec[:,1:]
+        return sa_vec.T
+        
 class t3d_eda(t3d):
     """
     Return object for ERA5 (EDA) that has methods for interpolationg

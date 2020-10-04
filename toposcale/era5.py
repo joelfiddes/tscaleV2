@@ -127,6 +127,7 @@ class Plev(object):
 		f = nc.Dataset(self.fp)
 
 		latbounds = [ self.mylat , self.mylat ]
+
 		lonbounds = [ self.mylon , self.mylon ] # degrees east ? 
 		lats = f.variables['latitude'][:] 
 		lons = f.variables['longitude'][:]
@@ -193,7 +194,7 @@ class Plev(object):
 		hours = a.seconds/3600 
 		self.dtime  = pd.date_range(startdtime, enddtime, freq=str(hours)+"H")
 		if len(self.dtime )!= len(self.nctime):
-			print("error")
+			print("dtime error")
 
 		#ds = xr.open_dataset("/home/joel/sim/tamara/forcing/PLEV.nc",decode_times=True)
 		#datetimeindex = ds.indexes["time"]
