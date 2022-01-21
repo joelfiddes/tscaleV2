@@ -9,7 +9,7 @@ cycler==0.10.0
 decorator==4.3.0
 enum34==1.1.6
 idna==2.8
-ipython==5.8.0
+ipython==7.16.3
 ipython-genutils==0.2.0
 joblib==0.13.1
 kiwisolver==1.0.1
